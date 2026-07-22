@@ -5,7 +5,7 @@ import {
 } from 'recharts';
 import { supabase } from '../../lib/supabase';
 import { useAuth } from '../../contexts/AuthContext';
-import { Loader2, TrendingUp, DollarSign, Users, Bus } from 'lucide-react';
+import { Loader2, TrendingUp, DollarSign, Users } from 'lucide-react';
 import { format, subMonths, parseISO, startOfMonth, endOfMonth } from 'date-fns';
 import { tr } from 'date-fns/locale';
 

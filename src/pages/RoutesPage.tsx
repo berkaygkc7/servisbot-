@@ -462,10 +462,7 @@ const RoutesPage: React.FC = () => {
         // 2. Selected Route Markers (Stops)
         else if (selectedRoute) {
             // Refinement: Hide stop markers for manually created routes
-            // We usually want to keep Start/End for context, but hide the "intermediate" ones (numbered circles)
-            const isManual = selectedRoute.creation_method === 'manual';
-
-            selectedRoute.stops.forEach((stop, index) => {
+            selectedRoute.stops.forEach((stop, _index) => {
                 // Defensive: Skip markers if coordinates are invalid or 0,0
                 if (!stop.coordinates || stop.coordinates.length < 2) return;
                 const lng = Number(stop.coordinates[0]);
@@ -677,7 +674,7 @@ const RoutesPage: React.FC = () => {
     const handleDeletePoint = (_index: number) => {
         setTempPoints(prev => {
             const newPoints = [...prev];
-            const deleted = newPoints[index];
+            const deleted = newPoints[_index];
             newPoints.splice(_index, 1);
 
             // Logic to reset steps if critical points are deleted

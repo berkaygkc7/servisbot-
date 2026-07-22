@@ -4,7 +4,7 @@ import DriverList, { type Driver } from '../components/dashboard/DriverList';
 import DriverLeaveCalendar, { type DriverLeave } from '../components/dashboard/DriverLeaveCalendar';
 import LeaveModal from '../components/dashboard/LeaveModal';
 import DriverLeavesModal from '../components/dashboard/DriverLeavesModal';
-import QrCodeModal from '../components/shared/QrCodeModal';
+
 import { supabase } from '../lib/supabase';
 import { useAuth } from '../contexts/AuthContext';
 import { isWithinInterval, parseISO, format, isAfter } from 'date-fns';
@@ -28,9 +28,7 @@ const Drivers: React.FC = () => {
     const [isDriverLeavesModalOpen, setIsDriverLeavesModalOpen] = useState(false);
     const [selectedDriverForLeaves, setSelectedDriverForLeaves] = useState<Driver | null>(null);
 
-    // QR Modal State
-    const [isQrModalOpen, setIsQrModalOpen] = useState(false);
-    const [selectedQrDriver, setSelectedQrDriver] = useState<Driver | null>(null);
+
 
     // Form State
     const [formData, setFormData] = useState<Partial<Driver>>({});
@@ -451,22 +449,13 @@ const Drivers: React.FC = () => {
                 driver={selectedDriverForLeaves}
                 leaves={leaves}
                 onDeleteLeave={handleDeleteLeave}
-                onAddLeaveClick={(driver) => {
+                onAddLeaveClick={() => {
                     setSelectedDate(new Date());
                     setIsLeaveModalOpen(true);
                 }}
             />
 
-            {/* QR Code Modal for Login */}
-            {selectedQrDriver && (
-                <QrCodeModal
-                    isOpen={isQrModalOpen}
-                    onClose={() => setIsQrModalOpen(false)}
-                    token={selectedQrDriver.login_token || '12345678-1234-1234-1234-123456789abc'}
-                    type="driver"
-                    userName={selectedQrDriver.full_name}
-                />
-            )}
+
         </div>
     );
 };

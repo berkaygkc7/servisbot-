@@ -261,7 +261,7 @@ const DashboardLayout: React.FC = () => {
                                 <div className="absolute top-full right-0 mt-4 w-56 bg-white rounded-2xl shadow-xl border border-slate-100 overflow-hidden z-50 animate-fade-up">
                                     <div className="p-4 border-b border-slate-100 bg-slate-50/50">
                                         <p className="text-sm font-bold text-slate-800 truncate">{profile?.full_name}</p>
-                                        <p className="text-xs text-slate-500 truncate">{profile?.email}</p>
+                                        <p className="text-xs text-slate-500 truncate capitalize">{profile?.role}</p>
                                     </div>
                                     <div className="p-2 space-y-1">
                                         <button 
@@ -349,8 +349,8 @@ const DashboardLayout: React.FC = () => {
                                             <Mail size={18} />
                                         </div>
                                         <div>
-                                            <p className="text-[10px] font-bold text-slate-400 uppercase tracking-wider mb-0.5">E-Posta Adresi</p>
-                                            <p className="text-sm font-semibold text-slate-700 break-all">{profile?.email}</p>
+                                            <p className="text-[10px] font-bold text-slate-400 uppercase tracking-wider mb-0.5">Rol</p>
+                                            <p className="text-sm font-semibold text-slate-700 break-all capitalize">{profile?.role}</p>
                                         </div>
                                     </div>
                                     <div className="p-4 bg-slate-50 rounded-2xl border border-slate-100 flex items-start gap-3 hover:shadow-md transition-shadow">

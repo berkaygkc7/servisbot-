@@ -394,7 +394,7 @@ const Payments = () => {
                 "Okul Kademesi": sl,
                 "Tutar": p.amount,
                 "Son Ödeme Tarihi": p.due_date,
-                "Durum": p.status === 'paid' ? 'Ödendi' : p.status === 'overdue' ? 'Gecikti' : 'Bekliyor'
+                "Durum": p.status
             };
         });
 
