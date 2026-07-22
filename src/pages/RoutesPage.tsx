@@ -949,7 +949,10 @@ const RoutesPage: React.FC = () => {
                         geometry: { type: 'LineString', coordinates: validCoords },
                         properties: {}
                     });
+                    setFitBoundsTrigger(prev => prev + 1);
                 }
+            } else {
+                setFitBoundsTrigger(prev => prev + 1);
             }
 
             // Extract coordinates from stops
@@ -972,6 +975,7 @@ const RoutesPage: React.FC = () => {
                     geometry: { type: 'LineString', coordinates: result.coordinates },
                     properties: {}
                 });
+                setFitBoundsTrigger(prev => prev + 1);
 
                 // Update stats
                 const distKm = parseFloat((result.distance / 1000).toFixed(1));
@@ -1048,6 +1052,7 @@ const RoutesPage: React.FC = () => {
                         geometry: { type: 'LineString', coordinates: result.coordinates },
                         properties: {}
                     });
+                    setFitBoundsTrigger(prev => prev + 1);
 
                     setRoutes(prev => prev.map(r =>
                         r.id === selectedRouteId
@@ -1656,6 +1661,7 @@ const RoutesPage: React.FC = () => {
                         center={mapCenter}
                         zoom={mapZoom}
                         fitBoundsTrigger={fitBoundsTrigger}
+                        selectedRouteId={selectedRouteId}
                     />
 
                     {/* Route Hover Info Popup */}

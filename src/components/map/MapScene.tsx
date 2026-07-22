@@ -26,6 +26,7 @@ interface MapSceneProps {
         isPlaying: boolean;
     };
     fitBoundsTrigger?: number;
+    selectedRouteId?: string | null;
     center?: [number, number];
     zoom?: number;
     hideControls?: boolean;
@@ -41,6 +42,7 @@ const MapSceneController: React.FC<Omit<MapSceneProps, 'className' | 'simulation
     onRouteClick,
     onRouteHover,
     fitBoundsTrigger,
+    selectedRouteId,
     center,
     zoom,
     mapStyle
@@ -194,22 +196,28 @@ const MapSceneController: React.FC<Omit<MapSceneProps, 'className' | 'simulation
 
     }, [colorfulData, colorfulRoutesGeoJson]);
 
-    // Bounds fitting
+    // Bounds fitting on trigger OR route selection OR routeGeoJson change
     useEffect(() => {
-        if (!map || !coreLibrary || fitBoundsTrigger === undefined || fitBoundsTrigger === 0) return;
+        if (!map) return;
         
-        const bounds = new coreLibrary.LatLngBounds();
+        const BoundsClass = coreLibrary?.LatLngBounds || (typeof google !== 'undefined' && google.maps && google.maps.LatLngBounds);
+        if (!BoundsClass) return;
+
+        const bounds = new BoundsClass();
         let hasCoords = false;
 
         const parseGeometry = (geojson: any) => {
-             if (!geojson || !geojson.features) return;
-             geojson.features.forEach((f: any) => {
+             if (!geojson) return;
+             
+             const features = geojson.features ? geojson.features : (geojson.type === 'Feature' ? [geojson] : []);
+             
+             features.forEach((f: any) => {
                   if (f.geometry && f.geometry.coordinates) {
                        if (f.geometry.type === 'LineString') {
                             f.geometry.coordinates.forEach((c: any) => {
                                  const lat = Number(c[1]);
                                  const lng = Number(c[0]);
-                                 if (!isNaN(lat) && !isNaN(lng)) {
+                                 if (!isNaN(lat) && !isNaN(lng) && (lat !== 0 || lng !== 0)) {
                                      bounds.extend({ lat, lng });
                                      hasCoords = true;
                                  }
@@ -219,7 +227,7 @@ const MapSceneController: React.FC<Omit<MapSceneProps, 'className' | 'simulation
                                  line.forEach((c: any) => {
                                      const lat = Number(c[1]);
                                      const lng = Number(c[0]);
-                                     if (!isNaN(lat) && !isNaN(lng)) {
+                                     if (!isNaN(lat) && !isNaN(lng) && (lat !== 0 || lng !== 0)) {
                                          bounds.extend({ lat, lng });
                                          hasCoords = true;
                                      }
@@ -237,16 +245,27 @@ const MapSceneController: React.FC<Omit<MapSceneProps, 'className' | 'simulation
         if (markers && markers.length > 0) {
             markers.forEach((m: any) => {
                 if (m.position && !isNaN(Number(m.position[0])) && !isNaN(Number(m.position[1]))) {
-                    bounds.extend({ lat: Number(m.position[1]), lng: Number(m.position[0]) });
-                    hasCoords = true;
+                    const lat = Number(m.position[1]);
+                    const lng = Number(m.position[0]);
+                    if (lat !== 0 || lng !== 0) {
+                        bounds.extend({ lat, lng });
+                        hasCoords = true;
+                    }
                 }
             });
         }
 
         if (hasCoords) {
-             map.fitBounds(bounds, 50);
+             const timer = setTimeout(() => {
+                 try {
+                     map.fitBounds(bounds, 60);
+                 } catch (e) {
+                     console.error("Error fitting bounds:", e);
+                 }
+             }, 50);
+             return () => clearTimeout(timer);
         }
-    }, [map, coreLibrary, fitBoundsTrigger]); // Only trigger on fitBoundsTrigger change
+    }, [map, coreLibrary, fitBoundsTrigger, selectedRouteId, routeGeoJson]);
 
     return null;
 };
@@ -283,6 +302,7 @@ const MapScene: React.FC<MapSceneProps> = ({
     onRouteClick,
     simulation,
     fitBoundsTrigger = 0,
+    selectedRouteId,
     center,
     zoom,
     hideControls = false
@@ -363,6 +383,7 @@ const MapScene: React.FC<MapSceneProps> = ({
                         onRouteClick={onRouteClick}
                         onRouteHover={onRouteHover}
                         fitBoundsTrigger={fitBoundsTrigger}
+                        selectedRouteId={selectedRouteId}
                         center={center}
                         zoom={zoom}
                         mapStyle={mapStyle}
