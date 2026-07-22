@@ -238,21 +238,39 @@ const MapSceneController: React.FC<Omit<MapSceneProps, 'className' | 'simulation
              });
         };
 
-        parseGeometry(routeGeoJson);
-        parseGeometry(routesGeoJson);
-        parseGeometry(colorfulRoutesGeoJson);
-
-        if (markers && markers.length > 0) {
-            markers.forEach((m: any) => {
-                if (m.position && !isNaN(Number(m.position[0])) && !isNaN(Number(m.position[1]))) {
-                    const lat = Number(m.position[1]);
-                    const lng = Number(m.position[0]);
-                    if (lat !== 0 || lng !== 0) {
-                        bounds.extend({ lat, lng });
-                        hasCoords = true;
+        if (selectedRouteId) {
+            // ONLY zoom to the selected route line / stops!
+            if (routeGeoJson) {
+                parseGeometry(routeGeoJson);
+            }
+            if (markers && markers.length > 0) {
+                markers.forEach((m: any) => {
+                    if (m.type !== 'student_home' && m.position && !isNaN(Number(m.position[0])) && !isNaN(Number(m.position[1]))) {
+                        const lat = Number(m.position[1]);
+                        const lng = Number(m.position[0]);
+                        if (lat !== 0 || lng !== 0) {
+                            bounds.extend({ lat, lng });
+                            hasCoords = true;
+                        }
                     }
-                }
-            });
+                });
+            }
+        } else {
+            // General overview mode when no route is selected
+            parseGeometry(routesGeoJson);
+            parseGeometry(colorfulRoutesGeoJson);
+            if (markers && markers.length > 0) {
+                markers.forEach((m: any) => {
+                    if (m.position && !isNaN(Number(m.position[0])) && !isNaN(Number(m.position[1]))) {
+                        const lat = Number(m.position[1]);
+                        const lng = Number(m.position[0]);
+                        if (lat !== 0 || lng !== 0) {
+                            bounds.extend({ lat, lng });
+                            hasCoords = true;
+                        }
+                    }
+                });
+            }
         }
 
         if (hasCoords) {
