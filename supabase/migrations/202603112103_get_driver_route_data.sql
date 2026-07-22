@@ -1,0 +1,61 @@
+-- Function to get assigned route data for a mobile driver, bypassing RLS.
+CREATE OR REPLACE FUNCTION public.get_driver_route_data(p_vehicle_id UUID)
+RETURNS json
+LANGUAGE plpgsql
+SECURITY DEFINER
+AS $$
+DECLARE
+    result json;
+BEGIN
+    SELECT COALESCE(json_agg(
+        json_build_object(
+            'id', r.id,
+            'name', r.name,
+            'geometry', r.geometry,
+            'time', r.time,
+            'status', r.status,
+            'created_at', r.created_at,
+            'route_stops', (
+                SELECT COALESCE(json_agg(
+                    json_build_object(
+                        'id', rs.id,
+                        'name', rs.name,
+                        'latitude', rs.latitude,
+                        'longitude', rs.longitude,
+                        'order_index', rs.order_index,
+                        'estimated_time', rs.estimated_time
+                    ) ORDER BY rs.order_index ASC
+                ), '[]'::json)
+                FROM public.route_stops rs
+                WHERE rs.route_id = r.id
+            ),
+            'student_route_assignments', (
+                SELECT COALESCE(json_agg(
+                    json_build_object(
+                        'students', json_build_object(
+                            'id', s.id,
+                            'full_name', s.full_name,
+                            'absent_dates', s.absent_dates,
+                            'home_latitude', s.home_latitude,
+                            'home_longitude', s.home_longitude
+                        )
+                    )
+                ), '[]'::json)
+                FROM public.student_route_assignments sra
+                JOIN public.students s ON s.id = sra.student_id
+                WHERE sra.route_id = r.id
+            )
+        )
+    ), '[]'::json)
+    INTO result
+    FROM public.routes r
+    WHERE r.vehicle_id = p_vehicle_id
+      AND r.status IN ('active', 'pending')
+    ORDER BY r.time ASC
+    LIMIT 10;
+
+    RETURN result;
+END;
+$$;
+
+GRANT EXECUTE ON FUNCTION public.get_driver_route_data(UUID) TO anon, authenticated;

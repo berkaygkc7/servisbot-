@@ -1,0 +1,25 @@
+CREATE OR REPLACE FUNCTION public.get_company_info_by_token(p_token UUID)
+RETURNS json
+LANGUAGE plpgsql
+SECURITY DEFINER
+AS $$
+DECLARE
+    v_company RECORD;
+    v_schools JSON;
+BEGIN
+    SELECT id, company_name INTO v_company
+    FROM public.companies
+    WHERE public_token = p_token AND subscription_status = 'active'
+    LIMIT 1;
+
+    IF FOUND THEN
+        SELECT COALESCE(json_agg(json_build_object('id', s.id, 'name', s.name)), '[]'::json) INTO v_schools
+        FROM public.schools s
+        WHERE s.company_id = v_company.id;
+
+        RETURN json_build_object('success', true, 'company_name', v_company.company_name, 'schools', v_schools);
+    ELSE
+        RETURN json_build_object('success', false);
+    END IF;
+END;
+$$;

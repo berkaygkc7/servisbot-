@@ -1,0 +1,29 @@
+{
+  "project_info": {
+    "project_number": "23833818847",
+    "project_id": "servisbot-14aa4",
+    "storage_bucket": "servisbot-14aa4.firebasestorage.app"
+  },
+  "client": [
+    {
+      "client_info": {
+        "mobilesdk_app_id": "1:23833818847:android:5e1dbe9cad08b65a719b6a",
+        "android_client_info": {
+          "package_name": "com.servisbot.app"
+        }
+      },
+      "oauth_client": [],
+      "api_key": [
+        {
+          "current_key": "AIzaSyBDo99448JMqaVFjijFW3JtgM0tnR6y46k"
+        }
+      ],
+      "services": {
+        "appinvite_service": {
+          "other_platform_oauth_client": []
+        }
+      }
+    }
+  ],
+  "configuration_version": "1"
+}

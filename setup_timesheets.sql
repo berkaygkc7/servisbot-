@@ -1,0 +1,25 @@
+-- Puantaj ve Hakediş Sistemi İçin Veritabanı Tabloları
+
+-- 1. Rotalar (Routes) tablosuna 'price' (Birim Fiyat) sütunu ekle
+ALTER TABLE public.routes ADD COLUMN IF NOT EXISTS price DECIMAL(10,2) DEFAULT 0;
+
+-- 2. Günlük Sefer (Puantaj) kayıtlarını tutacak tablo
+CREATE TABLE IF NOT EXISTS public.route_attendances (
+    id UUID DEFAULT gen_random_uuid() PRIMARY KEY,
+    company_id UUID REFERENCES public.companies(id) ON DELETE CASCADE NOT NULL,
+    route_id UUID REFERENCES public.routes(id) ON DELETE CASCADE NOT NULL,
+    vehicle_id UUID REFERENCES public.vehicles(id) ON DELETE SET NULL,
+    attendance_date DATE NOT NULL,
+    trip_count INTEGER DEFAULT 1 NOT NULL,
+    source TEXT DEFAULT 'manual',
+    created_at TIMESTAMP WITH TIME ZONE DEFAULT NOW()
+);
+
+-- 3. RLS (Row Level Security) Ayarları
+ALTER TABLE public.route_attendances ENABLE ROW LEVEL SECURITY;
+
+CREATE POLICY "Tenant isolation for route_attendances" 
+    ON public.route_attendances 
+    FOR ALL 
+    USING (company_id = public.get_auth_company_id()) 
+    WITH CHECK (company_id = public.get_auth_company_id());

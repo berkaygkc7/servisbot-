@@ -1,0 +1,811 @@
+-- ==========================================
+-- ServisBot Database Setup Script (Consolidated Version)
+-- ==========================================
+
+-- 1. INITIAL SETUP
+-- Not: Bu publication her seferinde silinip eklenirse realtime bağlantıları kopabilir.
+-- Sadece yoksa oluşturmak en güvenlisidir.
+DO $$ 
+BEGIN 
+    IF NOT EXISTS (SELECT 1 FROM pg_publication WHERE pubname = 'supabase_realtime') THEN
+        CREATE PUBLICATION supabase_realtime;
+    END IF;
+END $$;
+
+-- [DİKKAT] Veri kaybını önlemek için DROP TABLE komutları kaldırıldı.
+-- Eğer tabloyu tamamen sıfırlamak isterseniz manuel olarak silebilirsiniz.
+
+-- 2. CORE TABLES
+create table if not exists public.companies (
+    id uuid primary key default gen_random_uuid(),
+    owner_id uuid references auth.users(id) on delete cascade,
+    company_name text not null,
+    city text,
+    public_token uuid default gen_random_uuid(),
+    subscription_status text default 'active',
+    subscription_tier text default 'free',
+    created_at timestamp with time zone default timezone('utc'::text, now())
+);
+
+ALTER TABLE public.companies ADD COLUMN IF NOT EXISTS city text;
+ALTER TABLE public.companies ADD COLUMN IF NOT EXISTS public_token uuid DEFAULT gen_random_uuid();
+
+create table if not exists public.users (
+    id uuid primary key references auth.users(id) on delete cascade,
+    company_id uuid references public.companies(id) on delete cascade not null,
+    full_name text not null,
+    role text default 'admin', -- 'owner', 'admin', 'dispatcher'
+    created_at timestamp with time zone default timezone('utc'::text, now())
+);
+
+-- 3. OPERATIONAL TABLES
+create table if not exists public.schools (
+  id uuid primary key default gen_random_uuid(),
+  company_id uuid references public.companies(id) on delete cascade not null,
+  name text not null,
+  district text,
+  latitude double precision,
+  longitude double precision,
+  created_at timestamp with time zone default timezone('utc'::text, now())
+);
+
+create table if not exists public.drivers (
+  id uuid primary key default gen_random_uuid(),
+  company_id uuid references public.companies(id) on delete cascade not null,
+  full_name text not null,
+  phone text,
+  status text default 'active',
+  blood_group text,
+  avatar_url text,
+  login_token uuid default gen_random_uuid(),
+  created_at timestamp with time zone default timezone('utc'::text, now())
+);
+
+create table if not exists public.vehicles (
+  id uuid primary key default gen_random_uuid(),
+  company_id uuid references public.companies(id) on delete cascade not null,
+  plate_number text not null,
+  driver_id uuid references public.drivers(id),
+  driver_name text, 
+  driver_phone text,
+  capacity integer,
+  current_latitude double precision,
+  current_longitude double precision,
+  status text default 'active',
+  created_at timestamp with time zone default timezone('utc'::text, now())
+);
+
+create table if not exists public.tags (
+  id uuid primary key default gen_random_uuid(),
+  company_id uuid references public.companies(id) on delete cascade not null,
+  name text not null,
+  color text default '#3b82f6',
+  created_at timestamp with time zone default timezone('utc'::text, now())
+);
+
+create table if not exists public.students (
+  id uuid primary key default gen_random_uuid(),
+  company_id uuid references public.companies(id) on delete cascade not null,
+  full_name text not null,
+  school_id uuid references public.schools(id),
+  vehicle_id uuid references public.vehicles(id),
+  tags text[] default '{}',
+  grade text,
+  blood_group text,
+  allergies text,
+  registration_date date,
+  school_level text,
+  parent_name text,
+  parent_phone text,
+  address text,
+  home_latitude double precision,
+  home_longitude double precision,
+  avatar_url text,
+  status text default 'active',
+  custom_price numeric,
+  absent_dates date[] default '{}',
+  login_token uuid default gen_random_uuid(),
+  created_at timestamp with time zone default timezone('utc'::text, now())
+);
+
+-- Kolon Eksikliği Kontrolü (Hali hazırda tablosu olanlar için yeni kolonları ekler)
+DO $$ 
+BEGIN 
+    -- Students tablosu için
+    IF NOT EXISTS (SELECT 1 FROM information_schema.columns WHERE table_name='students' AND column_name='custom_price') THEN
+        ALTER TABLE public.students ADD COLUMN custom_price numeric;
+    END IF;
+    IF NOT EXISTS (SELECT 1 FROM information_schema.columns WHERE table_name='students' AND column_name='absent_dates') THEN
+        ALTER TABLE public.students ADD COLUMN absent_dates date[] default '{}';
+    END IF;
+    IF NOT EXISTS (SELECT 1 FROM information_schema.columns WHERE table_name='students' AND column_name='login_token') THEN
+        ALTER TABLE public.students ADD COLUMN login_token uuid default gen_random_uuid();
+    END IF;
+
+    -- Payments tablosu için
+    IF NOT EXISTS (SELECT 1 FROM information_schema.columns WHERE table_name='payments' AND column_name='is_archived') THEN
+        ALTER TABLE public.payments ADD COLUMN is_archived boolean default false;
+    END IF;
+
+    -- Routes tablosu için
+    IF NOT EXISTS (SELECT 1 FROM information_schema.columns WHERE table_name='routes' AND column_name='time') THEN
+        ALTER TABLE public.routes ADD COLUMN "time" text default '08:00';
+    END IF;
+END $$;
+
+create table if not exists public.expenses (
+  id uuid primary key default gen_random_uuid(),
+  company_id uuid references public.companies(id) on delete cascade not null,
+  expense_category text not null,
+  vehicle_id uuid references public.vehicles(id) on delete cascade,
+  title text not null,
+  expense_date date not null,
+  amount numeric(12,2) default 0,
+  description text,
+  status text not null default 'upcoming',
+  created_at timestamp with time zone default timezone('utc'::text, now()) not null
+);
+
+create table if not exists public.payments (
+  id uuid primary key default gen_random_uuid(),
+  company_id uuid references public.companies(id) on delete cascade not null,
+  invoice_no text not null,
+  student_id uuid references public.students(id) on delete cascade not null,
+  month text not null,
+  amount numeric(12,2) not null,
+  due_date date not null,
+  status text not null default 'Bekliyor',
+  payment_method text,
+  is_archived boolean default false,
+  created_at timestamp with time zone default timezone('utc'::text, now()) not null
+);
+
+create table if not exists public.routes (
+  id uuid primary key default gen_random_uuid(),
+  company_id uuid references public.companies(id) on delete cascade not null,
+  name text not null,
+  school_id uuid references public.schools(id),
+  vehicle_id uuid references public.vehicles(id),
+  tags text[] default '{}',
+  status text default 'pending',
+  creation_method text default 'auto',
+  distance_km numeric,
+  duration_min numeric,
+  geometry jsonb,
+  time text default '08:00',
+  created_at timestamp with time zone default timezone('utc'::text, now())
+);
+
+create table if not exists public.route_stops (
+  id uuid primary key default gen_random_uuid(),
+  company_id uuid references public.companies(id) on delete cascade not null,
+  route_id uuid references public.routes(id) on delete cascade,
+  order_index integer not null,
+  name text,
+  latitude double precision,
+  longitude double precision,
+  estimated_time text,
+  created_at timestamp with time zone default timezone('utc'::text, now())
+);
+
+create table if not exists public.student_route_assignments (
+  id uuid primary key default gen_random_uuid(),
+  company_id uuid references public.companies(id) on delete cascade not null,
+  student_id uuid references public.students(id) on delete cascade,
+  route_id uuid references public.routes(id) on delete cascade,
+  stop_id uuid references public.route_stops(id) on delete cascade,
+  type text not null, 
+  created_at timestamp with time zone default timezone('utc'::text, now()),
+  unique(student_id, route_id, type)
+);
+
+create table if not exists public.pricing_rules (
+  id uuid primary key default gen_random_uuid(),
+  company_id uuid references public.companies(id) on delete cascade not null,
+  school_level text not null,
+  amount numeric(12,2) not null default 0,
+  created_at timestamp with time zone default timezone('utc'::text, now()) not null,
+  updated_at timestamp with time zone default timezone('utc'::text, now()) not null,
+  unique(company_id, school_level)
+);
+
+create table if not exists public.driver_leaves (
+    id uuid primary key default gen_random_uuid(),
+    driver_id uuid references public.drivers(id) on delete cascade not null,
+    start_date date not null,
+    end_date date not null,
+    reason text,
+    company_id uuid references public.companies(id) on delete cascade,
+    created_at timestamp with time zone default timezone('utc'::text, now())
+);
+
+-- 4. REALTIME ENABLEMENT
+-- Tabloların publication'a zaten dahil olup olmadığını kontrol ederek ekle
+DO $$ 
+DECLARE
+    t_name text;
+BEGIN
+    FOR t_name IN 
+        SELECT unnest(ARRAY['vehicles', 'drivers', 'routes', 'route_stops', 'student_route_assignments', 'tags', 'expenses', 'payments', 'pricing_rules', 'students', 'driver_leaves'])
+    LOOP
+        IF NOT EXISTS (
+            SELECT 1 FROM pg_publication_tables 
+            WHERE pubname = 'supabase_realtime' AND tablename = t_name
+        ) THEN
+            EXECUTE format('ALTER PUBLICATION supabase_realtime ADD TABLE public.%I;', t_name);
+        END IF;
+    END LOOP;
+END $$;
+
+-- 5. ROW LEVEL SECURITY (RLS) SETUP
+
+-- Helper Function
+CREATE OR REPLACE FUNCTION public.get_auth_company_id()
+RETURNS UUID AS $$
+DECLARE
+    v_company_id UUID;
+BEGIN
+    SELECT company_id INTO v_company_id FROM public.users WHERE id = auth.uid() LIMIT 1;
+    RETURN v_company_id;
+END;
+$$ LANGUAGE plpgsql STABLE SECURITY DEFINER SET search_path = public;
+
+-- Enable RLS on all tables
+DO $$ 
+DECLARE 
+    t_name text;
+BEGIN
+    FOR t_name IN 
+        SELECT tablename FROM pg_tables WHERE schemaname = 'public'
+    LOOP
+        EXECUTE format('ALTER TABLE public.%I ENABLE ROW LEVEL SECURITY;', t_name);
+    END LOOP;
+END $$;
+
+-- Policies for Companies & Users
+DO $$ 
+BEGIN
+    -- Companies
+    DROP POLICY IF EXISTS "companies_select" ON public.companies;
+    CREATE POLICY "companies_select" ON public.companies FOR SELECT TO authenticated USING (owner_id = auth.uid() OR id = public.get_auth_company_id());
+    
+    DROP POLICY IF EXISTS "companies_insert" ON public.companies;
+    CREATE POLICY "companies_insert" ON public.companies FOR INSERT TO authenticated WITH CHECK (auth.uid() = owner_id);
+    
+    DROP POLICY IF EXISTS "companies_update" ON public.companies;
+    CREATE POLICY "companies_update" ON public.companies FOR UPDATE TO authenticated USING (owner_id = auth.uid());
+
+    -- Users
+    DROP POLICY IF EXISTS "users_select_self" ON public.users;
+    CREATE POLICY "users_select_self" ON public.users FOR SELECT TO authenticated USING (id = auth.uid());
+    
+    DROP POLICY IF EXISTS "users_update_self" ON public.users;
+    CREATE POLICY "users_update_self" ON public.users FOR UPDATE TO authenticated USING (id = auth.uid());
+    
+    DROP POLICY IF EXISTS "users_delete_self" ON public.users;
+    CREATE POLICY "users_delete_self" ON public.users FOR DELETE TO authenticated USING (id = auth.uid());
+END $$;
+
+-- Operational Tables Policies (Tenant Isolation)
+DO $$ 
+DECLARE
+    t_name text;
+    p_name text;
+BEGIN
+    FOR t_name IN 
+        SELECT unnest(ARRAY['schools', 'drivers', 'vehicles', 'tags', 'students', 'expenses', 'payments', 'routes', 'route_stops', 'student_route_assignments', 'pricing_rules', 'driver_leaves'])
+    LOOP
+        p_name := format('Tenant isolation for %s', t_name);
+        -- Eğer policy zaten varsa sil (güncellemek için)
+        EXECUTE format('DROP POLICY IF EXISTS %I ON public.%I', p_name, t_name);
+        -- Yeni policy'i oluştur
+        EXECUTE format('CREATE POLICY %I ON public.%I FOR ALL USING (company_id = public.get_auth_company_id()) WITH CHECK (company_id = public.get_auth_company_id());', p_name, t_name);
+    END LOOP;
+END $$;
+
+-- 6. RPC FUNCTIONS
+
+-- Atomic Registration Function
+DROP FUNCTION IF EXISTS public.register_company(UUID, TEXT, TEXT, TEXT);
+DROP FUNCTION IF EXISTS public.register_company(UUID, TEXT, TEXT, TEXT, TEXT);
+
+CREATE OR REPLACE FUNCTION public.register_company(
+    p_user_id UUID,
+    p_company_name TEXT,
+    p_full_name TEXT,
+    p_city TEXT DEFAULT NULL,
+    p_subscription_tier TEXT DEFAULT 'free'
+) RETURNS jsonb AS $$
+DECLARE
+    v_company_id UUID;
+    v_user_record RECORD;
+BEGIN
+    INSERT INTO public.companies (company_name, city, subscription_tier, owner_id)
+    VALUES (p_company_name, p_city, p_subscription_tier, p_user_id)
+    RETURNING id INTO v_company_id;
+
+    INSERT INTO public.users (id, company_id, full_name, role)
+    VALUES (p_user_id, v_company_id, p_full_name, 'owner')
+    RETURNING * INTO v_user_record;
+    
+    RETURN row_to_json(v_user_record)::jsonb;
+END;
+$$ LANGUAGE plpgsql SECURITY DEFINER SET search_path = public;
+
+-- Passwordless Login Token Validation
+CREATE OR REPLACE FUNCTION public.validate_login_token(p_token uuid)
+RETURNS json
+LANGUAGE plpgsql
+SECURITY DEFINER
+AS $$
+DECLARE
+    v_driver RECORD;
+    v_student RECORD;
+    v_vehicle_id UUID;
+BEGIN
+    -- 1. Search in Drivers
+    SELECT id, company_id, full_name, phone INTO v_driver
+    FROM public.drivers
+    WHERE login_token = p_token AND status = 'active'
+    LIMIT 1;
+
+    IF FOUND THEN
+        -- Get the vehicle assigned to this driver
+        SELECT id INTO v_vehicle_id
+        FROM public.vehicles
+        WHERE driver_id = v_driver.id AND status = 'active'
+        LIMIT 1;
+
+        RETURN json_build_object(
+            'success', true,
+            'type', 'driver',
+            'user', json_build_object(
+                'id', v_driver.id,
+                'company_id', v_driver.company_id,
+                'full_name', v_driver.full_name,
+                'phone', v_driver.phone,
+                'vehicle_id', v_vehicle_id
+            )
+        );
+    END IF;
+
+    -- 2. Search in Students (Parent)
+    SELECT id, company_id, parent_name, parent_phone, full_name as student_name INTO v_student
+    FROM public.students
+    WHERE login_token = p_token AND status = 'active'
+    LIMIT 1;
+
+    IF FOUND THEN
+        RETURN json_build_object(
+            'success', true,
+            'type', 'parent',
+            'user', json_build_object(
+                'id', v_student.id,
+                'company_id', v_student.company_id,
+                'parent_name', v_student.parent_name,
+                'parent_phone', v_student.parent_phone,
+                'student_name', v_student.student_name
+            )
+        );
+    END IF;
+
+    -- Not found or inactive
+    RETURN json_build_object(
+        'success', false,
+        'message', 'Geçersiz veya süresi dolmuş giriş kodu.'
+    );
+END;
+$$;
+
+-- Fetch all students for a parent (SECURITY DEFINER to bypass RLS)
+CREATE OR REPLACE FUNCTION public.get_parent_students(p_phone TEXT)
+RETURNS SETOF public.students
+LANGUAGE plpgsql
+SECURITY DEFINER
+AS $$
+BEGIN
+    RETURN QUERY
+    SELECT *
+    FROM public.students
+    WHERE parent_phone = p_phone AND status = 'active';
+END;
+$$;
+
+-- Link a student to a parent phone by token
+CREATE OR REPLACE FUNCTION public.link_student_by_token(p_token UUID, p_parent_phone TEXT)
+RETURNS json
+LANGUAGE plpgsql
+SECURITY DEFINER
+AS $$
+BEGIN
+    UPDATE public.students
+    SET parent_phone = p_parent_phone
+    WHERE login_token = p_token AND status = 'active';
+
+    IF FOUND THEN
+        RETURN json_build_object('success', true, 'message', 'Öğrenci başarıyla eklendi.');
+    ELSE
+        RETURN json_build_object('success', false, 'message', 'Geçersiz veya süresi dolmuş giriş kodu.');
+    END IF;
+END;
+$$;
+
+-- Submit Student Application (Public)
+DROP FUNCTION IF EXISTS public.submit_student_application(UUID, TEXT, TEXT, TEXT, TEXT);
+
+CREATE OR REPLACE FUNCTION public.submit_student_application(
+    p_public_token UUID,
+    p_full_name TEXT,
+    p_parent_name TEXT,
+    p_parent_phone TEXT,
+    p_address TEXT,
+    p_lat DOUBLE PRECISION DEFAULT NULL,
+    p_lng DOUBLE PRECISION DEFAULT NULL,
+    p_school_id UUID DEFAULT NULL,
+    p_school_level TEXT DEFAULT NULL,
+    p_grade TEXT DEFAULT NULL
+) RETURNS json
+LANGUAGE plpgsql
+SECURITY DEFINER
+AS $$
+DECLARE
+    v_company_id UUID;
+BEGIN
+    -- Verify token and get company_id
+    SELECT id INTO v_company_id
+    FROM public.companies
+    WHERE public_token = p_public_token
+    LIMIT 1;
+
+    IF NOT FOUND THEN
+        RETURN json_build_object('success', false, 'message', 'Geçersiz başvuru bağlantısı.');
+    END IF;
+
+    -- Insert student as pending
+    INSERT INTO public.students (
+        company_id,
+        full_name,
+        parent_name,
+        parent_phone,
+        address,
+        home_latitude,
+        home_longitude,
+        school_id,
+        school_level,
+        grade,
+        status
+    ) VALUES (
+        v_company_id,
+        p_full_name,
+        p_parent_name,
+        p_parent_phone,
+        p_address,
+        p_lat,
+        p_lng,
+        p_school_id,
+        p_school_level,
+        p_grade,
+        'pending'
+    );
+
+    RETURN json_build_object('success', true, 'message', 'Başvurunuz başarıyla alındı.');
+END;
+$$;
+
+-- Get Company Info by Public Token
+CREATE OR REPLACE FUNCTION public.get_company_info_by_token(p_token UUID)
+RETURNS json
+LANGUAGE plpgsql
+SECURITY DEFINER
+AS $$
+DECLARE
+    v_company RECORD;
+    v_schools JSON;
+BEGIN
+    SELECT id, company_name INTO v_company
+    FROM public.companies
+    WHERE public_token = p_token AND subscription_status = 'active'
+    LIMIT 1;
+
+    IF FOUND THEN
+        SELECT COALESCE(json_agg(json_build_object('id', s.id, 'name', s.name)), '[]'::json) INTO v_schools
+        FROM public.schools s
+        WHERE s.company_id = v_company.id;
+
+        RETURN json_build_object('success', true, 'company_name', v_company.company_name, 'schools', v_schools);
+    ELSE
+        RETURN json_build_object('success', false);
+    END IF;
+END;
+$$;
+
+-- Get Assigned Route Data for Mobile Driver (Bypasses RLS)
+CREATE OR REPLACE FUNCTION public.get_driver_route_data(p_vehicle_id UUID)
+RETURNS json
+LANGUAGE plpgsql
+SECURITY DEFINER
+AS $$
+DECLARE
+    result json;
+BEGIN
+    SELECT COALESCE(json_agg(
+        json_build_object(
+            'id', r.id,
+            'name', r.name,
+            'geometry', r.geometry,
+            'time', r.time,
+            'status', r.status,
+            'created_at', r.created_at,
+            'route_stops', (
+                SELECT COALESCE(json_agg(
+                    json_build_object(
+                        'id', rs.id,
+                        'name', rs.name,
+                        'latitude', rs.latitude,
+                        'longitude', rs.longitude,
+                        'order_index', rs.order_index,
+                        'estimated_time', rs.estimated_time
+                    ) ORDER BY rs.order_index ASC
+                ), '[]'::json)
+                FROM public.route_stops rs
+                WHERE rs.route_id = r.id
+            ),
+            'student_route_assignments', (
+                SELECT COALESCE(json_agg(
+                    json_build_object(
+                        'students', json_build_object(
+                            'id', s.id,
+                            'full_name', s.full_name,
+                            'absent_dates', s.absent_dates,
+                            'home_latitude', s.home_latitude,
+                            'home_longitude', s.home_longitude
+                        )
+                    )
+                ), '[]'::json)
+                FROM public.student_route_assignments sra
+                JOIN public.students s ON s.id = sra.student_id
+                WHERE sra.route_id = r.id
+            )
+        )
+    ), '[]'::json)
+    INTO result
+    FROM public.routes r
+    WHERE r.vehicle_id = p_vehicle_id
+      AND r.status IN ('active', 'pending');
+
+    RETURN result;
+END;
+$$;
+
+-- 7. GRANTS
+GRANT USAGE ON SCHEMA public TO anon, authenticated;
+GRANT ALL ON ALL TABLES IN SCHEMA public TO postgres;
+GRANT ALL ON ALL SEQUENCES IN SCHEMA public TO postgres;
+GRANT ALL ON ALL FUNCTIONS IN SCHEMA public TO postgres;
+GRANT EXECUTE ON FUNCTION public.register_company(UUID, TEXT, TEXT, TEXT, TEXT) TO anon, authenticated;
+GRANT EXECUTE ON FUNCTION public.validate_login_token(UUID) TO anon, authenticated;
+GRANT EXECUTE ON FUNCTION public.get_parent_students(TEXT) TO anon, authenticated;
+GRANT EXECUTE ON FUNCTION public.link_student_by_token(UUID, TEXT) TO anon, authenticated;
+GRANT EXECUTE ON FUNCTION public.submit_student_application(UUID, TEXT, TEXT, TEXT, TEXT, DOUBLE PRECISION, DOUBLE PRECISION, UUID, TEXT, TEXT) TO anon, authenticated;
+GRANT EXECUTE ON FUNCTION public.get_company_info_by_token(UUID) TO anon, authenticated;
+GRANT EXECUTE ON FUNCTION public.get_driver_route_data(UUID) TO anon, authenticated;
+
+-- Function for Driver to update vehicle location (bypasses RLS)
+CREATE OR REPLACE FUNCTION public.update_driver_location(p_vehicle_id UUID, p_latitude DOUBLE PRECISION, p_longitude DOUBLE PRECISION)
+RETURNS void
+LANGUAGE plpgsql
+SECURITY DEFINER
+AS $$
+BEGIN
+    UPDATE public.vehicles
+    SET 
+        current_latitude = p_latitude,
+        current_longitude = p_longitude
+    WHERE id = p_vehicle_id;
+END;
+$$;
+
+GRANT EXECUTE ON FUNCTION public.update_driver_location(UUID, DOUBLE PRECISION, DOUBLE PRECISION) TO anon, authenticated;
+
+-- Function for Parent to safely read their child's assigned vehicle info (bypasses RLS)
+CREATE OR REPLACE FUNCTION public.get_parent_vehicle_data(p_vehicle_id UUID)
+RETURNS json
+LANGUAGE plpgsql
+SECURITY DEFINER
+AS $$
+DECLARE
+    result json;
+BEGIN
+    SELECT row_to_json(v) INTO result
+    FROM (
+        SELECT id, plate_number, driver_name, driver_phone, current_latitude, current_longitude, status
+        FROM public.vehicles
+        WHERE id = p_vehicle_id
+    ) v;
+    
+    RETURN result;
+END;
+$$;
+
+GRANT EXECUTE ON FUNCTION public.get_parent_vehicle_data(UUID) TO anon, authenticated;
+
+
+-- Function for Parent to safely update their child's absent dates (bypasses RLS)
+CREATE OR REPLACE FUNCTION public.update_student_absent_dates(p_student_id UUID, p_absent_dates date[])
+RETURNS void
+LANGUAGE plpgsql
+SECURITY DEFINER
+AS $$
+BEGIN
+    UPDATE public.students
+    SET absent_dates = p_absent_dates
+    WHERE id = p_student_id;
+END;
+$$;
+
+GRANT EXECUTE ON FUNCTION public.update_student_absent_dates(UUID, date[]) TO anon, authenticated;
+
+
+-- Backfill missing login_tokens for older drivers and students
+UPDATE public.drivers 
+SET login_token = gen_random_uuid() 
+WHERE login_token IS NULL;
+
+UPDATE public.students 
+SET login_token = gen_random_uuid() 
+WHERE login_token IS NULL;
+
+
+-- Update get_driver_route_data to include stop_id in student_route_assignments
+CREATE OR REPLACE FUNCTION public.get_driver_route_data(p_vehicle_id UUID)
+RETURNS json
+LANGUAGE plpgsql
+SECURITY DEFINER
+AS $$
+DECLARE
+    result json;
+BEGIN
+    SELECT COALESCE(json_agg(
+        json_build_object(
+            'id', r.id,
+            'name', r.name,
+            'geometry', r.geometry,
+            'time', r.time,
+            'status', r.status,
+            'created_at', r.created_at,
+            'route_stops', (
+                SELECT COALESCE(json_agg(
+                    json_build_object(
+                        'id', rs.id,
+                        'name', rs.name,
+                        'latitude', rs.latitude,
+                        'longitude', rs.longitude,
+                        'order_index', rs.order_index,
+                        'estimated_time', rs.estimated_time
+                    ) ORDER BY rs.order_index ASC
+                ), '[]'::json)
+                FROM public.route_stops rs
+                WHERE rs.route_id = r.id
+            ),
+            'student_route_assignments', (
+                SELECT COALESCE(json_agg(
+                    json_build_object(
+                        'stop_id', sra.stop_id,
+                        'students', json_build_object(
+                            'id', s.id,
+                            'full_name', s.full_name,
+                            'absent_dates', s.absent_dates,
+                            'home_latitude', s.home_latitude,
+                            'home_longitude', s.home_longitude
+                        )
+                    )
+                ), '[]'::json)
+                FROM public.student_route_assignments sra
+                JOIN public.students s ON s.id = sra.student_id
+                WHERE sra.route_id = r.id
+            )
+        )
+    ), '[]'::json)
+    INTO result
+    FROM public.routes r
+    WHERE r.vehicle_id = p_vehicle_id
+      AND r.status IN ('active', 'pending')
+    ORDER BY r.time ASC
+    LIMIT 10;
+
+    RETURN result;
+END;
+$$;
+
+-- Backfill missing driver phone numbers for existing vehicles
+UPDATE public.vehicles v
+SET driver_phone = d.phone
+FROM public.drivers d
+WHERE v.driver_id = d.id AND v.driver_phone IS NULL;
+
+
+-- NEW HOTFIX
+-- 1. Ensure stop_id exists (this was causing the RPC to crash silently)
+ALTER TABLE public.student_route_assignments 
+ADD COLUMN IF NOT EXISTS stop_id UUID REFERENCES public.route_stops(id) ON DELETE CASCADE;
+
+-- 2. Completely rewrite the RPC to avoid json_agg ORDER BY syntax errors
+CREATE OR REPLACE FUNCTION public.get_driver_route_data(p_vehicle_id UUID)
+RETURNS json
+LANGUAGE plpgsql
+SECURITY DEFINER
+AS $$
+DECLARE
+    result json;
+BEGIN
+    SELECT COALESCE(
+        (SELECT json_agg(
+            json_build_object(
+                'id', r.id,
+                'name', r.name,
+                'geometry', r.geometry,
+                'time', r.time,
+                'status', r.status,
+                'created_at', r.created_at,
+                'route_stops', (
+                    SELECT COALESCE(json_agg(
+                        json_build_object(
+                             'id', rs.id,
+                            'name', rs.name,
+                            'latitude', rs.latitude,
+                            'longitude', rs.longitude,
+                            'order_index', rs.order_index,
+                            'estimated_time', rs.estimated_time
+                        ) ORDER BY rs.order_index ASC
+                    ), '[]'::json)
+                    FROM public.route_stops rs
+                    WHERE rs.route_id = r.id
+                ),
+                'student_route_assignments', (
+                    SELECT COALESCE(json_agg(
+                        json_build_object(
+                            'stop_id', sra.stop_id,
+                            'students', json_build_object(
+                                'id', s.id,
+                                'full_name', s.full_name,
+                                'absent_dates', s.absent_dates,
+                                'home_latitude', s.home_latitude,
+                                'home_longitude', s.home_longitude
+                            )
+                        )
+                    ), '[]'::json)
+                    FROM public.student_route_assignments sra
+                    JOIN public.students s ON s.id = sra.student_id
+                    WHERE sra.route_id = r.id
+                )
+            )
+        )
+        FROM (
+            SELECT * 
+            FROM public.routes
+            WHERE vehicle_id = p_vehicle_id
+            AND status IN ('active', 'pending')
+            ORDER BY time ASC
+            LIMIT 10
+        ) r), 
+    '[]'::json)
+    INTO result;
+
+    RETURN result;
+END;
+$$;
+
+-- 3. Backfill driver phone to vehicles
+UPDATE public.vehicles v
+SET driver_phone = d.phone
+FROM public.drivers d
+WHERE v.driver_id = d.id AND v.driver_phone IS NULL;
+
+-- 4. Assign stop_ids to old students so they don't break the UI
+UPDATE public.student_route_assignments sra
+SET stop_id = (
+    SELECT id FROM public.route_stops rs 
+    WHERE rs.route_id = sra.route_id 
+    ORDER BY order_index ASC LIMIT 1
+)
+WHERE sra.stop_id IS NULL;

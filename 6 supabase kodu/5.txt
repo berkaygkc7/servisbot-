@@ -1,0 +1,10 @@
+-- Mevcut sadece kendisini görme kuralını kaldırıyoruz
+DROP POLICY IF EXISTS "users_select_self" ON public.users;
+
+-- Aynı firmadaki tüm kullanıcıları görebilme kuralı
+DROP POLICY IF EXISTS "users_select_company" ON public.users;
+CREATE POLICY "users_select_company" ON public.users FOR SELECT TO authenticated USING (company_id = public.get_auth_company_id());
+
+-- Kendi firmasına yeni kullanıcı (muhasebeci vb.) ekleyebilme kuralı
+DROP POLICY IF EXISTS "users_insert_company" ON public.users;
+CREATE POLICY "users_insert_company" ON public.users FOR INSERT TO authenticated WITH CHECK (company_id = public.get_auth_company_id());
