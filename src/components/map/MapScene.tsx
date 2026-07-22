@@ -284,14 +284,6 @@ const MapSceneController: React.FC<Omit<MapSceneProps, 'className' | 'simulation
                          map.setZoom(15);
                      } else {
                          map.fitBounds(bounds, 80);
-                         if (selectedRouteId) {
-                             const idleListener = google.maps.event.addListenerOnce(map, 'idle', () => {
-                                 const currentZoom = map.getZoom();
-                                 if (currentZoom !== undefined && currentZoom < 14) {
-                                     map.setZoom(14);
-                                 }
-                             });
-                         }
                      }
                  } catch (e) {
                      console.error("Error fitting bounds:", e);

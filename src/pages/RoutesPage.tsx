@@ -1420,6 +1420,8 @@ const RoutesPage: React.FC = () => {
                                         selectedRouteId={selectedRouteId}
                                         onSelect={(id) => {
                                             setSelectedRouteId(id);
+                                            setMapCenter(undefined);
+                                            setMapZoom(undefined);
                                             if (id) setFitBoundsTrigger(prev => prev + 1);
                                         }}
                                         onDelete={handleDeleteRoute}
