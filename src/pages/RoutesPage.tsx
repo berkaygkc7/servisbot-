@@ -594,8 +594,58 @@ const RoutesPage: React.FC = () => {
             // Only allow one end point
             const hasEnd = tempPoints.some(p => p.type === 'end');
             if (!hasEnd) {
-                setTempPoints(prev => [...prev, { type: 'end', pos: [lng, lat], studentId }]);
+                const newPoints = [...tempPoints, { type: 'end' as const, pos: [lng, lat] as [number, number], studentId }];
+                setTempPoints(newPoints);
+                // Bitiş noktası eklendi → otomatik olarak en kısa yolu çiz
+                autoDrawRoute(newPoints);
             }
+        }
+    };
+
+    // Başlangıç + Bitiş (+ opsiyonel duraklar) seçildiğinde otomatik rota çiz
+    const autoDrawRoute = async (points: { type: string, pos: [number, number], studentId?: string }[]) => {
+        if (!routesLibrary) return;
+        const coords = points.map(p => p.pos);
+        if (coords.length < 2) return;
+
+        setLoading(true);
+        try {
+            if (coords.length === 2) {
+                // Sadece başlangıç + bitiş → direkt en kısa yol
+                const result = await fetchRoute(coords, routesLibrary);
+                if (result) {
+                    setRouteGeoJson({
+                        type: 'Feature',
+                        geometry: { type: 'LineString', coordinates: result.coordinates },
+                        properties: {}
+                    });
+                    setIsOptimized(true);
+                }
+            } else {
+                // Başlangıç + duraklar + bitiş → optimize et
+                const result = await optimizeRoute(coords, routesLibrary);
+                if (result && result.waypoint_order) {
+                    const snappedPoints = result.snapped_waypoints;
+                    const orderedPoints = result.waypoint_order.map((index, i) => {
+                        const pt = points[index];
+                        if (snappedPoints && snappedPoints[i]) {
+                            return { ...pt, pos: snappedPoints[i] };
+                        }
+                        return pt;
+                    });
+                    setTempPoints(orderedPoints as any);
+                    setRouteGeoJson({
+                        type: 'Feature',
+                        geometry: { type: 'LineString', coordinates: result.coordinates },
+                        properties: {}
+                    });
+                    setIsOptimized(true);
+                }
+            }
+        } catch (error) {
+            console.error("Auto route draw error:", error);
+        } finally {
+            setLoading(false);
         }
     };
 
