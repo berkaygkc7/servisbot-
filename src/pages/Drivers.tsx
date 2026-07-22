@@ -76,10 +76,7 @@ const Drivers: React.FC = () => {
         setIsModalOpen(true);
     };
 
-    const handleShowQr = (driver: Driver) => {
-        setSelectedQrDriver(driver);
-        setIsQrModalOpen(true);
-    };
+    
 
     const handleDeleteClick = async (id: string) => {
         const { error } = await supabase.from('drivers').delete().eq('id', id);

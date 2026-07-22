@@ -13,8 +13,6 @@ interface MapSceneProps {
     colorfulRoutesGeoJson?: any;
     markers?: { id: string | number; position: [number, number]; title: string; type?: 'vehicle' | 'stop' | 'student_home' | 'search_result' }[];
     autoCenter?: boolean;
-    fitBoundsTrigger?: number;
-    zoom?: number;
     onMapClick?: (lng: number, lat: number) => void;
     onMarkerClick?: (id: string | number, type?: string) => void;
     onMarkerHover?: (id: string | number | null) => void;

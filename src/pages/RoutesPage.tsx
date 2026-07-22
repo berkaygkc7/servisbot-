@@ -674,11 +674,11 @@ const RoutesPage: React.FC = () => {
         }
     };
 
-    const handleDeletePoint = (index: number) => {
+    const handleDeletePoint = (_index: number) => {
         setTempPoints(prev => {
             const newPoints = [...prev];
             const deleted = newPoints[index];
-            newPoints.splice(index, 1);
+            newPoints.splice(_index, 1);
 
             // Logic to reset steps if critical points are deleted
             if (deleted.type === 'start') {
@@ -703,7 +703,7 @@ const RoutesPage: React.FC = () => {
             setRouteGeoJson((prev: any) => {
                 if (!prev) return null;
                 const coords = [...prev.geometry.coordinates];
-                coords.splice(index, 1);
+                coords.splice(_index, 1);
                 if (coords.length < 2) return null;
                 return { ...prev, geometry: { ...prev.geometry, coordinates: coords } };
             });

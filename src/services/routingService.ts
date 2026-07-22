@@ -18,7 +18,7 @@ export interface OptimizationResult {
 /**
  * Decodes a Google Maps encoded polyline string into an array of [lng, lat] coordinates.
  */
-function decodePolyline(encoded: string): [number, number][] {
+export function decodePolyline(encoded: string): [number, number][] {
     const poly: [number, number][] = [];
     let index = 0, len = encoded.length;
     let lat = 0, lng = 0;
