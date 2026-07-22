@@ -196,102 +196,57 @@ const MapSceneController: React.FC<Omit<MapSceneProps, 'className' | 'simulation
 
     }, [colorfulData, colorfulRoutesGeoJson]);
 
-    // Bounds fitting on trigger OR route selection OR routeGeoJson change
+    // AUTO-ZOOM: Güzergah seçildiğinde çizilen rotaya zoom yap
     useEffect(() => {
-        if (!map) return;
-        
-        const BoundsClass = coreLibrary?.LatLngBounds || (typeof google !== 'undefined' && google.maps && google.maps.LatLngBounds);
-        if (!BoundsClass) return;
+        if (!map || !routeGeoJson) return;
 
-        const bounds = new BoundsClass();
-        let hasCoords = false;
+        try {
+            const bounds = new google.maps.LatLngBounds();
+            let hasCoords = false;
 
-        const parseGeometry = (geojson: any) => {
-             if (!geojson) return;
-             
-             const features = geojson.features ? geojson.features : (geojson.type === 'Feature' ? [geojson] : []);
-             
-             features.forEach((f: any) => {
-                  if (f.geometry && f.geometry.coordinates) {
-                       if (f.geometry.type === 'LineString') {
-                            f.geometry.coordinates.forEach((c: any) => {
-                                 const lat = Number(c[1]);
-                                 const lng = Number(c[0]);
-                                 if (!isNaN(lat) && !isNaN(lng) && (lat !== 0 || lng !== 0)) {
-                                     bounds.extend({ lat, lng });
-                                     hasCoords = true;
-                                 }
-                            });
-                       } else if (f.geometry.type === 'MultiLineString') {
-                            f.geometry.coordinates.forEach((line: any[]) => {
-                                 line.forEach((c: any) => {
-                                     const lat = Number(c[1]);
-                                     const lng = Number(c[0]);
-                                     if (!isNaN(lat) && !isNaN(lng) && (lat !== 0 || lng !== 0)) {
-                                         bounds.extend({ lat, lng });
-                                         hasCoords = true;
-                                     }
-                                 });
-                            });
-                       }
-                  }
-             });
-        };
+            // routeGeoJson -> Feature veya FeatureCollection olabilir
+            const features = routeGeoJson.features
+                ? routeGeoJson.features
+                : routeGeoJson.type === 'Feature'
+                    ? [routeGeoJson]
+                    : [];
 
-        if (selectedRouteId) {
-            // ONLY zoom to the selected route line / stops!
-            if (routeGeoJson) {
-                parseGeometry(routeGeoJson);
-            }
-            if (markers && markers.length > 0) {
-                markers.forEach((m: any) => {
-                    if (m.type !== 'student_home' && m.position && !isNaN(Number(m.position[0])) && !isNaN(Number(m.position[1]))) {
-                        const lat = Number(m.position[1]);
-                        const lng = Number(m.position[0]);
-                        if (lat !== 0 || lng !== 0) {
+            for (const f of features) {
+                const coords = f?.geometry?.coordinates;
+                if (!coords) continue;
+
+                if (f.geometry.type === 'LineString') {
+                    for (const c of coords) {
+                        const lat = Number(c[1]);
+                        const lng = Number(c[0]);
+                        if (!isNaN(lat) && !isNaN(lng)) {
                             bounds.extend({ lat, lng });
                             hasCoords = true;
                         }
                     }
-                });
-            }
-        } else {
-            // General overview mode when no route is selected
-            parseGeometry(routesGeoJson);
-            parseGeometry(colorfulRoutesGeoJson);
-            if (markers && markers.length > 0) {
-                markers.forEach((m: any) => {
-                    if (m.position && !isNaN(Number(m.position[0])) && !isNaN(Number(m.position[1]))) {
-                        const lat = Number(m.position[1]);
-                        const lng = Number(m.position[0]);
-                        if (lat !== 0 || lng !== 0) {
-                            bounds.extend({ lat, lng });
-                            hasCoords = true;
+                } else if (f.geometry.type === 'MultiLineString') {
+                    for (const line of coords) {
+                        for (const c of line) {
+                            const lat = Number(c[1]);
+                            const lng = Number(c[0]);
+                            if (!isNaN(lat) && !isNaN(lng)) {
+                                bounds.extend({ lat, lng });
+                                hasCoords = true;
+                            }
                         }
                     }
-                });
+                }
             }
-        }
 
-        if (hasCoords) {
-             const timer = setTimeout(() => {
-                 try {
-                     const ne = bounds.getNorthEast();
-                     const sw = bounds.getSouthWest();
-                     // Single point or tight cluster -> zoom to 15
-                     if (Math.abs(ne.lat() - sw.lat()) < 0.001 && Math.abs(ne.lng() - sw.lng()) < 0.001) {
-                         map.setCenter(bounds.getCenter());
-                         map.setZoom(15);
-                     } else {
-                         map.fitBounds(bounds, 80);
-                     }
-                 } catch (e) {
-                     console.error("Error fitting bounds:", e);
-                 }
-             }, 50);
-             return () => clearTimeout(timer);
+            if (hasCoords) {
+                setTimeout(() => {
+                    map.fitBounds(bounds, 80);
+                }, 150);
+            }
+        } catch (e) {
+            console.error('Zoom error:', e);
         }
-    }, [map, coreLibrary, fitBoundsTrigger, selectedRouteId, routeGeoJson]);
+    }, [map, routeGeoJson]);
 
     return null;
 };
