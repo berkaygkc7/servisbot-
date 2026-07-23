@@ -37,18 +37,14 @@ const MapSceneController: React.FC<Omit<MapSceneProps, 'className' | 'simulation
     routeGeoJson,
     routesGeoJson,
     colorfulRoutesGeoJson,
-    markers,
     onMapClick,
     onRouteClick,
     onRouteHover,
-    fitBoundsTrigger,
-    selectedRouteId,
     center,
     zoom,
     mapStyle
 }) => {
     const map = useMap();
-    const coreLibrary = useMapsLibrary('core');
     const mapsLibrary = useMapsLibrary('maps');
 
     const [routeData, setRouteData] = useState<google.maps.Data | null>(null);
@@ -282,8 +278,6 @@ const MapScene: React.FC<MapSceneProps> = ({
     onRouteHover,
     onRouteClick,
     simulation,
-    fitBoundsTrigger = 0,
-    selectedRouteId,
     center,
     zoom,
     hideControls = false
@@ -359,12 +353,9 @@ const MapScene: React.FC<MapSceneProps> = ({
                         routeGeoJson={routeGeoJson}
                         routesGeoJson={routesGeoJson}
                         colorfulRoutesGeoJson={colorfulRoutesGeoJson}
-                        markers={markers}
                         onMapClick={onMapClick}
                         onRouteClick={onRouteClick}
                         onRouteHover={onRouteHover}
-                        fitBoundsTrigger={fitBoundsTrigger}
-                        selectedRouteId={selectedRouteId}
                         center={center}
                         zoom={zoom}
                         mapStyle={mapStyle}
