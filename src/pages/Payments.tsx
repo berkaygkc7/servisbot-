@@ -484,7 +484,7 @@ const Payments = () => {
     }, [loadingRef.current, hasMoreRef.current]); // Dependencies for useCallback
 
     return (
-        <div className="w-full max-w-[1800px] mx-auto flex flex-col h-[calc(100vh-64px)] overflow-hidden p-4 md:p-6 lg:p-8 gap-6">
+        <div className="w-full px-4 md:px-8 py-8 mx-auto flex flex-col gap-8 min-h-screen">
             {/* Header */}
             <div className="flex flex-col md:flex-row justify-between items-start md:items-center gap-6 mb-8">
                 <div>
@@ -645,7 +645,7 @@ const Payments = () => {
                     </div>
                 </div>
             ) : (
-                <div className="bg-white rounded-2xl border border-slate-100 shadow-sm overflow-hidden flex-1 flex flex-col min-h-0">
+                <div className="bg-white rounded-2xl border border-slate-100 shadow-sm overflow-hidden w-full">
                     {/* Batch Actions Bar */}
                     {selectedIds.length > 0 && (
                         <div className="bg-blue-50 border-b border-blue-100 p-3 px-6 flex items-center justify-between animate-in slide-in-from-top-2">
@@ -672,7 +672,7 @@ const Payments = () => {
                         </div>
                     )}
 
-                    <div className="overflow-y-auto flex-1 p-0 m-0">
+                    <div className="w-full p-0 m-0">
                         <PaymentList
                             payments={payments}
                             selectedIds={selectedIds}
