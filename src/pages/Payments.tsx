@@ -484,7 +484,7 @@ const Payments = () => {
     }, [loadingRef.current, hasMoreRef.current]); // Dependencies for useCallback
 
     return (
-        <div className="max-w-7xl mx-auto flex flex-col h-[calc(100vh-64px)] overflow-hidden p-6 lg:p-10 gap-6">
+        <div className="w-full max-w-[1800px] mx-auto flex flex-col h-[calc(100vh-64px)] overflow-hidden p-4 md:p-6 lg:p-8 gap-6">
             {/* Header */}
             <div className="flex flex-col md:flex-row justify-between items-start md:items-center gap-6 mb-8">
                 <div>
