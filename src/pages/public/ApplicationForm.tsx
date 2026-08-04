@@ -1,6 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
-import { Send, CheckCircle2, User, Phone, MapPin, AlertCircle, Loader2, GraduationCap, School, Building2, Search, Smartphone } from 'lucide-react';
+import { Send, CheckCircle2, User, Phone, MapPin, AlertCircle, Loader2, GraduationCap, School, Building2, Search, Smartphone, X } from 'lucide-react';
 import { supabase } from '../../lib/supabase';
 import { Map, AdvancedMarker, useMapsLibrary } from '@vis.gl/react-google-maps';
 
@@ -13,6 +13,7 @@ const ApplicationForm: React.FC = () => {
     const [submitted, setSubmitted] = useState(false);
     const [error, setError] = useState<string | null>(null);
     const [contractAccepted, setContractAccepted] = useState(false);
+    const [isTermsModalOpen, setIsTermsModalOpen] = useState(false);
     const [companyName, setCompanyName] = useState<string>('');
     const [schools, setSchools] = useState<{id: string, name: string}[]>([]);
     const [neighborhoods, setNeighborhoods] = useState<string[]>([]);
@@ -488,7 +489,10 @@ const ApplicationForm: React.FC = () => {
                                 <span className="text-sm text-slate-600 leading-relaxed">
                                     <span className="font-semibold text-slate-800">Sözleşme metnini okudum, kabul ediyorum.</span>
                                     {' '}
-                                    <span className="text-blue-600 underline underline-offset-2 cursor-pointer hover:text-blue-700">
+                                    <span 
+                                        onClick={() => setIsTermsModalOpen(true)}
+                                        className="text-blue-600 underline underline-offset-2 cursor-pointer hover:text-blue-700"
+                                    >
                                         Sözleşmeyi görüntüle
                                     </span>
                                 </span>
@@ -517,6 +521,92 @@ const ApplicationForm: React.FC = () => {
                 </div>
             </div>
             
+            {/* Terms of Service Modal */}
+            {isTermsModalOpen && (
+                <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-slate-900/60 backdrop-blur-sm animate-in fade-in duration-200">
+                    <div className="bg-white rounded-2xl shadow-2xl w-full max-w-2xl max-h-[85vh] flex flex-col animate-in zoom-in-95 duration-200">
+                        <div className="p-5 border-b border-slate-100 flex justify-between items-center bg-slate-50 rounded-t-2xl">
+                            <h3 className="text-lg font-bold text-slate-800">
+                                Hizmet Sözleşmesi ve Kullanıcı Onay Metni
+                            </h3>
+                            <button 
+                                onClick={() => setIsTermsModalOpen(false)}
+                                className="text-slate-400 hover:text-slate-600 p-1 rounded-lg hover:bg-slate-200 transition-colors"
+                            >
+                                <X size={24} />
+                            </button>
+                        </div>
+                        <div className="p-6 overflow-y-auto text-sm text-slate-600 space-y-4">
+                            <p className="font-semibold text-slate-700">Lütfen aşağıdaki metni dikkatlice okuyunuz. "Okudum ve Onaylıyorum" seçeneğini işaretleyerek aşağıdaki şartları kabul etmiş sayılırsınız.</p>
+                            
+                            <h4 className="font-bold text-slate-800 mt-4">1. Taraflar</h4>
+                            <p>Bu sözleşme, ServisBot sistemini kullanan servis taşımacılığı firması ("Firma") ile ServisBot üzerinden kayıt oluşturan öğrenci veya 18 yaşından küçük öğrenciler adına kayıt işlemini gerçekleştiren veli/vasi ("Kullanıcı") arasında elektronik ortamda akdedilmiştir.</p>
+                            
+                            <h4 className="font-bold text-slate-800 mt-4">2. Hizmetin Kapsamı</h4>
+                            <p>ServisBot, servis kayıt süreçlerinin dijital ortamda yürütülmesi, öğrenci bilgilerinin alınması, adres konumlarının belirlenmesi, rota planlamalarının yapılması ve servis organizasyonunun daha verimli yönetilmesi amacıyla kullanılan bir yazılım platformudur.</p>
+                            
+                            <h4 className="font-bold text-slate-800 mt-4">3. Kullanıcı Beyanları</h4>
+                            <p>Kullanıcı;</p>
+                            <ul className="list-disc pl-5 space-y-1">
+                                <li>Sisteme girdiği tüm bilgilerin doğru, eksiksiz ve güncel olduğunu,</li>
+                                <li>Yanlış veya eksik bilgi verilmesinden doğabilecek tüm sorumluluğun kendisine ait olduğunu,</li>
+                                <li>Adres bilgilerinin servis güzergâhının oluşturulması amacıyla harita üzerinde konumlandırılabileceğini,</li>
+                                <li>Gerektiğinde Firma tarafından iletişim kurulabilmesi için paylaşılan iletişim bilgilerinin kullanılabileceğini,</li>
+                                <li>Kayıt sırasında verdiği bilgilerin servis planlaması amacıyla işleneceğini kabul eder.</li>
+                            </ul>
+                            
+                            <h4 className="font-bold text-slate-800 mt-4">4. Kişisel Verilerin İşlenmesi</h4>
+                            <p>Kullanıcının paylaştığı ad, soyad, telefon numarası, adres, öğrenci bilgileri ve diğer kayıt bilgileri;</p>
+                            <ul className="list-disc pl-5 space-y-1">
+                                <li>Servis kayıt işlemlerinin yürütülmesi,</li>
+                                <li>Servis güzergâhlarının planlanması,</li>
+                                <li>Operasyonel süreçlerin yönetilmesi,</li>
+                                <li>Kullanıcı ile iletişim kurulması,</li>
+                                <li>Yasal yükümlülüklerin yerine getirilmesi</li>
+                            </ul>
+                            <p>amaçlarıyla ilgili mevzuata uygun şekilde işlenebilir.</p>
+                            <p>Veriler yalnızca hizmetin sunulması amacıyla kullanılacak olup, yürürlükteki kişisel verilerin korunmasına ilişkin mevzuat kapsamında korunacaktır.</p>
+
+                            <h4 className="font-bold text-slate-800 mt-4">5. Konum Bilgileri</h4>
+                            <p>Kullanıcı tarafından girilen adres bilgileri, servis güzergâhlarının oluşturulabilmesi amacıyla harita sistemleri üzerinde işaretlenebilir ve rota planlamasında kullanılabilir.</p>
+
+                            <h4 className="font-bold text-slate-800 mt-4">6. Sorumluluk</h4>
+                            <p>ServisBot yalnızca dijital kayıt ve planlama altyapısı sunmaktadır.</p>
+                            <p>Servis hizmetinin uygulanması, servis saatleri, güzergâh değişiklikleri, ücretlendirme, taşıma hizmetinin sunulması ve operasyonel kararlar tamamen ilgili servis firmasının sorumluluğundadır.</p>
+
+                            <h4 className="font-bold text-slate-800 mt-4">7. Bilgilerin Güncellenmesi</h4>
+                            <p>İkamet adresi, telefon numarası veya diğer kayıt bilgilerinde değişiklik olması halinde Kullanıcı, bu değişiklikleri en kısa sürede ilgili servis firmasına bildirmekle yükümlüdür.</p>
+
+                            <h4 className="font-bold text-slate-800 mt-4">8. Hizmet Bedeli ve Ödeme</h4>
+                            <p>Servis taşımacılığı hizmetine ilişkin ücret, ödeme şekli, ödeme tarihleri, taksitlendirme koşulları ve diğer mali hususlar, Kullanıcı ile ilgili servis taşımacılığı firmasının karşılıklı mutabakatı doğrultusunda belirlenir.</p>
+                            <p>ServisBot, yalnızca dijital kayıt ve servis planlama altyapısını sağlayan bir yazılım platformudur. ServisBot, servis ücretini belirleyen, tahsil eden veya ücretlendirme politikalarını yöneten taraf değildir.</p>
+                            <p>Kullanıcı, servis hizmetine ilişkin tüm ücretlerin ve ödeme yükümlülüklerinin doğrudan ilgili servis taşımacılığı firmasına ait olduğunu kabul eder.</p>
+                            <p>Servis ücretinin ödenmemesi, geç ödenmesi veya ödeme kaynaklı doğabilecek uyuşmazlıklardan ServisBot sorumlu değildir. Bu tür uyuşmazlıklar yalnızca Kullanıcı ile ilgili firma arasında çözülür.</p>
+
+                            <h4 className="font-bold text-slate-800 mt-4">9. Ödeme Yükümlülüğü, Gecikme ve Hizmetin Askıya Alınması</h4>
+                            <p>Kullanıcı, servis hizmeti karşılığında ilgili servis taşımacılığı firması tarafından belirlenen ücretleri, sözleşmede veya firma tarafından bildirilen ödeme planına uygun şekilde eksiksiz ve zamanında ödemeyi kabul eder.</p>
+                            <p>Ödeme yükümlülüğünün süresinde yerine getirilmemesi halinde, servis taşımacılığı firması Kullanıcıya bildirimde bulunarak ödemenin belirlenen süre içinde tamamlanmasını talep edebilir.</p>
+                            <p>Bildirim yapılmasına rağmen ödeme yükümlülüğünün yerine getirilmemesi durumunda, ilgili mevzuata uygun olmak kaydıyla servis taşımacılığı firması servis hizmetini geçici olarak askıya alabilir veya sözleşmeyi feshedebilir.</p>
+                            <p>Gecikmiş ödemeler nedeniyle doğabilecek yasal takip, tahsilat masrafları ve diğer yasal haklar saklıdır. Taraflar arasında çıkabilecek ödeme uyuşmazlıklarında, yürürlükteki mevzuat hükümleri uygulanır.</p>
+                            <p>Kullanıcı, servis ücretini ödememesi nedeniyle servis hizmetinden yararlanamaması durumunda, bu nedenle ServisBot'a veya servis taşımacılığı firmasına karşı haksız tazminat veya benzeri taleplerde bulunmayacağını kabul eder.</p>
+
+                            <h4 className="font-bold text-slate-800 mt-4">10. Elektronik Onay</h4>
+                            <p>"Okudum ve Onaylıyorum" seçeneğinin işaretlenmesi, bu sözleşmenin elektronik ortamda okunarak kabul edildiği ve taraflar açısından hukuken bağlayıcı onay niteliği taşıdığı anlamına gelir.</p>
+                        </div>
+                        <div className="p-5 border-t border-slate-100 flex justify-end gap-3 bg-slate-50 rounded-b-2xl">
+                            <button 
+                                onClick={() => {
+                                    setIsTermsModalOpen(false);
+                                    setContractAccepted(true);
+                                }}
+                                className="px-6 py-2.5 bg-blue-600 text-white rounded-xl font-bold hover:bg-blue-700 transition-colors shadow-sm"
+                            >
+                                Okudum, Onaylıyorum
+                            </button>
+                        </div>
+                    </div>
+                </div>
+            )}
         </div>
     );
 };
