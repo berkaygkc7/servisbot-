@@ -1,5 +1,5 @@
 import { useState, useEffect, useMemo, useRef, useCallback } from 'react';
-import { Plus, Search, Filter, Loader2, TrendingUp, AlertTriangle, FileText, Download, CheckSquare, CheckCircle, Archive } from 'lucide-react';
+import { Plus, Search, Filter, Loader2, TrendingUp, AlertTriangle, FileText, Download, CheckSquare, CheckCircle, Archive, Trash2 } from 'lucide-react';
 import { supabase } from '../lib/supabase';
 import { useAuth } from '../contexts/AuthContext';
 import PaymentList, { type Payment } from '../components/dashboard/PaymentList';
@@ -20,6 +20,7 @@ const Payments = () => {
     const [availableSchoolLevels, setAvailableSchoolLevels] = useState<string[]>([]);
     const [selectedIds, setSelectedIds] = useState<string[]>([]);
     const [showArchived, setShowArchived] = useState(false);
+    const [stats, setStats] = useState({ receivable: 0, collected: 0, overdue: 0 });
 
     // Pagination refs
     const PAGE_SIZE = 50;
@@ -80,10 +81,51 @@ const Payments = () => {
 
         try {
             console.log("Querrying Supabase...");
+
+            // -- NEW STATS QUERY (Ignores statusFilter and pagination) --
+            let statsQuery = supabase
+                .from('payments')
+                .select('amount, status, due_date')
+                .eq('company_id', profile.company_id);
+
+            if (!showArchived) {
+                statsQuery = statsQuery.eq('is_archived', false);
+            }
+            if (monthFilter !== 'all') {
+                statsQuery = statsQuery.eq('month', monthFilter);
+            }
+
+            const { data: statsData } = await statsQuery;
+            if (statsData) {
+                let totalReceivable = 0;
+                let totalCollected = 0;
+                let totalOverdue = 0;
+
+                statsData.forEach((p: any) => {
+                    if (p.status === 'Ödendi') {
+                        totalCollected += p.amount;
+                    } else if (p.status === 'Bekliyor') {
+                        totalReceivable += p.amount;
+                        if (new Date(p.due_date) < new Date()) {
+                            totalOverdue += p.amount;
+                        }
+                    }
+                });
+
+                setStats({
+                    receivable: totalReceivable,
+                    collected: totalCollected,
+                    overdue: totalOverdue
+                });
+            }
+            // -------------------------------------------------------------
+
             let query = supabase
                 .from('payments')
-                .select('id, invoice_no, student_id, month, amount, due_date, status, payment_method, is_archived');
-            // Temporarily removed join to rule out RLS hang
+                .select(`
+                    id, invoice_no, student_id, month, amount, due_date, status, payment_method, is_archived,
+                    student:students(full_name, parent_name, parent_phone, school_level, neighborhood)
+                `);
 
             if (!showArchived) {
                 query = query.eq('is_archived', false);
@@ -168,15 +210,17 @@ const Payments = () => {
             // 1. Fetch active students and global pricing rules
             const { data: students, error: studentError } = await supabase
                 .from('students')
-                .select('id, school_level, custom_price')
+                .select('id, school_level, neighborhood, custom_price')
                 .eq('status', 'active')
+                .eq('company_id', profile.company_id)
                 .limit(5000);
-
+            
             if (studentError) throw studentError;
 
             const { data: pricingRules, error: pricingError } = await supabase
                 .from('pricing_rules')
-                .select('school_level, amount');
+                .select('school_level, amount')
+                .eq('company_id', profile.company_id);
 
             if (pricingError) throw pricingError;
 
@@ -185,6 +229,7 @@ const Payments = () => {
                 .from('payments')
                 .select('student_id')
                 .eq('month', month)
+                .eq('company_id', profile.company_id)
                 .limit(5000);
 
             const existingStudentIds = new Set(existingPayments?.map(ep => ep.student_id) || []);
@@ -201,12 +246,7 @@ const Payments = () => {
                 // Determine price
                 let billAmount = s.custom_price;
                 if (!billAmount) {
-                    let translatedLevel = s.school_level;
-                    if (s.school_level === 'primary') translatedLevel = 'İlkokul';
-                    else if (s.school_level === 'middle') translatedLevel = 'Ortaokul';
-                    else if (s.school_level === 'high') translatedLevel = 'Lise';
-
-                    const rule = pricingRules?.find(pr => pr.school_level === translatedLevel) || pricingRules?.find(pr => pr.school_level === 'default');
+                    const rule = pricingRules?.find(pr => pr.school_level === s.neighborhood);
                     billAmount = rule?.amount || 0;
                 }
 
@@ -276,6 +316,20 @@ const Payments = () => {
         }
     };
 
+    const handleMarkAsUnpaid = async (payment: Payment) => {
+        if (!confirm(`Bu ödemeyi "Bekliyor" durumuna geri almak istediğinize emin misiniz?`)) return;
+        try {
+            const { error } = await supabase.from('payments').update({ status: 'Bekliyor' }).eq('id', payment.id);
+            if (error) throw error;
+            
+            // update locally
+            setPayments(prev => prev.map(p => p.id === payment.id ? { ...p, status: 'Bekliyor' } : p));
+        } catch (error) {
+            console.error(error);
+            alert('Hata: Durum geri alınamadı.');
+        }
+    };
+
     const handleRemind = (payment: Payment) => {
         const phone = payment.student?.parent_phone;
         if (!phone) {
@@ -335,29 +389,7 @@ const Payments = () => {
         });
     }, [payments, searchQuery, statusFilter, monthFilter, schoolLevelFilter]);
 
-    // Financial calculations
-    const stats = useMemo(() => {
-        let totalReceivable = 0;
-        let totalCollected = 0;
-        let totalOverdue = 0;
-
-        payments.forEach(p => {
-            if (p.status === 'Ödendi') {
-                totalCollected += p.amount;
-            } else if (p.status === 'Bekliyor') {
-                totalReceivable += p.amount;
-                if (new Date(p.due_date) < new Date()) {
-                    totalOverdue += p.amount;
-                }
-            }
-        });
-
-        return {
-            receivable: totalReceivable,
-            collected: totalCollected,
-            overdue: totalOverdue
-        };
-    }, [payments]);
+    // Financial calculations handled by fetchPayments
 
     // Selection Handlers
     const handleToggleSelect = (id: string) => {
@@ -457,6 +489,83 @@ const Payments = () => {
         }
     };
 
+    const handleDeleteUnknowns = async () => {
+        if (!window.confirm('Öğrenci kaydı silinmiş veya geçersiz olan (Bilinmeyen) tüm faturaları/ödemeleri kalıcı olarak silmek istediğinize emin misiniz?')) return;
+
+        try {
+            setLoading(true);
+            
+            const { data: allPayments, error: fetchError } = await supabase
+                .from('payments')
+                .select('id, student:students(id, full_name)')
+                .eq('company_id', profile?.company_id);
+                
+            if (fetchError) throw fetchError;
+            
+            const orphanedIds = allPayments?.filter(p => {
+                if (!p.student) return true;
+                const s = Array.isArray(p.student) ? p.student[0] : p.student;
+                if (!s) return true;
+                
+                const name = (s.full_name || '').trim().toLowerCase();
+                return name === '' || name === 'bilinmiyor';
+            }).map(p => p.id) || [];
+            
+            if (orphanedIds.length > 0) {
+                const { error: deleteError } = await supabase
+                    .from('payments')
+                    .delete()
+                    .in('id', orphanedIds);
+                    
+                if (deleteError) throw deleteError;
+                alert(`${orphanedIds.length} adet geçersiz fatura başarıyla temizlendi.`);
+            } else {
+                alert('Silinecek geçersiz (Bilinmeyen) fatura bulunamadı.');
+            }
+
+            setPayments([]);
+            pageRef.current = 0;
+            hasMoreRef.current = true;
+            fetchPayments(true);
+        } catch (error) {
+            console.error('Error deleting unknown payments:', error);
+            alert('Silme işlemi sırasında hata oluştu.');
+        } finally {
+            setLoading(false);
+        }
+    };
+
+    const handleDeleteAll = async () => {
+        if (!window.confirm('DİKKAT: Tüm ödeme kayıtlarını (faturaları) kalıcı olarak silmek istediğinize emin misiniz? Bu işlem geri alınamaz!')) return;
+
+        const confirmText = window.prompt('Tüm kayıtları silmek için kutuya "SİL" yazın:');
+        if (confirmText !== 'SİL') {
+            alert('İşlem iptal edildi.');
+            return;
+        }
+
+        try {
+            setLoading(true);
+            const { error } = await supabase
+                .from('payments')
+                .delete()
+                .eq('company_id', profile?.company_id);
+
+            if (error) throw error;
+
+            alert('Tüm ödeme kayıtları başarıyla silindi.');
+            setPayments([]);
+            pageRef.current = 0;
+            hasMoreRef.current = true;
+            fetchPayments(true);
+        } catch (error) {
+            console.error('Error deleting all payments:', error);
+            alert('Silme işlemi sırasında hata oluştu.');
+        } finally {
+            setLoading(false);
+        }
+    };
+
     // Refetch on toggle show archived
     useEffect(() => {
         if (profile?.company_id) {
@@ -493,7 +602,23 @@ const Payments = () => {
                     </h1>
                     <p className="text-slate-500 mt-2 font-medium">Öğrenci ödemelerini, gecikmiş alacakları ve tahsilatları yönetin.</p>
                 </div>
-                <div className="flex gap-3 w-full md:w-auto">
+                <div className="flex gap-3 w-full md:w-auto flex-wrap">
+                    <button
+                        onClick={handleDeleteAll}
+                        className="flex-1 md:flex-none flex items-center justify-center gap-2 px-6 py-3 bg-red-600 hover:bg-red-700 text-white rounded-xl font-bold transition-all shadow-md active:scale-95"
+                        title="Tüm ödeme kayıtlarını kalıcı olarak sil"
+                    >
+                        <Trash2 size={20} />
+                        <span className="hidden sm:inline">Tümünü Sil</span>
+                    </button>
+                    <button
+                        onClick={handleDeleteUnknowns}
+                        className="flex-1 md:flex-none flex items-center justify-center gap-2 px-6 py-3 bg-red-50 hover:bg-red-100 text-red-600 rounded-xl font-bold transition-all shadow-sm active:scale-95 border border-red-200"
+                        title="Geçersiz (Öğrencisi olmayan) ödemeleri temizle"
+                    >
+                        <Trash2 size={20} />
+                        <span className="hidden sm:inline">Bilinmeyenleri Temizle</span>
+                    </button>
                     <button
                         onClick={() => setIsBulkBillingModalOpen(true)}
                         className="flex-1 md:flex-none flex items-center justify-center gap-2 px-6 py-3 bg-blue-600 hover:bg-blue-700 text-white rounded-xl font-bold transition-all shadow-md active:scale-95"
@@ -514,7 +639,10 @@ const Payments = () => {
             {/* Financial Highlights (Stats) - Fixed Top */}
             <div className="grid grid-cols-1 md:grid-cols-3 gap-6 shrink-0">
                 {/* Collected */}
-                <div className="bg-white p-6 md:p-8 rounded-3xl shadow-sm border border-slate-100 flex items-center justify-between transition-transform hover:scale-[1.02]">
+                <div 
+                    onClick={() => setStatusFilter('Ödendi')}
+                    className="cursor-pointer bg-white p-6 md:p-8 rounded-3xl shadow-sm border border-slate-100 flex items-center justify-between transition-transform hover:scale-[1.02]"
+                >
                     <div>
                         <p className="text-slate-500 font-bold uppercase tracking-wider text-xs md:text-sm mb-2">Tahsil Edilen (Kasa)</p>
                         <h3 className="text-4xl lg:text-5xl font-black text-emerald-600">{stats.collected.toLocaleString('tr-TR')} ₺</h3>
@@ -525,7 +653,10 @@ const Payments = () => {
                 </div>
 
                 {/* Total Receivables */}
-                <div className="bg-white p-6 md:p-8 rounded-3xl shadow-sm border border-slate-100 flex items-center justify-between transition-transform hover:scale-[1.02]">
+                <div 
+                    onClick={() => setStatusFilter('Bekliyor')}
+                    className="cursor-pointer bg-white p-6 md:p-8 rounded-3xl shadow-sm border border-slate-100 flex items-center justify-between transition-transform hover:scale-[1.02]"
+                >
                     <div>
                         <p className="text-slate-500 font-bold uppercase tracking-wider text-xs md:text-sm mb-2">Bekleyen Alacak (Tümü)</p>
                         <h3 className="text-4xl lg:text-5xl font-black text-blue-600">{stats.receivable.toLocaleString('tr-TR')} ₺</h3>
@@ -536,7 +667,10 @@ const Payments = () => {
                 </div>
 
                 {/* Overdue */}
-                <div className="bg-red-50 p-6 md:p-8 rounded-3xl shadow-sm border border-red-100 flex items-center justify-between relative overflow-hidden transition-transform hover:scale-[1.02]">
+                <div 
+                    onClick={() => setStatusFilter('gecikti')}
+                    className="cursor-pointer bg-red-50 p-6 md:p-8 rounded-3xl shadow-sm border border-red-100 flex items-center justify-between relative overflow-hidden transition-transform hover:scale-[1.02]"
+                >
                     <div className="z-10 relative">
                         <p className="text-red-600/80 font-bold uppercase tracking-wider text-xs md:text-sm mb-2">Gecikmiş (Riskli) Alacak</p>
                         <h3 className="text-4xl lg:text-5xl font-black text-red-700">{stats.overdue.toLocaleString('tr-TR')} ₺</h3>
@@ -679,6 +813,7 @@ const Payments = () => {
                             onToggleSelect={handleToggleSelect}
                             onToggleSelectAll={handleToggleSelectAll}
                             onMarkAsPaid={handleMarkAsPaid}
+                            onMarkAsUnpaid={handleMarkAsUnpaid}
                             onDelete={handleDelete}
                             onRemind={handleRemind}
                         />

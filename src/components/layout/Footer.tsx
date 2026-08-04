@@ -1,4 +1,5 @@
 import React from 'react';
+import { Link } from 'react-router-dom';
 import { Mail, Phone, MapPin } from 'lucide-react';
 import logo from '../../assets/yeni_navbar_logo.png';
 
@@ -31,9 +32,9 @@ const Footer: React.FC = () => {
                     <div className="text-center md:text-left">
                         <h4 className="text-white font-bold mb-4 uppercase text-sm tracking-wider">Yasal</h4>
                         <ul className="space-y-2 text-sm">
-                            <li><a href="#" className="hover:text-secondary transition-colors">Gizlilik Politikası</a></li>
-                            <li><a href="#" className="hover:text-secondary transition-colors">Kullanım Şartları</a></li>
-                            <li><a href="#" className="hover:text-secondary transition-colors">KVKK Aydınlatma</a></li>
+                            <li><Link to="/gizlilik-politikasi" className="hover:text-secondary transition-colors">Gizlilik Politikası</Link></li>
+                            <li><Link to="/kullanim-sartlari" className="hover:text-secondary transition-colors">Kullanım Şartları</Link></li>
+                            <li><Link to="/kvkk" className="hover:text-secondary transition-colors">KVKK Aydınlatma</Link></li>
                         </ul>
                     </div>
 

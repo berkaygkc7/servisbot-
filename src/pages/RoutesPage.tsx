@@ -1,5 +1,5 @@
-import React, { useState, useEffect, useCallback, useMemo } from 'react';
-import { useSearchParams } from 'react-router-dom';
+import React, { useState, useEffect, useCallback, useMemo, useRef } from 'react';
+import { useSearchParams, useLocation } from 'react-router-dom';
 import RouteList from '../components/dashboard/RouteList';
 import MapScene from '../components/map/MapScene';
 import { fetchRoute, optimizeRoute } from '../services/routingService';
@@ -7,7 +7,7 @@ import { supabase } from '../lib/supabase';
 import { useAuth } from '../contexts/AuthContext'; // Added this import
 import { useMapsLibrary } from '@vis.gl/react-google-maps';
 import {
-    ArrowLeft, Users, UserPlus, Plus, Bus, Navigation, Clock, Check, Loader2, Trash2, MapPin, Tag as TagIcon, Sparkles, Pencil, Home, X, Search, Map as MapIcon
+    ArrowLeft, Users, UserPlus, Plus, Bus, Navigation, Clock, Check, Loader2, Trash2, MapPin, Tag as TagIcon, Sparkles, Pencil, Home, X, Search, Map as MapIcon, Share2
 } from 'lucide-react';
 
 // --- Supabase Types (Mapped) ---
@@ -77,6 +77,7 @@ interface Student {
 
 const RoutesPage: React.FC = () => {
     const { profile } = useAuth(); // Extracted profile
+    const location = useLocation();
     const [searchParams] = useSearchParams();
     const urlRouteId = searchParams.get('id');
     const geocodingLibrary = useMapsLibrary('geocoding');
@@ -90,6 +91,7 @@ const RoutesPage: React.FC = () => {
     // UI State
     const [selectedRouteId, setSelectedRouteId] = useState<string | null>(null);
     const [routeGeoJson, setRouteGeoJson] = useState<any>(null);
+    const [directionsResponse, setDirectionsResponse] = useState<google.maps.DirectionsResult | undefined>(undefined);
     const [multiRoutesGeoJson, setMultiRoutesGeoJson] = useState<any>(null);
     const [fitBoundsTrigger, setFitBoundsTrigger] = useState(0);
     const [liveVehicles, setLiveVehicles] = useState<{ id: string; position: [number, number]; title: string }[]>([]);
@@ -119,9 +121,11 @@ const RoutesPage: React.FC = () => {
     const [newRouteTags, setNewRouteTags] = useState<string[]>([]);
 
     // Creation Flow
-    const [creationStep, setCreationStep] = useState<'idle' | 'method_selection' | 'start' | 'end' | 'stops' | 'manual_draw'>('idle');
-    const [creationMethod, setCreationMethod] = useState<'auto' | 'manual' | null>(null);
+    const [creationStep, setCreationStep] = useState<'idle' | 'method_selection' | 'start' | 'end' | 'stops' | 'manual_draw' | 'interactive_draw'>('idle');
+    const [creationMethod, setCreationMethod] = useState<'auto' | 'manual' | 'interactive' | null>(null);
     const [tempPoints, setTempPoints] = useState<{ type: 'start' | 'end' | 'stop', pos: [number, number], studentId?: string }[]>([]);
+    const tempPointsRef = useRef(tempPoints);
+    tempPointsRef.current = tempPoints;
     const [assigningStopId, setAssigningStopId] = useState<string | null>(null);
     const [studentSearchQuery, setStudentSearchQuery] = useState<string>('');
     const [isOptimized, setIsOptimized] = useState(false);
@@ -131,7 +135,7 @@ const RoutesPage: React.FC = () => {
     const [mapZoom, setMapZoom] = useState<number | undefined>(undefined);
     const [mapSearchQuery, setMapSearchQuery] = useState('');
     const [isSearching, setIsSearching] = useState(false);
-    const [searchResultPin, setSearchResultPin] = useState<[number, number] | null>(null);
+    const [searchResultPin, setSearchResultPin] = useState<{coords: [number, number], name?: string} | null>(null);
 
     // Route Editing State
     const [editingRouteData, setEditingRouteData] = useState<{ id: string, name: string, school_id: string, time: string, tags: string[], price: number } | null>(null);
@@ -179,7 +183,7 @@ const RoutesPage: React.FC = () => {
                 const coords: [number, number] = [location.lng(), location.lat()];
                 setMapCenter(coords);
                 setMapZoom(17);
-                setSearchResultPin(coords);
+                setSearchResultPin({ coords, name: query });
             }
         } catch (error) {
             console.error('Search error:', error);
@@ -437,6 +441,25 @@ const RoutesPage: React.FC = () => {
         }
     }, [routes, availableStudents, activeTagFilter, selectedRouteId]);
 
+    // Focus on searched student from Global Search
+    useEffect(() => {
+        if (location.state?.searchStudentId && availableStudents.length > 0) {
+            const student = availableStudents.find(s => s.id === location.state.searchStudentId);
+            if (student && student.home_longitude && student.home_latitude) {
+                const coords: [number, number] = [student.home_longitude, student.home_latitude];
+                setMapCenter(coords);
+                setMapZoom(18);
+                setSearchResultPin({ coords, name: student.full_name });
+                
+                // We should also turn ON showStudentLocations so the student marker renders
+                setShowStudentLocations(true);
+                
+                // Clear state so it doesn't re-trigger
+                window.history.replaceState({}, document.title);
+            }
+        }
+    }, [location.state, availableStudents]);
+
     // --- Helpers ---
 
     const getMarkers = () => {
@@ -444,21 +467,24 @@ const RoutesPage: React.FC = () => {
 
         // 1. Creation Mode Markers
         if (creationStep !== 'idle') {
-            tempPoints.forEach((p, i) => {
-                // Defensive: Skip markers if coordinates are invalid or 0,0
-                if (!p.pos || p.pos.length < 2) return;
-                const lng = Number(p.pos[0]);
-                const lat = Number(p.pos[1]);
+            const skipTempMarkers = creationMethod === 'interactive' && tempPoints.length >= 2;
+            if (!skipTempMarkers) {
+                tempPoints.forEach((p, i) => {
+                    // Defensive: Skip markers if coordinates are invalid or 0,0
+                    if (!p.pos || p.pos.length < 2) return;
+                    const lng = Number(p.pos[0]);
+                    const lat = Number(p.pos[1]);
 
-                if (isNaN(lng) || isNaN(lat)) return;
-                if (lng === 0 && lat === 0) return;
+                    if (isNaN(lng) || isNaN(lat)) return;
+                    if (lng === 0 && lat === 0) return;
 
-                markers.push({
-                    id: `temp-${i}`,
-                    position: [lng, lat],
-                    title: p.type === 'start' ? 'Başlangıç' : p.type === 'end' ? 'Bitiş' : `Durak ${i}`
+                    markers.push({
+                        id: `temp-${i}`,
+                        position: [lng, lat],
+                        title: p.type === 'start' ? 'Başlangıç' : p.type === 'end' ? 'Bitiş' : `Durak ${i}`
+                    });
                 });
-            });
+            }
         }
         // 2. Selected Route Markers (Stops)
         else if (selectedRoute) {
@@ -532,15 +558,15 @@ const RoutesPage: React.FC = () => {
         });
 
         // 5. Search Result Pin
-        if (searchResultPin && searchResultPin.length >= 2) {
-            const lng = Number(searchResultPin[0]);
-            const lat = Number(searchResultPin[1]);
+        if (searchResultPin && searchResultPin.coords && searchResultPin.coords.length >= 2) {
+            const lng = Number(searchResultPin.coords[0]);
+            const lat = Number(searchResultPin.coords[1]);
 
             if (!isNaN(lng) && !isNaN(lat) && (lng !== 0 || lat !== 0)) {
                 markers.push({
                     id: 'search-result',
                     position: [lng, lat],
-                    title: 'Arama Sonucu',
+                    title: searchResultPin.name || 'Arama Sonucu',
                     type: 'search_result'
                 });
             }
@@ -557,6 +583,8 @@ const RoutesPage: React.FC = () => {
         if (creationMethod === 'manual') {
             // In manual mode, every click is a coordinate in the LineString
             addManualPoint(lng, lat);
+        } else if (creationMethod === 'interactive') {
+            addInteractivePoint(lng, lat);
         } else {
             addRoutePoint(lng, lat);
         }
@@ -564,6 +592,11 @@ const RoutesPage: React.FC = () => {
 
 
     const handleMarkerClick = useCallback((id: string | number, type?: string) => {
+        if (type === 'search_result') {
+            setSearchResultPin(null);
+            return;
+        }
+
         if (type === 'student_home') {
             const student = availableStudents.find(s => s.id === id);
 
@@ -575,7 +608,11 @@ const RoutesPage: React.FC = () => {
 
                 // If in creation mode, add to route
                 if (student.home_latitude && student.home_longitude) {
-                    addRoutePoint(student.home_longitude, student.home_latitude, student.id);
+                    if (creationMethod === 'interactive') {
+                        addInteractivePoint(student.home_longitude, student.home_latitude, student.id);
+                    } else {
+                        addRoutePoint(student.home_longitude, student.home_latitude, student.id);
+                    }
                 }
             }
         } else if (creationStep === 'idle') {
@@ -602,16 +639,41 @@ const RoutesPage: React.FC = () => {
         }
     };
 
+    const addInteractivePoint = (lng: number, lat: number, studentId?: string) => {
+        setIsOptimized(false);
+        // Use ref to always get the LATEST tempPoints (avoids stale closure from useCallback)
+        const newPoints = [...tempPointsRef.current];
+        
+        if (newPoints.length === 0) {
+            setTempPoints([{ type: 'start', pos: [lng, lat], studentId }]);
+        } else if (newPoints.length === 1) {
+            const pts = [...newPoints, { type: 'end' as const, pos: [lng, lat] as [number, number], studentId }];
+            setTempPoints(pts);
+            autoDrawRoute(pts);
+        } else {
+            const endIdx = newPoints.findIndex(p => p.type === 'end');
+            if (endIdx !== -1) {
+                newPoints[endIdx] = { ...newPoints[endIdx], type: 'stop' };
+            }
+            newPoints.push({ type: 'end', pos: [lng, lat], studentId });
+            setTempPoints(newPoints);
+            autoDrawRoute(newPoints);
+        }
+    };
+
     // Başlangıç + Bitiş (+ opsiyonel duraklar) seçildiğinde otomatik rota çiz
     const autoDrawRoute = async (points: { type: string, pos: [number, number], studentId?: string }[]) => {
         if (!routesLibrary) return;
         const coords = points.map(p => p.pos);
         if (coords.length < 2) return;
 
-        setLoading(true);
+        // Don't show full-page spinner in interactive mode - map must stay visible!
+        const showSpinner = creationMethod !== 'interactive';
+        if (showSpinner) setLoading(true);
         try {
-            if (coords.length === 2) {
-                // Sadece başlangıç + bitiş → direkt en kısa yol
+            if (coords.length === 2 || creationMethod === 'interactive') {
+                // Interactive: always use fetchRoute to preserve user's click order
+                // Auto with 2 points: simple A→B route
                 const result = await fetchRoute(coords, routesLibrary);
                 if (result) {
                     setRouteGeoJson({
@@ -619,6 +681,9 @@ const RoutesPage: React.FC = () => {
                         geometry: { type: 'LineString', coordinates: result.coordinates },
                         properties: {}
                     });
+                    if (creationMethod === 'interactive' && result.directionsResponse) {
+                        setDirectionsResponse(result.directionsResponse);
+                    }
                     setIsOptimized(true);
                 }
             } else {
@@ -639,13 +704,16 @@ const RoutesPage: React.FC = () => {
                         geometry: { type: 'LineString', coordinates: result.coordinates },
                         properties: {}
                     });
+                    if (result.directionsResponse) {
+                        setDirectionsResponse(result.directionsResponse);
+                    }
                     setIsOptimized(true);
                 }
             }
         } catch (error) {
             console.error("Auto route draw error:", error);
         } finally {
-            setLoading(false);
+            if (showSpinner) setLoading(false);
         }
     };
 
@@ -707,6 +775,10 @@ const RoutesPage: React.FC = () => {
                     geometry: { type: 'LineString', coordinates: result.coordinates },
                     properties: {}
                 });
+                
+                if (creationMethod === 'interactive' && result.directionsResponse) {
+                    setDirectionsResponse(result.directionsResponse);
+                }
 
                 // Show preview stats in a toast or summary if needed, for now just update map
                 // const distKm = parseFloat((result.distance / 1000).toFixed(1));
@@ -775,21 +847,21 @@ const RoutesPage: React.FC = () => {
                     creation_method: creationMethod,
                     tags: newRouteTags,
                     time: newRouteTime,
-                    // Save geometry for manual mode immediately
-                    geometry: creationMethod === 'manual' && routeGeoJson ? routeGeoJson.geometry : null,
-                    distance_km: creationMethod === 'manual' && routeGeoJson ? 0 : null, // Could calculate properly later
-                    duration_min: creationMethod === 'manual' && routeGeoJson ? 0 : null
+                    // Save geometry for manual and interactive modes immediately
+                    geometry: (creationMethod === 'manual' || creationMethod === 'interactive') && routeGeoJson ? routeGeoJson.geometry : null,
+                    distance_km: (creationMethod === 'manual' || creationMethod === 'interactive') && routeGeoJson ? 0 : null, // Could calculate properly later
+                    duration_min: (creationMethod === 'manual' || creationMethod === 'interactive') && routeGeoJson ? 0 : null
                 })
                 .select()
                 .single();
 
             if (routeError) throw routeError;
 
-            // 2. Prepare Stops (Auto or Manual)
-            if (creationMethod === 'auto' || creationMethod === 'manual') {
+            // 2. Prepare Stops (Auto, Interactive or Manual)
+            if (creationMethod === 'auto' || creationMethod === 'interactive' || creationMethod === 'manual') {
                 let routeOrderedPoints: any[] = [];
 
-                if (creationMethod === 'auto') {
+                if (creationMethod === 'auto' || creationMethod === 'interactive') {
                     const start = tempPoints.find(p => p.type === 'start')!;
                     const end = tempPoints.find(p => p.type === 'end')!;
                     const intermediates = tempPoints.filter(p => p.type === 'stop');
@@ -820,7 +892,7 @@ const RoutesPage: React.FC = () => {
                 const { data: createdStops, error: stopsError } = await supabase.from('route_stops').insert(stopsToInsert).select();
                 if (stopsError) throw stopsError;
 
-                if (createdStops && creationMethod === 'auto') {
+                if (createdStops && (creationMethod === 'auto' || creationMethod === 'interactive')) {
                     const assignments = [];
                     for (const stop of createdStops) {
                         const originalPoint = routeOrderedPoints.find(p => p.order === stop.order_index);
@@ -848,6 +920,8 @@ const RoutesPage: React.FC = () => {
             setCreationStep('idle');
             setCreationMethod(null);
             setTempPoints([]);
+            setRouteGeoJson(null);
+            setDirectionsResponse(undefined);
             setIsOptimized(false);
             setNewRouteSchoolId('');
             setNewRouteTags([]);
@@ -912,6 +986,49 @@ const RoutesPage: React.FC = () => {
         } finally {
             setLoading(false);
         }
+    };
+
+    const handleShareRoute = (routeId: string) => {
+        const route = routes.find(r => r.id === routeId);
+        if (!route) return;
+
+        const routeName = route.name;
+        const vehicleInfo = route.vehicle ? ` (${route.vehicle})` : '';
+        const timeInfo = route.time ? ` - ⏰ ${route.time}` : '';
+
+        // Build Google Maps Navigation URL
+        let googleMapsUrl = '';
+        if (route.stops && route.stops.length >= 2) {
+            const sortedStops = [...route.stops].sort((a, b) => a.order_index - b.order_index);
+            const origin = `${sortedStops[0].latitude},${sortedStops[0].longitude}`;
+            const destination = `${sortedStops[sortedStops.length - 1].latitude},${sortedStops[sortedStops.length - 1].longitude}`;
+            
+            const waypoints = sortedStops.slice(1, -1)
+                .map(s => `${s.latitude},${s.longitude}`)
+                .join('|');
+
+            googleMapsUrl = `https://www.google.com/maps/dir/?api=1&origin=${encodeURIComponent(origin)}&destination=${encodeURIComponent(destination)}${waypoints ? `&waypoints=${encodeURIComponent(waypoints)}` : ''}&travelmode=driving`;
+        }
+
+        // Compact Stops List
+        let stopsText = '';
+        if (route.stops && route.stops.length > 0) {
+            stopsText = route.stops.map((stop, index) => {
+                const studentNames = (stop.assignedStudentIds || [])
+                    .map(sId => availableStudents.find(st => st.id === sId)?.full_name)
+                    .filter(Boolean);
+
+                const studentStr = studentNames.length > 0 ? ` (${studentNames.join(', ')})` : '';
+                return `${index + 1}. ${stop.name}${studentStr}`;
+            }).join('\n');
+        }
+
+        const messageText = `🚌 *${routeName}*${vehicleInfo}${timeInfo}\n\n` +
+            `📋 *Durak Listesi:*\n${stopsText}\n\n` +
+            `🗺️ *Google Maps Navigasyon:*\n${googleMapsUrl}`;
+
+        // Directly open WhatsApp (no browser share menu)
+        window.open(`https://api.whatsapp.com/send?text=${encodeURIComponent(messageText)}`, '_blank');
     };
 
     const handleStopStudentToggle = async (stopId: string, studentId: string) => {
@@ -1025,6 +1142,10 @@ const RoutesPage: React.FC = () => {
                     geometry: { type: 'LineString', coordinates: result.coordinates },
                     properties: {}
                 });
+                if (creationMethod === 'interactive' && result.directionsResponse) {
+                    setDirectionsResponse(result.directionsResponse);
+                }
+                setIsOptimized(true);
                 setFitBoundsTrigger(prev => prev + 1);
 
                 // Update stats
@@ -1130,6 +1251,58 @@ const RoutesPage: React.FC = () => {
     };
 
     // --- Render ---
+
+    const handleDirectionsChanged = (result: google.maps.DirectionsResult) => {
+        // DO NOT call setDirectionsResponse here!
+        // The DirectionsRenderer already has the updated directions from the user's drag.
+        // Calling setDirectionsResponse would trigger a React re-render → useEffect → setDirections → loop.
+        
+        if (!result.routes || result.routes.length === 0) return;
+        const route = result.routes[0];
+        
+        // Extract path coordinates for database saving
+        const detailedCoordinates: [number, number][] = [];
+        route.legs.forEach(leg => {
+            leg.steps.forEach(step => {
+                step.path.forEach(pathLatLng => {
+                    detailedCoordinates.push([pathLatLng.lng(), pathLatLng.lat()]);
+                });
+            });
+        });
+        
+        setRouteGeoJson({
+            type: 'Feature',
+            geometry: { type: 'LineString', coordinates: detailedCoordinates },
+            properties: {}
+        });
+
+        // Rebuild tempPoints (waypoints) so they are saved correctly
+        const newTempPoints: { type: 'start' | 'end' | 'stop', pos: [number, number], studentId?: string }[] = [];
+        
+        route.legs.forEach((leg, index) => {
+            if (index === 0) {
+                const lng = leg.start_location.lng();
+                const lat = leg.start_location.lat();
+                const match = tempPoints.find(p => Math.abs(p.pos[0] - lng) < 0.001 && Math.abs(p.pos[1] - lat) < 0.001);
+                newTempPoints.push({ type: 'start', pos: [lng, lat], studentId: match?.studentId });
+            }
+            
+            if (index < route.legs.length - 1) {
+                const lng = leg.end_location.lng();
+                const lat = leg.end_location.lat();
+                const match = tempPoints.find(p => Math.abs(p.pos[0] - lng) < 0.001 && Math.abs(p.pos[1] - lat) < 0.001);
+                newTempPoints.push({ type: 'stop', pos: [lng, lat], studentId: match?.studentId });
+            } else {
+                const lng = leg.end_location.lng();
+                const lat = leg.end_location.lat();
+                const match = tempPoints.find(p => Math.abs(p.pos[0] - lng) < 0.001 && Math.abs(p.pos[1] - lat) < 0.001);
+                newTempPoints.push({ type: 'end', pos: [lng, lat], studentId: match?.studentId });
+            }
+        });
+        
+        setTempPoints(newTempPoints);
+        setIsOptimized(true);
+    };
 
     if (loading) {
         return (
@@ -1265,14 +1438,16 @@ const RoutesPage: React.FC = () => {
                             {creationStep !== 'idle' ? (
                                 <div className="p-6 bg-blue-50 border-b border-blue-100 flex flex-col h-full overflow-y-auto">
                                     <h3 className="text-lg font-bold text-blue-900 mb-2">
-                                        {creationMethod === 'manual' ? 'Manuel Rota Çiziliyor' : 'Yeni Rota Oluşturuluyor'}
+                                        {creationMethod === 'manual' ? 'Manuel Rota Çiziliyor' : creationMethod === 'interactive' ? 'Etkileşimli (My Maps) Rota Çiziliyor' : 'Yeni Rota Oluşturuluyor'}
                                     </h3>
                                     <p className="text-blue-700 text-sm mb-4">
                                         {creationMethod === 'manual'
                                             ? 'Haritaya tıklayarak yolu oluşturun. Bitince Kaydet butonuna basın.'
-                                            : (creationStep === 'start' ? '1. Haritadan BAŞLANGIÇ noktasını seçin.' :
-                                                creationStep === 'stops' ? '2. Aradaki DURAKLARI haritadan seçin.' :
-                                                    creationStep === 'end' ? '3. Son olarak VARIŞ noktasını seçin.' : '')}
+                                            : creationMethod === 'interactive'
+                                                ? 'Haritaya tıklayarak veya öğrenci evlerini seçerek durakları sırayla ekleyin. İstediğiniz zaman rotayı veya harfleri (A, B, C...) sürükleyip bırakarak yolu özelleştirebilirsiniz.'
+                                                : (creationStep === 'start' ? '1. Haritadan BAŞLANGIÇ noktasını seçin.' :
+                                                    creationStep === 'stops' ? '2. Aradaki DURAKLARI haritadan seçin. (Veya rotayı tutup çekiştirin)' :
+                                                        creationStep === 'end' ? '3. Son olarak VARIŞ noktasını seçin.' : '')}
                                     </p>
 
                                     {/* Points List */}
@@ -1342,7 +1517,7 @@ const RoutesPage: React.FC = () => {
 
                                             <div className="space-y-2">
                                                 <label className="block text-sm font-bold text-blue-900 px-1">3. Yöntem Seçin</label>
-                                                <div className="grid grid-cols-2 gap-4">
+                                                <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
                                                     {/* Auto Selection Card */}
                                                     <button
                                                         onClick={() => {
@@ -1384,12 +1559,33 @@ const RoutesPage: React.FC = () => {
                                                             <div className="text-[10px] text-slate-400 leading-tight">Yolu kendiniz çizin</div>
                                                         </div>
                                                     </button>
+                                                    
+                                                    {/* Interactive Selection Card */}
+                                                    <button
+                                                        onClick={() => {
+                                                            setCreationMethod('interactive');
+                                                            setCreationStep('interactive_draw');
+                                                        }}
+                                                        disabled={!newRouteSchoolId}
+                                                        className="group relative flex flex-col items-center gap-3 p-5 bg-white border border-blue-100 rounded-3xl hover:border-emerald-400 hover:shadow-2xl hover:shadow-emerald-200/50 transition-all duration-300 hover:-translate-y-1 overflow-hidden disabled:opacity-50 disabled:hover:translate-y-0 disabled:hover:shadow-none disabled:cursor-not-allowed"
+                                                    >
+                                                        <div className="absolute top-0 right-0 w-16 h-16 bg-emerald-50 rounded-bl-full -mr-6 -mt-6 group-hover:scale-110 transition-transform"></div>
+
+                                                        <div className="w-14 h-14 bg-gradient-to-br from-emerald-500 to-teal-600 rounded-2xl flex items-center justify-center text-white shadow-lg shadow-emerald-200 group-hover:scale-110 transition-transform">
+                                                            <MapIcon size={28} />
+                                                        </div>
+
+                                                        <div className="text-center">
+                                                            <div className="font-bold text-slate-800 text-sm mb-1">Etkileşimli</div>
+                                                            <div className="text-[10px] text-slate-400 leading-tight">Sürükle bırak (My Maps)</div>
+                                                        </div>
+                                                    </button>
                                                 </div>
                                             </div>
 
                                             <div className="bg-blue-50/50 rounded-2xl p-4 border border-blue-100/50">
                                                 <p className="text-[10px] text-blue-800/60 leading-relaxed text-center italic">
-                                                    İpucu: Otomatik mod öğrenci evlerine göre durakları optimize eder, Manuel mod ise tamamen serbest çizim imkanı sunar.
+                                                    İpucu: <b>Otomatik</b> mod durakları sıraya dizer. <b>Manuel</b> mod tamamen serbest çizimdir. <b>Etkileşimli</b> mod (My Maps) ise çizilen otomatik yolu farenizle tutup istediğiniz sokağa sürüklemenizi sağlar.
                                                 </p>
                                             </div>
                                         </div>
@@ -1408,7 +1604,7 @@ const RoutesPage: React.FC = () => {
 
                                     {/* Optimize Button Placeholder (Handled in generic button logic) */}
 
-                                    {(tempPoints.some(p => p.type === 'end') || (creationMethod === 'manual' && tempPoints.length >= 2)) && (
+                                    {(tempPoints.some(p => p.type === 'end') || (creationMethod === 'manual' && tempPoints.length >= 2) || (creationMethod === 'interactive' && tempPoints.length >= 2)) && (
                                         <div className="space-y-2 mb-4">
                                             {creationMethod === 'auto' && (
                                                 <button
@@ -1442,7 +1638,7 @@ const RoutesPage: React.FC = () => {
 
                                     <div className="mt-auto pt-4 border-t border-blue-100">
                                         <button
-                                            onClick={() => { setCreationStep('idle'); setTempPoints([]); setRouteGeoJson(null); setCreationMethod(null); setIsOptimized(false); }}
+                                            onClick={() => { setCreationStep('idle'); setTempPoints([]); setRouteGeoJson(null); setDirectionsResponse(undefined); setCreationMethod(null); setIsOptimized(false); }}
                                             className="w-full py-2 text-slate-500 hover:text-red-600 text-sm font-medium"
                                         >
                                             İptal Et
@@ -1476,6 +1672,7 @@ const RoutesPage: React.FC = () => {
                                         }}
                                         onDelete={handleDeleteRoute}
                                         onEdit={openEditModal}
+                                        onShare={handleShareRoute}
                                     />
                                 </div>
                             </div>
@@ -1530,6 +1727,16 @@ const RoutesPage: React.FC = () => {
                                             <span className="flex items-center gap-1"><Clock size={12} /> {selectedRoute?.duration}</span>
                                         </div>
                                     </div>
+                                    {selectedRoute && (
+                                        <button
+                                            onClick={() => handleShareRoute(selectedRoute.id)}
+                                            className="p-2.5 bg-emerald-500 hover:bg-emerald-600 text-white rounded-xl font-bold text-xs flex items-center gap-1.5 shadow-sm transition-all shrink-0"
+                                            title="Şoförle / WhatsApp ile Paylaş"
+                                        >
+                                            <Share2 size={16} />
+                                            <span className="hidden sm:inline">Paylaş</span>
+                                        </button>
+                                    )}
                                 </div>
 
                                 <div className="flex-1 overflow-y-auto p-4 space-y-6">
@@ -1569,6 +1776,16 @@ const RoutesPage: React.FC = () => {
                                                     ))}
                                                 </select>
                                             </div>
+                                        )}
+
+                                        {selectedRoute && (
+                                            <button
+                                                onClick={() => handleShareRoute(selectedRoute.id)}
+                                                className="w-full mt-4 py-2.5 px-4 bg-emerald-600 hover:bg-emerald-700 text-white rounded-xl font-bold text-sm flex items-center justify-center gap-2 shadow-md shadow-emerald-100 transition-all cursor-pointer"
+                                            >
+                                                <Share2 size={18} />
+                                                <span>Rotayı Şoförle Paylaş (WhatsApp)</span>
+                                            </button>
                                         )}
                                     </div>
 
@@ -1712,8 +1929,11 @@ const RoutesPage: React.FC = () => {
                         autoCenter={creationStep === 'idle' && !!selectedRouteId} // Only auto-center when a specific route is selected for viewing
                         center={mapCenter}
                         zoom={mapZoom}
+                        directionsResponse={directionsResponse}
+                        onDirectionsChanged={handleDirectionsChanged}
                         fitBoundsTrigger={fitBoundsTrigger}
                         selectedRouteId={selectedRouteId}
+                        suppressMarkers={creationMethod !== 'interactive'}
                     />
 
                     {/* Route Hover Info Popup */}

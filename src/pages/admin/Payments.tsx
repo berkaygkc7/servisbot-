@@ -118,6 +118,7 @@ const Payments = () => {
                 home_longitude,
                 registration_date, 
                 school_level,
+                neighborhood,
                 school_id,
                 custom_price,
                 created_at,
@@ -157,6 +158,12 @@ const Payments = () => {
             let monthlyFee = 0;
             if (student.custom_price) {
                 monthlyFee = Number(student.custom_price);
+            } else if (student.neighborhood) {
+                // If they have a neighborhood, check pricing_rules
+                const specificRule = pricingRules.find(r => r.school_level === student.neighborhood);
+                if (specificRule) {
+                    monthlyFee = specificRule.amount;
+                }
             } else if (student.school_level) {
                 // Map EN db values to TR UI values used in Settings
                 const levelMap: Record<string, string> = {

@@ -5,6 +5,7 @@ export interface RouteResult {
     distance: number; // meters
     duration: number; // seconds
     snapped_waypoints?: [number, number][]; // Snapped coordinates of the waypoints
+    directionsResponse?: google.maps.DirectionsResult;
 }
 
 export interface OptimizationResult {
@@ -13,6 +14,7 @@ export interface OptimizationResult {
     duration: number;
     waypoint_order: number[];
     snapped_waypoints?: [number, number][];
+    directionsResponse?: google.maps.DirectionsResult;
 }
 
 /**
@@ -115,7 +117,8 @@ export const fetchRoute = async (
             coordinates: detailedCoordinates,
             distance: totalDistance,
             duration: totalDuration,
-            snapped_waypoints: snappedWaypoints
+            snapped_waypoints: snappedWaypoints,
+            directionsResponse: response
         };
 
     } catch (error) {
@@ -197,7 +200,8 @@ export const optimizeRoute = async (
             distance: totalDistance,
             duration: totalDuration,
             waypoint_order: fullOrder,
-            snapped_waypoints: snappedWaypoints
+            snapped_waypoints: snappedWaypoints,
+            directionsResponse: response
         };
 
     } catch (error) {

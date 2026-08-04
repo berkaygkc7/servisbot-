@@ -1,4 +1,5 @@
 import React, { useState, useEffect } from 'react';
+import { useLocation, useNavigate } from 'react-router-dom';
 import { Plus, Search, Filter, Upload, X, Download, Trash2, Loader2, MapPin, Tag as TagIcon, Check, Smartphone } from 'lucide-react';
 import * as XLSX from 'xlsx';
 import StudentList, { type Student } from '../components/dashboard/StudentList';
@@ -10,6 +11,8 @@ import MapScene from '../components/map/MapScene';
 import { useMapsLibrary } from '@vis.gl/react-google-maps';
 const Students: React.FC = () => {
     const { profile } = useAuth();
+    const location = useLocation();
+    const navigate = useNavigate();
     const geocodingLibrary = useMapsLibrary('geocoding');
     const [students, setStudents] = useState<Student[]>([]);
     const [loading, setLoading] = useState(true);
@@ -22,6 +25,14 @@ const Students: React.FC = () => {
     const [formData, setFormData] = useState<Partial<Student>>({});
     const [schools, setSchools] = useState<{ id: string; name: string }[]>([]);
     const [vehicles, setVehicles] = useState<{ id: string; plate_number: string }[]>([]);
+    const [neighborhoods, setNeighborhoods] = useState<string[]>([]);
+    
+    // Pagination & Search State
+    const [page, setPage] = useState(1);
+    const [pageSize] = useState(50);
+    const [totalStudents, setTotalStudents] = useState(0);
+    const [debouncedSearch, setDebouncedSearch] = useState('');
+    const [refreshKey, setRefreshKey] = useState(0);
 
     // Location Modal State
     const [isLocationModalOpen, setIsLocationModalOpen] = useState(false);
@@ -86,22 +97,58 @@ const Students: React.FC = () => {
     const [availableTags, setAvailableTags] = useState<{ id: string; name: string }[]>([]);
     const [locationMethod, setLocationMethod] = useState<'parent' | 'map'>('map');
 
-    // Fetch Students on Load
+    // Debounce search
     useEffect(() => {
+        const handler = setTimeout(() => {
+            setDebouncedSearch(searchTerm);
+            setPage(1); // Reset page on search change
+        }, 500);
+        return () => clearTimeout(handler);
+    }, [searchTerm]);
+
+    // Fetch data when filters/pagination changes
+    useEffect(() => {
+        if (!profile?.company_id) return;
         fetchStudents();
+    }, [page, pageSize, debouncedSearch, activeFilter, activeTagFilter, profile?.company_id, refreshKey]);
+
+    // Handle global search redirection
+    useEffect(() => {
+        if (students.length > 0 && location.state && (location.state as any).searchStudentId) {
+            const searchId = (location.state as any).searchStudentId;
+            const targetStudent = students.find(s => s.id === searchId);
+            
+            if (targetStudent) {
+                // Open modal
+                setSelectedStudentDetails(targetStudent);
+                setIsDetailModalOpen(true);
+                
+                // Clear state
+                navigate(location.pathname, { replace: true, state: {} });
+            } else if (totalStudents > 0) {
+                navigate(location.pathname, { replace: true, state: {} });
+            }
+        }
+    }, [students, location.state, navigate, location.pathname]);
+
+    // Setup Realtime & fetch static dropdowns on mount
+    useEffect(() => {
+        if (!profile?.company_id) return;
+        
         fetchSchools();
         fetchVehicles();
         fetchTags();
+        fetchNeighborhoods();
 
         // Realtime subscription for students
         const channel = supabase
-            .channel('public:students')
+            .channel('public:students:company')
             .on(
                 'postgres_changes',
-                { event: '*', schema: 'public', table: 'students' },
+                { event: '*', schema: 'public', table: 'students', filter: `company_id=eq.${profile.company_id}` },
                 () => {
                     console.log('Öğrenci tablosu güncellendi, liste yenileniyor...');
-                    fetchStudents();
+                    setRefreshKey(prev => prev + 1);
                 }
             )
             .subscribe();
@@ -109,7 +156,7 @@ const Students: React.FC = () => {
         return () => {
             supabase.removeChannel(channel);
         };
-    }, []);
+    }, [profile?.company_id]);
 
     const fetchSchools = async () => {
         const { data } = await supabase.from('schools').select('id, name');
@@ -126,18 +173,68 @@ const Students: React.FC = () => {
         if (data) setAvailableTags(data);
     };
 
+    const fetchNeighborhoods = async () => {
+        if (!profile?.company_id) return;
+        const { data } = await supabase.from('pricing_rules').select('school_level').eq('company_id', profile.company_id);
+        if (data) setNeighborhoods(data.map(d => d.school_level));
+    };
+
     const fetchStudents = async () => {
-        // setLoading(true); // Don't show loading on background refresh
+        if (!profile?.company_id) return;
         try {
-            const { data, error } = await supabase
+            setLoading(true);
+            const currentMonth = new Date().toISOString().substring(0, 7);
+            
+            let query = supabase
                 .from('students')
                 .select(`
                     *,
                     schools (id, name),
                     vehicles (id, plate_number, driver_name)
-                `);
+                `, { count: 'exact' })
+                .eq('company_id', profile.company_id);
+
+            // Filter logic
+            if (activeFilter === 'pending') {
+                query = query.eq('status', 'pending');
+            } else if (activeFilter === 'all') {
+                query = query.neq('status', 'pending');
+            } else {
+                query = query.eq('school_level', activeFilter).neq('status', 'pending');
+            }
+
+            // Search logic
+            if (debouncedSearch) {
+                query = query.or(`full_name.ilike.%${debouncedSearch}%,parent_name.ilike.%${debouncedSearch}%`);
+            }
+
+            // Tag filter
+            if (activeTagFilter.length > 0) {
+                query = query.contains('tags', activeTagFilter);
+            }
+
+            // Pagination
+            const from = (page - 1) * pageSize;
+            const to = from + pageSize - 1;
+            query = query.range(from, to).order('full_name', { ascending: true });
+
+            const { data, error, count } = await query;
 
             if (error) throw error;
+            if (count !== null) setTotalStudents(count);
+            
+            let paymentMap = new Map();
+            if (profile?.company_id) {
+                const { data: paymentsData } = await supabase
+                    .from('payments')
+                    .select('student_id, status')
+                    .eq('month', currentMonth)
+                    .eq('company_id', profile.company_id);
+                    
+                paymentsData?.forEach(p => {
+                    paymentMap.set(p.student_id, p.status);
+                });
+            }
 
             console.log('Fetched students:', data);
 
@@ -158,6 +255,7 @@ const Students: React.FC = () => {
                 driver_name: s.vehicles?.driver_name,
                 grade: s.grade,
                 schoolLevel: s.school_level,
+                neighborhood: s.neighborhood,
                 route_status: s.vehicle_id ? 'assigned' : 'unassigned',
                 location: s.address || (s.home_latitude ? 'Konum İşaretlendi 📍' : 'Adres Yok'),
                 coordinates: s.home_latitude && s.home_longitude ? [s.home_latitude, s.home_longitude] : undefined,
@@ -168,7 +266,8 @@ const Students: React.FC = () => {
                 status: s.status,
                 tags: s.tags || [],
                 custom_price: s.custom_price || null,
-                login_token: s.login_token
+                login_token: s.login_token,
+                payment_status_this_month: paymentMap.get(s.id) || 'unpaid'
             })) || [];
 
             setStudents(mappedStudents);
@@ -222,6 +321,29 @@ const Students: React.FC = () => {
         }
     };
 
+    const handleDeleteUnknowns = async () => {
+        if (!window.confirm('"Bilinmiyor" veya isimsiz olan tüm öğrenci kayıtlarını kalıcı olarak silmek istediğinize emin misiniz?')) return;
+        
+        try {
+            setLoading(true);
+            const { error } = await supabase
+                .from('students')
+                .delete()
+                .or('full_name.eq.Bilinmiyor,full_name.eq.,full_name.is.null'); // Delete all blanks
+                // Supabase RLS handles company_id automatically, but we can append it if needed
+                
+            if (error) throw error;
+            
+            alert('İsimsiz / Bilinmeyen öğrenciler başarıyla temizlendi.');
+            fetchStudents();
+        } catch (error) {
+            console.error('Error deleting unknown students:', error);
+            alert('Silme işlemi sırasında hata oluştu.');
+        } finally {
+            setLoading(false);
+        }
+    };
+
     const handleApprove = async (student: Student) => {
         try {
             const { error } = await supabase
@@ -229,7 +351,7 @@ const Students: React.FC = () => {
                 .update({ status: 'active' })
                 .eq('id', student.id);
             if (error) throw error;
-            alert(`${student.name} başarıyla onaylandı.`);
+            alert(`${student.full_name} başarıyla onaylandı.`);
             fetchStudents();
         } catch (error) {
             console.error('Error approving student:', error);
@@ -244,11 +366,75 @@ const Students: React.FC = () => {
                 .delete()
                 .eq('id', student.id);
             if (error) throw error;
-            alert(`${student.name} başvurusu reddedildi ve silindi.`);
+            alert(`${student.full_name} başvurusu reddedildi ve silindi.`);
             fetchStudents();
         } catch (error) {
             console.error('Error rejecting student:', error);
             alert('Başvuru silinirken bir hata oluştu.');
+        }
+    };
+
+    const handleQuickPay = async (student: Student) => {
+        if (!profile?.company_id) return;
+        
+        const currentMonth = new Date().toISOString().substring(0, 7); // e.g. "2026-07"
+        
+        if (!window.confirm(`${student.name} isimli öğrencinin ${currentMonth} ayı ödemesini "Ödendi (Nakit)" olarak işaretlemek istiyor musunuz?`)) {
+            return;
+        }
+
+        try {
+            // First check if an invoice already exists for this month
+            const { data: existing } = await supabase
+                .from('payments')
+                .select('*')
+                .eq('student_id', student.id)
+                .eq('month', currentMonth)
+                .eq('company_id', profile.company_id)
+                .single();
+
+            if (existing) {
+                // Just mark it as paid
+                const { error } = await supabase
+                    .from('payments')
+                    .update({ 
+                        status: 'Ödendi', 
+                        payment_method: 'Nakit/Elden'
+                    })
+                    .eq('id', existing.id);
+                if (error) throw error;
+            } else {
+                // We need to create an invoice and mark it as paid immediately
+                let billAmount = student.custom_price;
+                if (!billAmount) {
+                    const { data: pricingRules } = await supabase
+                        .from('pricing_rules')
+                        .select('school_level, amount')
+                        .eq('company_id', profile.company_id);
+                        
+                    const rule = pricingRules?.find(pr => pr.school_level === student.neighborhood);
+                    billAmount = rule?.amount || 0;
+                }
+
+                const payload = {
+                    company_id: profile.company_id,
+                    student_id: student.id,
+                    invoice_no: `INV-${Date.now().toString(36)}-${Math.floor(Math.random()*1000)}`,
+                    month: currentMonth,
+                    amount: billAmount,
+                    due_date: new Date().toISOString().split('T')[0],
+                    status: 'Ödendi',
+                    payment_method: 'Nakit/Elden'
+                };
+
+                const { error } = await supabase.from('payments').insert([payload]);
+                if (error) throw error;
+            }
+            alert(`${student.name} için ödeme işlemi başarıyla kaydedildi!`);
+            fetchStudents(); // Refresh to update the UI payment status
+        } catch (error: any) {
+            console.error('Quick pay error:', error);
+            alert(`Ödeme işlemi sırasında bir hata oluştu: ${error.message || 'Bilinmeyen Hata'}`);
         }
     };
 
@@ -259,6 +445,8 @@ const Students: React.FC = () => {
         }
         setSelectedStudentForLocation(student);
         setIsPickingLocation(false);
+        setMapCenter([student.coordinates[1], student.coordinates[0]]); // [lng, lat] for MapScene
+        setMapZoom(18); // Zoom direkt olarak adrese odaklansın
         setIsLocationModalOpen(true);
     };
 
@@ -343,12 +531,13 @@ const Students: React.FC = () => {
                 parent_phone: formData.parent_phone,
                 school_id: formData.school_id || null,
                 vehicle_id: formData.vehicle_id || null, // Handle vehicle assignment
+                school_level: formData.schoolLevel || null,
+                neighborhood: formData.neighborhood || null,
                 address: formData.location || '',
                 tags: formData.tags || [],
                 blood_group: formData.blood_group || null,
                 allergies: formData.allergies || null,
                 registration_date: formData.registration_date || null,
-                school_level: formData.schoolLevel || null,
                 grade: formData.grade || null,
                 home_latitude: formData.coordinates ? formData.coordinates[0] : null,
                 home_longitude: formData.coordinates ? formData.coordinates[1] : null,
@@ -387,9 +576,10 @@ const Students: React.FC = () => {
         let exportData;
         if (students && students.length > 0) {
             exportData = students.map(s => ({
-                "Ad Soyad": s.full_name || '',
-                "Veli": s.parent_name || '',
-                "Telefon": s.parent_phone || '',
+                "Sınıf": s.grade || '',
+                "Okul Kademesi": s.schoolLevel || '',
+                "Mahalle (Fiyatlandırma)": s.neighborhood || '',
+                "Veli Adı": s.parent_name || '',
                 "Okul": s.school_name || '',
                 "Adres": s.address || '',
                 "Etiketler": s.tags ? s.tags.join(', ') : ''
@@ -463,24 +653,6 @@ const Students: React.FC = () => {
         }
     };
 
-    const filteredStudents = students.filter(s => {
-        const matchesSearch = s.name.toLowerCase().includes(searchTerm.toLowerCase()) ||
-            s.parent.toLowerCase().includes(searchTerm.toLowerCase()) ||
-            s.school.toLowerCase().includes(searchTerm.toLowerCase());
-
-        const matchesFilter = activeFilter === 'pending'
-            ? s.status === 'pending'
-            : activeFilter === 'all'
-                ? s.status !== 'pending'
-                : s.schoolLevel === activeFilter && s.status !== 'pending';
-
-        // Tag Filter Logic
-        const matchesTags = activeTagFilter.length === 0 ||
-            (s.tags && activeTagFilter.every(tag => s.tags?.includes(tag)));
-
-        return matchesSearch && matchesFilter && matchesTags;
-    });
-
     return (
         <div className="space-y-6">
             {/* Page Header */}
@@ -513,9 +685,17 @@ const Students: React.FC = () => {
                             <p><span className="text-slate-400 font-bold">2-</span> Unutmayın, toplu yükleme yaptıktan sonra öğrencilerin diğer bilgilerini güncellemelisiniz.</p>
                             <p><span className="text-slate-400 font-bold">3-</span> Adres kolonuna kordinat yazarsanız, öğrencinin konumu haritaya otomatik eklenir.</p>
                             {/* Ok/Kuyruk yapısı (Yukarı bakan ok) */}
-                            <div className="absolute left-1/2 -translate-x-1/2 -top-2 border-l-[6px] border-r-[6px] border-b-[8px] border-transparent border-b-slate-800"></div>
+                            <div className="absolute -top-2 left-1/2 -translate-x-1/2 border-8 border-transparent border-b-slate-800"></div>
                         </div>
                     </label>
+                    <button
+                        onClick={handleDeleteUnknowns}
+                        className="flex items-center gap-2 px-4 py-2.5 bg-red-50 border border-red-200 text-red-600 rounded-xl hover:bg-red-100 transition-colors font-medium"
+                        title="İsmi 'Bilinmiyor' olan hatalı kayıtları temizle"
+                    >
+                        <Trash2 size={18} />
+                        Bilinmeyenleri Temizle
+                    </button>
                     <button
                         onClick={handleAddClick}
                         className="flex items-center gap-2 px-4 py-2.5 bg-secondary text-white rounded-xl hover:bg-blue-600 transition-colors font-medium shadow-sm hover:shadow-md"
@@ -665,17 +845,48 @@ const Students: React.FC = () => {
                     <Loader2 className="animate-spin text-secondary" size={32} />
                 </div>
             ) : (
-                <StudentList
-                    students={filteredStudents}
-                    onEdit={handleEditClick}
-                    onDelete={handleDeleteClick}
-                    onShowLocation={handleShowLocation}
-                    onShowDetails={handleShowDetails}
-                    onShowQr={handleShowQr}
-                    onAddSibling={handleAddSibling}
-                    onApprove={handleApprove}
-                    onReject={handleReject}
-                />
+                <>
+                    <StudentList
+                        students={students}
+                        onEdit={handleEditClick}
+                        onDelete={handleDeleteClick}
+                        onShowLocation={handleShowLocation}
+                        onShowDetails={handleShowDetails}
+                        onShowQr={handleShowQr}
+                        onAddSibling={handleAddSibling}
+                        onQuickPay={handleQuickPay}
+                        onApprove={handleApprove}
+                        onReject={handleReject}
+                    />
+
+                    {/* Pagination Controls */}
+                    {totalStudents > 0 && (
+                        <div className="flex items-center justify-between bg-white px-4 py-3 border border-slate-200 rounded-xl mt-4">
+                            <div className="text-sm text-slate-500">
+                                Toplam <span className="font-bold text-slate-700">{totalStudents}</span> kayıttan <span className="font-bold text-slate-700">{(page - 1) * pageSize + 1}</span> - <span className="font-bold text-slate-700">{Math.min(page * pageSize, totalStudents)}</span> arası gösteriliyor.
+                            </div>
+                            <div className="flex gap-2">
+                                <button
+                                    onClick={() => setPage(p => Math.max(1, p - 1))}
+                                    disabled={page === 1}
+                                    className="px-4 py-2 border border-slate-200 rounded-lg text-sm font-medium text-slate-700 hover:bg-slate-50 disabled:opacity-50 disabled:cursor-not-allowed transition-colors"
+                                >
+                                    Önceki
+                                </button>
+                                <div className="flex items-center px-4 py-2 bg-slate-50 rounded-lg text-sm font-bold text-slate-700">
+                                    {page} / {Math.ceil(totalStudents / pageSize)}
+                                </div>
+                                <button
+                                    onClick={() => setPage(p => Math.min(Math.ceil(totalStudents / pageSize), p + 1))}
+                                    disabled={page >= Math.ceil(totalStudents / pageSize)}
+                                    className="px-4 py-2 border border-slate-200 rounded-lg text-sm font-medium text-slate-700 hover:bg-slate-50 disabled:opacity-50 disabled:cursor-not-allowed transition-colors"
+                                >
+                                    Sonraki
+                                </button>
+                            </div>
+                        </div>
+                    )}
+                </>
             )}
 
             {/* Add/Edit Modal */}
@@ -775,7 +986,20 @@ const Students: React.FC = () => {
                                             placeholder="Örn: 9/A"
                                         />
                                     </div>
-                                    <div className="col-span-2">
+                                    <div>
+                                        <label className="block text-sm font-bold text-slate-700 mb-1">Fiyatlandırma Mahallesi</label>
+                                        <select
+                                            className="w-full px-4 py-3 bg-slate-50 border border-slate-200 rounded-xl focus:outline-none focus:ring-2 focus:ring-blue-500/20 focus:border-blue-500 transition-all font-medium text-slate-700"
+                                            value={formData.neighborhood || ''}
+                                            onChange={e => setFormData({ ...formData, neighborhood: e.target.value })}
+                                        >
+                                            <option value="">Seçiniz (Opsiyonel)</option>
+                                            {neighborhoods.map(n => (
+                                                <option key={n} value={n}>{n}</option>
+                                            ))}
+                                        </select>
+                                    </div>
+                                    <div className="col-span-1 sm:col-span-2">
                                         <label className="block text-sm font-medium text-slate-700 mb-1">Özel Fiyatlandırma (₺)</label>
                                         <input
                                             type="number"
@@ -1088,13 +1312,13 @@ const Students: React.FC = () => {
                                 <div className="relative">
                                     <div className="w-32 h-32 rounded-full border-4 border-white bg-slate-800 flex items-center justify-center shadow-2xl">
                                         <span className="text-4xl font-black text-white uppercase">
-                                            {selectedStudentDetails.name.split(' ').map(n => n[0]).join('')}
+                                            {(selectedStudentDetails.name || selectedStudentDetails.full_name || 'X')?.split(' ').map((n: string) => n[0]).join('')}
                                         </span>
                                     </div>
                                     <div className="absolute bottom-1 right-1 w-8 h-8 bg-green-500 border-4 border-white rounded-full shadow-lg"></div>
                                 </div>
 
-                                <h2 className="mt-6 text-3xl font-black text-slate-900 tracking-tight">{selectedStudentDetails.name}</h2>
+                                <h2 className="mt-6 text-3xl font-black text-slate-900 tracking-tight">{selectedStudentDetails.name || selectedStudentDetails.full_name}</h2>
                                 <div className="mt-2 bg-green-50 text-green-700 px-6 py-1.5 rounded-full text-sm font-bold border border-green-100 uppercase tracking-widest shadow-sm">
                                     Aktif Öğrenci
                                 </div>

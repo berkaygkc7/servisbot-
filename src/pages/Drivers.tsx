@@ -15,6 +15,8 @@ const Drivers: React.FC = () => {
     const [drivers, setDrivers] = useState<Driver[]>([]);
     const [leaves, setLeaves] = useState<DriverLeave[]>([]);
     const [searchTerm, setSearchTerm] = useState('');
+    const [statusFilter, setStatusFilter] = useState<'all' | 'on_leave' | 'active'>('all');
+    const [isFilterMenuOpen, setIsFilterMenuOpen] = useState(false);
     const [isModalOpen, setIsModalOpen] = useState(false);
     const [editingDriver, setEditingDriver] = useState<Driver | null>(null);
     const [loading, setLoading] = useState(true);
@@ -208,10 +210,11 @@ const Drivers: React.FC = () => {
                 } as Driver;
             })
             .filter(d =>
-                d.full_name.toLowerCase().includes(searchTerm.toLowerCase()) ||
-                (d.phone && d.phone.includes(searchTerm))
+                (d.full_name.toLowerCase().includes(searchTerm.toLowerCase()) ||
+                (d.phone && d.phone.includes(searchTerm))) &&
+                (statusFilter === 'all' || (statusFilter === 'on_leave' ? d.status === 'on_leave' : d.status !== 'on_leave'))
             );
-    }, [drivers, leaves, searchTerm]);
+    }, [drivers, leaves, searchTerm, statusFilter]);
 
     const leavesOnSelectedDate = useMemo(() => {
         if (!selectedDate) return [];
@@ -326,9 +329,31 @@ const Drivers: React.FC = () => {
                                         className="w-full pl-12 pr-4 py-3 bg-slate-50/50 border border-slate-100 rounded-2xl focus:outline-none focus:ring-4 focus:ring-secondary/5 focus:border-secondary transition-all font-medium"
                                     />
                                 </div>
-                                <button className="p-3 bg-slate-50 border border-slate-100 rounded-2xl text-slate-500 hover:bg-slate-100 hover:text-slate-800 transition-all flex items-center justify-center" title="Filtrele">
-                                    <Filter size={20} />
-                                </button>
+                                <div className="relative">
+                                    <button 
+                                        onClick={() => setIsFilterMenuOpen(!isFilterMenuOpen)}
+                                        className={`p-3 border rounded-2xl transition-all flex items-center justify-center ${statusFilter !== 'all' ? 'bg-secondary text-white border-secondary' : 'bg-slate-50 border-slate-100 text-slate-500 hover:bg-slate-100 hover:text-slate-800'}`} 
+                                        title="Filtrele"
+                                    >
+                                        <Filter size={20} />
+                                    </button>
+                                    {isFilterMenuOpen && (
+                                        <div className="absolute right-0 top-full mt-2 w-48 bg-white border border-slate-100 rounded-2xl shadow-xl z-50 overflow-hidden">
+                                            <button 
+                                                onClick={() => { setStatusFilter('all'); setIsFilterMenuOpen(false); }}
+                                                className={`w-full text-left px-4 py-3 text-sm font-bold hover:bg-slate-50 transition-colors ${statusFilter === 'all' ? 'text-secondary bg-slate-50' : 'text-slate-700'}`}
+                                            >Tümü</button>
+                                            <button 
+                                                onClick={() => { setStatusFilter('active'); setIsFilterMenuOpen(false); }}
+                                                className={`w-full text-left px-4 py-3 text-sm font-bold hover:bg-slate-50 transition-colors border-t border-slate-100 ${statusFilter === 'active' ? 'text-emerald-600 bg-emerald-50' : 'text-slate-700'}`}
+                                            >Aktif / Görevde</button>
+                                            <button 
+                                                onClick={() => { setStatusFilter('on_leave'); setIsFilterMenuOpen(false); }}
+                                                className={`w-full text-left px-4 py-3 text-sm font-bold hover:bg-slate-50 transition-colors border-t border-slate-100 ${statusFilter === 'on_leave' ? 'text-amber-600 bg-amber-50' : 'text-slate-700'}`}
+                                            >İzinli Olanlar</button>
+                                        </div>
+                                    )}
+                                </div>
                             </div>
                         </div>
 

@@ -120,7 +120,13 @@ const DashboardLayout: React.FC = () => {
         }
 
         // route based on type
-        if (res.type === 'student') navigate('/dashboard/students');
+        if (res.type === 'student') {
+            if (window.location.pathname === '/dashboard/routes') {
+                navigate('/dashboard/routes', { state: { searchStudentId: res.id } });
+            } else {
+                navigate('/dashboard/students', { state: { searchStudentId: res.id } });
+            }
+        }
         else if (res.type === 'vehicle') navigate('/dashboard/vehicles');
         else if (res.type === 'route') navigate('/dashboard/routes');
     };
@@ -303,7 +309,7 @@ const DashboardLayout: React.FC = () => {
                     </div>
                 </header>
 
-                <div className="flex-1 overflow-y-auto p-8 animate-fade-up stagger-1">
+                <div className="flex-1 overflow-y-auto p-8">
                     <Outlet />
                 </div>
 

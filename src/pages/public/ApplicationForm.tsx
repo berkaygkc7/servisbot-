@@ -1,7 +1,8 @@
 import React, { useState, useEffect } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
-import { Send, CheckCircle2, User, Phone, MapPin, AlertCircle, Loader2, GraduationCap, School, Building2 } from 'lucide-react';
+import { Send, CheckCircle2, User, Phone, MapPin, AlertCircle, Loader2, GraduationCap, School, Building2, Search, Smartphone } from 'lucide-react';
 import { supabase } from '../../lib/supabase';
+import { Map, AdvancedMarker, useMapsLibrary } from '@vis.gl/react-google-maps';
 
 const ApplicationForm: React.FC = () => {
     const { token } = useParams<{ token: string }>();
@@ -20,10 +21,17 @@ const ApplicationForm: React.FC = () => {
         parentName: '',
         parentPhone: '',
         address: '',
+        neighborhood: '',
         schoolLevel: '',
         schoolId: '',
         grade: ''
     });
+
+    const geocodingLibrary = useMapsLibrary('geocoding');
+    const [pickerCoordinates, setPickerCoordinates] = useState<[number, number] | null>(null);
+    const [mapCenter, setMapCenter] = useState<[number, number]>([39.92077, 32.85411]); // Default Ankara
+    const [mapZoom, setMapZoom] = useState(6);
+    const [isSearchingMap, setIsSearchingMap] = useState(false);
 
     // 1. Validate Token and Get Company
     useEffect(() => {
@@ -62,22 +70,75 @@ const ApplicationForm: React.FC = () => {
         setFormData({ ...formData, [e.target.name]: e.target.value });
     };
 
+    const handleSearchAddress = async () => {
+        if (!formData.address.trim() || !geocodingLibrary) return;
+        
+        setIsSearchingMap(true);
+        try {
+            const geocoder = new geocodingLibrary.Geocoder();
+            const response = await geocoder.geocode({ address: formData.address + ' Turkey' });
+            if (response.results && response.results.length > 0) {
+                const location = response.results[0].geometry.location;
+                const lat = location.lat();
+                const lng = location.lng();
+                setMapCenter([lat, lng]);
+                setMapZoom(16);
+                setPickerCoordinates([lat, lng]);
+            } else {
+                alert('Adres haritada bulunamadı. Lütfen daha açık yazın veya haritadan kendiniz işaretleyin.');
+            }
+        } catch (error) {
+            console.error('Search error:', error);
+            alert('Harita araması sırasında bir hata oluştu.');
+        } finally {
+            setIsSearchingMap(false);
+        }
+    };
+
     const handleSubmit = async (e: React.FormEvent) => {
         e.preventDefault();
         if (!token) return;
 
+        // Frontend LocalStorage Rate Limiting
+        const today = new Date().toISOString().split('T')[0];
+        const rateLimitKey = `registration_attempts_${today}`;
+        const attempts = parseInt(localStorage.getItem(rateLimitKey) || '0', 10);
+        
+        if (attempts >= 3) {
+            setError('Güvenlik nedeniyle bu cihazdan günlük kayıt sınırına (3) ulaştınız. Lütfen yarın tekrar deneyin.');
+            return;
+        }
+
         setSubmitting(true);
         setError(null);
 
-        let lat = null;
-        let lng = null;
+        let lat = pickerCoordinates ? pickerCoordinates[0] : null;
+        let lng = pickerCoordinates ? pickerCoordinates[1] : null;
         let addressStr = formData.address;
         
-        const coordMatch = formData.address.trim().match(/^([+-]?\d+\.?\d*)\s*[,\s]\s*([+-]?\d+\.?\d*)$/);
-        if (coordMatch) {
-            lat = parseFloat(coordMatch[1]);
-            lng = parseFloat(coordMatch[2]);
-            addressStr = "Konum İşaretlendi 📍";
+        // If they didn't pick on map, check if they pasted coordinates
+        if (!lat || !lng) {
+            const coordMatch = formData.address.trim().match(/^([+-]?\d+\.?\d*)\s*[,\s]\s*([+-]?\d+\.?\d*)$/);
+            if (coordMatch) {
+                lat = parseFloat(coordMatch[1]);
+                lng = parseFloat(coordMatch[2]);
+                addressStr = "Konum İşaretlendi 📍";
+            } else if (addressStr.trim().length > 5) {
+                // Geocode the address using Google Maps API
+                try {
+                    const apiKey = import.meta.env.VITE_GOOGLE_MAPS_API_KEY;
+                    if (apiKey) {
+                        const res = await fetch(`https://maps.googleapis.com/maps/api/geocode/json?address=${encodeURIComponent(addressStr)}&key=${apiKey}`);
+                        const geocodeData = await res.json();
+                        if (geocodeData.results && geocodeData.results.length > 0) {
+                            lat = geocodeData.results[0].geometry.location.lat;
+                            lng = geocodeData.results[0].geometry.location.lng;
+                        }
+                    }
+                } catch (e) {
+                    console.error("Geocoding failed:", e);
+                }
+            }
         }
 
         try {
@@ -91,19 +152,23 @@ const ApplicationForm: React.FC = () => {
                 p_lng: lng,
                 p_school_id: formData.schoolId || null,
                 p_school_level: formData.schoolLevel || null,
-                p_grade: formData.grade || null
+                p_grade: formData.grade || null,
+                p_neighborhood: formData.neighborhood || null
             });
 
             if (error) throw error;
 
             if (data && data.success) {
+                // Increment attempt counter on success
+                localStorage.setItem(rateLimitKey, (attempts + 1).toString());
                 setSubmitted(true);
             } else {
-                setError(data?.message || 'Başvuru gönderilirken bir hata oluştu.');
+                console.error("RPC returned error:", data?.error);
+                setError(data?.message || data?.error || 'Başvuru gönderilirken bir hata oluştu.');
             }
         } catch (err: any) {
             console.error("Form submit error:", err);
-            setError('Sistemsel bir hata oluştu. Lütfen daha sonra tekrar deneyin.');
+            setError(err.message || 'Sistemsel bir hata oluştu. Lütfen daha sonra tekrar deneyin.');
         } finally {
             setSubmitting(false);
         }
@@ -111,8 +176,17 @@ const ApplicationForm: React.FC = () => {
 
     if (loading) {
         return (
-            <div className="min-h-screen bg-slate-50 flex items-center justify-center">
-                <Loader2 className="animate-spin text-blue-500" size={32} />
+            <div className="min-h-screen bg-gradient-to-br from-slate-900 to-slate-800 flex flex-col items-center justify-center p-4">
+                <div className="bg-white/10 backdrop-blur-md p-8 rounded-3xl border border-white/20 flex flex-col items-center shadow-2xl animate-in zoom-in duration-500">
+                    <div className="relative">
+                        <div className="w-20 h-20 border-4 border-blue-500/30 border-t-blue-500 rounded-full animate-spin"></div>
+                        <div className="absolute inset-0 flex items-center justify-center">
+                            <Smartphone className="text-white w-8 h-8 animate-pulse" />
+                        </div>
+                    </div>
+                    <h2 className="text-white text-xl font-bold mt-6 tracking-tight">Güvenli Bağlantı Kuruluyor...</h2>
+                    <p className="text-blue-200/80 text-sm mt-2 text-center max-w-[250px]">Lütfen bekleyin, okul ve firma bilgileri doğrulanıyor.</p>
+                </div>
             </div>
         );
     }
@@ -277,6 +351,22 @@ const ApplicationForm: React.FC = () => {
                                         ))}
                                     </select>
                                 </div>
+
+                                <div>
+                                    <label className="block text-sm font-bold text-slate-700 mb-1">
+                                        Fiyatlandırma Mahallesi
+                                        <span className="text-red-500 ml-1">*</span>
+                                    </label>
+                                    <input
+                                        required
+                                        type="text"
+                                        name="neighborhood"
+                                        value={formData.neighborhood}
+                                        onChange={handleChange}
+                                        placeholder="Örn: Kemerköprü Mahallesi"
+                                        className="w-full px-4 py-3 bg-white border border-slate-200 rounded-xl focus:outline-none focus:ring-2 focus:ring-blue-500/20 focus:border-blue-500 transition-all font-medium text-slate-700"
+                                    />
+                                </div>
                             </div>
                         )}
 
@@ -311,14 +401,51 @@ const ApplicationForm: React.FC = () => {
                                     onChange={handleChange}
                                     rows={3}
                                     className="appearance-none block w-full pl-11 pr-3 py-3.5 border border-slate-200 rounded-xl focus:outline-none focus:ring-2 focus:ring-blue-500/20 focus:border-blue-500 font-medium text-slate-800 transition-colors resize-none"
-                                    placeholder="Mahalle, sokak... Veya koordinat: 40.348, 36.543"
+                                    placeholder="Mahalle, sokak..."
                                     disabled={submitting}
                                 />
                             </div>
-                            <p className="mt-2 ml-1 text-xs text-slate-500 flex items-start gap-1.5">
-                                <AlertCircle size={14} className="shrink-0 mt-0.5 text-blue-500" /> 
-                                <span>Daha doğru bir konumlandırma için lütfen Google Haritalar'dan evinizin konumunu bularak, kordinatları (örn: <strong className="font-semibold text-slate-700">40.348, 36.543</strong>) kopyalayıp adres alanına yapıştırın.</span>
-                            </p>
+                            
+                            <div className="mt-3 bg-slate-50 p-3 rounded-xl border border-slate-200">
+                                <div className="flex justify-between items-center mb-2">
+                                    <span className="text-xs font-semibold text-slate-600">Haritadan Konum Seçin</span>
+                                    <button 
+                                        type="button"
+                                        onClick={handleSearchAddress}
+                                        disabled={isSearchingMap || !formData.address.trim()}
+                                        className="text-xs bg-white border border-slate-200 hover:bg-slate-100 text-slate-700 px-3 py-1.5 rounded-lg font-medium transition-colors flex items-center gap-1 disabled:opacity-50"
+                                    >
+                                        {isSearchingMap ? <Loader2 className="w-3 h-3 animate-spin" /> : <Search className="w-3 h-3" />}
+                                        Yazdığım Adresi Bul
+                                    </button>
+                                </div>
+                                <div className="h-[200px] w-full rounded-lg overflow-hidden border border-slate-200 relative">
+                                    <Map
+                                        center={{ lat: mapCenter[0], lng: mapCenter[1] }}
+                                        zoom={mapZoom}
+                                        mapId="registration_map"
+                                        disableDefaultUI={false}
+                                        gestureHandling="greedy"
+                                        onClick={(e) => {
+                                            if (e.detail.latLng) {
+                                                setPickerCoordinates([e.detail.latLng.lat, e.detail.latLng.lng]);
+                                            }
+                                        }}
+                                        onCameraChanged={(ev) => {
+                                            setMapCenter([ev.detail.center.lat, ev.detail.center.lng]);
+                                            setMapZoom(ev.detail.zoom);
+                                        }}
+                                    >
+                                        {pickerCoordinates && (
+                                            <AdvancedMarker position={{ lat: pickerCoordinates[0], lng: pickerCoordinates[1] }} />
+                                        )}
+                                    </Map>
+                                </div>
+                                <p className="mt-2 text-[10px] text-slate-500 flex items-start gap-1">
+                                    <AlertCircle size={12} className="shrink-0 text-blue-500 mt-0.5" />
+                                    <span>Lütfen harita üzerinde tam konumunuzu tıklayarak işaretleyin. (Kırmızı pin çıkacaktır)</span>
+                                </p>
+                            </div>
                         </div>
 
                         {/* Sözleşme Kabul */}

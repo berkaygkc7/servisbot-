@@ -1,6 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import { Link, useLocation } from 'react-router-dom';
-import { Menu, X } from 'lucide-react';
+import { Menu, X, ChevronDown } from 'lucide-react';
 import { motion, useScroll, useMotionValueEvent, AnimatePresence } from 'framer-motion';
 import logo from '../../assets/yeni_navbar_logo.png';
 
@@ -33,7 +33,41 @@ const Navbar: React.FC = () => {
 
     const toggleMobileMenu = () => setIsMobileMenuOpen(!isMobileMenuOpen);
 
-    const navLinks = ['Özellikler', 'Çözümler', 'Fiyatlandırma', 'İletişim'];
+    type NavItem = {
+        title: string;
+        items: {
+            label: string;
+            desc: string;
+            href?: string;
+        }[];
+    };
+
+    const navItems: NavItem[] = [
+        {
+            title: 'Özellikler',
+            items: [
+                { label: 'Öğrenci Yönetimi', desc: 'Öğrenci kayıtları ve devamsızlık takibi' },
+                { label: 'Puantaj ve Hakediş', desc: 'Otomatik hakediş ve maaş hesaplamaları' },
+                { label: 'Finans ve Muhasebe', desc: 'Fatura, gelir/gider ve ödeme takibi' },
+                { label: 'Araç & Şoför Kayıtları', desc: 'Filo ve personel bilgilerini yönetin' },
+            ]
+        },
+        {
+            title: 'Çözümler',
+            items: [
+                { label: 'Okul Servisleri', desc: 'Okul ve kreş taşımacılığı' },
+                { label: 'Personel Servisleri', desc: 'Fabrika ve şirket taşımacılığı' },
+                { label: 'Kurumsal Firmalar', desc: 'Geniş filoya sahip operasyonlar' },
+            ]
+        },
+        {
+            title: 'İletişim',
+            items: [
+                { label: 'Eren Canıkatı', desc: '0505 045 17 11', href: 'tel:+905050451711' },
+                { label: 'Berkay Gökçe', desc: '0505 417 12 99', href: 'tel:+905054171299' },
+            ]
+        }
+    ];
 
     return (
         <>
@@ -55,35 +89,39 @@ const Navbar: React.FC = () => {
                         </Link>
 
                         {/* Desktop Menu */}
-                        <div className="hidden md:flex items-center space-x-8">
-                            {navLinks.map((item) => (
-                                <a
-                                    key={item}
-                                    href={`#${item.toLowerCase()}`}
-                                    className={`text-sm font-medium transition-colors hover:text-secondary ${isScrolled ? 'text-slate-600' : 'text-slate-100 hover:text-white'
-                                        }`}
-                                >
-                                    {item}
-                                </a>
+                        <div className="hidden md:flex items-center space-x-6">
+                            {navItems.map((menu) => (
+                                <div key={menu.title} className="relative group">
+                                    <button className={`flex items-center gap-1 text-sm font-semibold transition-colors hover:text-secondary py-6 ${isScrolled ? 'text-slate-700' : 'text-slate-100 hover:text-white'}`}>
+                                        {menu.title}
+                                        <ChevronDown size={14} className="opacity-70 group-hover:rotate-180 transition-transform duration-200" />
+                                    </button>
+
+                                    {/* Dropdown */}
+                                    <div className="absolute top-full left-1/2 -translate-x-1/2 opacity-0 invisible group-hover:opacity-100 group-hover:visible transition-all duration-200 translate-y-2 group-hover:translate-y-0 w-64 bg-white rounded-2xl shadow-xl border border-slate-100 p-3 before:content-[''] before:absolute before:-top-2 before:left-0 before:right-0 before:h-4">
+                                        {menu.items.map((item, idx) => (
+                                            <a 
+                                                key={idx} 
+                                                href={item.href || '#'} 
+                                                className="block p-3 rounded-xl hover:bg-slate-50 transition-colors group/item"
+                                            >
+                                                <div className="text-sm font-bold text-slate-800 group-hover/item:text-primary transition-colors">{item.label}</div>
+                                                <div className="text-xs text-slate-500 mt-1 leading-relaxed">{item.desc}</div>
+                                            </a>
+                                        ))}
+                                    </div>
+                                </div>
                             ))}
                         </div>
 
                         {/* Auth Buttons */}
                         <div className="hidden md:flex items-center gap-4">
                             <Link to="/login">
-                                <button className={`px-5 py-2.5 rounded-lg font-semibold text-sm transition-all duration-300 ${isScrolled
-                                    ? 'text-slate-600 hover:text-primary'
-                                    : 'text-slate-100 hover:text-white'
-                                    }`}>
-                                    Giriş Yap
-                                </button>
-                            </Link>
-                            <Link to="/register">
-                                <button className={`px-5 py-2.5 rounded-lg font-semibold text-sm transition-all duration-300 transform hover:scale-105 ${isScrolled
-                                    ? 'bg-primary text-white hover:bg-slate-800 shadow-md hover:shadow-lg'
+                                <button className={`px-5 py-2.5 rounded-xl font-bold text-sm transition-all duration-300 ${isScrolled
+                                    ? 'bg-slate-900 text-white hover:bg-slate-800 shadow-md hover:shadow-lg'
                                     : 'bg-white text-primary hover:bg-slate-50 shadow-none'
                                     }`}>
-                                    Ücretsiz Dene
+                                    Sisteme Giriş Yap
                                 </button>
                             </Link>
                         </div>
@@ -110,22 +148,38 @@ const Navbar: React.FC = () => {
                         animate={{ opacity: 1, y: 0 }}
                         exit={{ opacity: 0, y: -20 }}
                         transition={{ duration: 0.2 }}
-                        className="fixed inset-0 z-40 bg-white md:hidden pt-24 pb-6 px-6 flex flex-col justify-between"
+                        className="fixed inset-0 z-40 bg-white md:hidden pt-24 pb-6 px-6 overflow-y-auto"
                     >
-                        <div className="flex flex-col space-y-2 mt-4">
-                            {navLinks.map((item) => (
-                                <a
-                                    key={item}
-                                    href={`#${item.toLowerCase()}`}
-                                    onClick={() => setIsMobileMenuOpen(false)}
-                                    className="text-2xl font-bold text-slate-800 py-4 border-b border-slate-100 last:border-0"
-                                >
-                                    {item}
-                                </a>
+                        <div className="flex flex-col space-y-6 mt-4">
+                            {navItems.map((menu) => (
+                                <div key={menu.title} className="flex flex-col">
+                                    <div className="text-sm font-bold text-slate-400 uppercase tracking-wider mb-3">
+                                        {menu.title}
+                                    </div>
+                                    <div className="flex flex-col space-y-4 border-l-2 border-slate-100 pl-4">
+                                        {menu.items.map((item, idx) => (
+                                            <a 
+                                                key={idx}
+                                                href={item.href || '#'}
+                                                onClick={() => setIsMobileMenuOpen(false)}
+                                                className="flex flex-col"
+                                            >
+                                                <span className="text-lg font-bold text-slate-800">{item.label}</span>
+                                                <span className="text-sm text-slate-500 mt-0.5">{item.desc}</span>
+                                            </a>
+                                        ))}
+                                    </div>
+                                </div>
                             ))}
                         </div>
-
-                        {/* Mobile Auth Buttons Removed by User Request */}
+                        
+                        <div className="mt-10 pt-6 border-t border-slate-100">
+                             <Link to="/login" onClick={() => setIsMobileMenuOpen(false)}>
+                                <button className="w-full px-5 py-4 rounded-xl font-bold text-white bg-slate-900 shadow-md">
+                                    Sisteme Giriş Yap
+                                </button>
+                            </Link>
+                        </div>
                     </motion.div>
                 )}
             </AnimatePresence>

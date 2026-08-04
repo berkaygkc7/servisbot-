@@ -2,13 +2,15 @@ import React, { useState, useEffect } from 'react';
 import {
     Plus, Trash2, School, MapPin, Loader2, Tag as TagIcon,
     DollarSign, Settings as SettingsIcon, ShieldCheck, CreditCard, X, Building,
-    Copy, Download, ExternalLink, QrCode, Users, UserPlus, Eye, EyeOff
+    Copy, Download, ExternalLink, QrCode, Users, UserPlus, Eye, EyeOff,
+    Image as ImageIcon, Briefcase, FileText, Phone
 } from 'lucide-react';
 import { QRCodeSVG } from 'qrcode.react';
 import { supabase } from '../lib/supabase';
 import { supabaseSecondary } from '../lib/supabaseSecondary';
 import { useAuth } from '../contexts/AuthContext';
 import { TURKISH_CITIES } from '../constants/cities';
+import { AccountSettings } from '../components/settings/AccountSettings';
 
 interface SchoolData {
     id: string;
@@ -37,7 +39,7 @@ interface TeamMember {
     email?: string;
 }
 
-type TabType = 'schools' | 'tags' | 'pricing' | 'company' | 'users';
+type TabType = 'schools' | 'tags' | 'pricing' | 'company' | 'users' | 'account';
 
 const Settings: React.FC = () => {
     const { profile } = useAuth();
@@ -57,6 +59,11 @@ const Settings: React.FC = () => {
     const [userFormData, setUserFormData] = useState({ full_name: '', email: '', password: '', role: 'accountant' });
     const [companyName, setCompanyName] = useState(profile?.companies?.company_name || '');
     const [city, setCity] = useState(profile?.companies?.city || '');
+    const [logoUrl, setLogoUrl] = useState(profile?.companies?.logo_url || '');
+    const [taxOffice, setTaxOffice] = useState(profile?.companies?.tax_office || '');
+    const [taxNumber, setTaxNumber] = useState(profile?.companies?.tax_number || '');
+    const [address, setAddress] = useState(profile?.companies?.address || '');
+    const [phone, setPhone] = useState(profile?.companies?.phone || '');
 
     // Submit States
     const [isSubmitting, setIsSubmitting] = useState(false);
@@ -76,20 +83,31 @@ const Settings: React.FC = () => {
     }, [profile?.company_id]);
 
     useEffect(() => {
-        if (profile?.companies?.city) {
-            setCity(profile.companies.city);
+        if (profile?.companies) {
+            setCity(profile.companies.city || '');
+            setCompanyName(profile.companies.company_name || '');
+            setLogoUrl(profile.companies.logo_url || '');
+            setTaxOffice(profile.companies.tax_office || '');
+            setTaxNumber(profile.companies.tax_number || '');
+            setAddress(profile.companies.address || '');
+            setPhone(profile.companies.phone || '');
         }
-        if (profile?.companies?.company_name) {
-            setCompanyName(profile.companies.company_name);
-        }
-    }, [profile?.companies?.city, profile?.companies?.company_name]);
+    }, [profile?.companies]);
 
     const handleUpdateCompany = async (e: React.FormEvent) => {
         e.preventDefault();
         if (!profile?.company_id) return;
         setIsCitySubmitting(true);
         try {
-            const { error } = await supabase.from('companies').update({ city, company_name: companyName }).eq('id', profile.company_id);
+            const { error } = await supabase.from('companies').update({ 
+                city, 
+                company_name: companyName,
+                logo_url: logoUrl,
+                tax_office: taxOffice,
+                tax_number: taxNumber,
+                address,
+                phone
+            }).eq('id', profile.company_id);
             if (error) throw error;
             alert('Firma ayarları başarıyla güncellendi. Sayfa yenilendiğinde değişiklikler yansıyacaktır.');
         } catch (error) {
@@ -318,6 +336,28 @@ const Settings: React.FC = () => {
         }
     };
 
+    const handleDeleteUser = async (id: string, name: string) => {
+        if (id === profile?.id) {
+            alert('Kendi hesabınızı silemezsiniz.');
+            return;
+        }
+        
+        if (!window.confirm(`${name} isimli kullanıcıyı ekipten çıkarmak istediğinize emin misiniz? Bu kişinin sisteme erişimi derhal kesilecektir.`)) {
+            return;
+        }
+
+        try {
+            const { error } = await supabase.from('users').delete().eq('id', id);
+            if (error) throw error;
+            
+            setTeamMembers(prev => prev.filter(u => u.id !== id));
+            alert('Kullanıcı başarıyla silindi.');
+        } catch (error: any) {
+            console.error('Error deleting user:', error);
+            alert('Kullanıcı silinirken bir hata oluştu: ' + error.message);
+        }
+    };
+
     return (
         <div className="space-y-8 max-w-7xl mx-auto">
             {/* Premium Header */}
@@ -390,6 +430,17 @@ const Settings: React.FC = () => {
                             <span>Ekip Yönetimi</span>
                         </button>
 
+                        <button
+                            onClick={() => setActiveTab('account')}
+                            className={`flex items-center gap-3 w-full px-4 py-3 rounded-xl font-medium transition-all ${activeTab === 'account'
+                                ? 'bg-rose-600 text-white shadow-md shadow-rose-500/20'
+                                : 'text-slate-600 hover:bg-slate-50 hover:text-slate-900'
+                                }`}
+                        >
+                            <UserPlus size={20} />
+                            <span>Hesap Ayarları</span>
+                        </button>
+
                         <div className="mt-8 pt-4 border-t border-slate-100 px-2 text-center">
                             <ShieldCheck size={32} className="mx-auto text-slate-300 mb-2" />
                             <p className="text-xs text-slate-400">Verileriniz güvenle saklanır, yapılandırma anında uygulanır.</p>
@@ -399,6 +450,13 @@ const Settings: React.FC = () => {
 
                 {/* Main Content Area */}
                 <div className="flex-1">
+
+                    {/* =======================================================
+                        TAB: ACCOUNT SETTINGS
+                       ======================================================= */}
+                    {activeTab === 'account' && (
+                        <AccountSettings />
+                    )}
 
                     {/* =======================================================
                         TAB 4: COMPANY INFO
@@ -455,10 +513,87 @@ const Settings: React.FC = () => {
                                             </div>
                                         </div>
 
+                                        <div>
+                                            <label className="block text-sm font-bold text-slate-700 mb-1.5">Firma Logosu (URL)</label>
+                                            <div className="relative">
+                                                <div className="absolute inset-y-0 left-0 pl-4 flex items-center pointer-events-none">
+                                                    <ImageIcon className="h-5 w-5 text-slate-400" />
+                                                </div>
+                                                <input
+                                                    type="url"
+                                                    value={logoUrl}
+                                                    onChange={(e) => setLogoUrl(e.target.value)}
+                                                    placeholder="Örn: https://siteniz.com/logo.png"
+                                                    className="w-full pl-12 pr-4 py-3 bg-white border border-slate-200 rounded-xl focus:outline-none focus:ring-2 focus:ring-amber-500/20 focus:border-amber-500 transition-all font-medium text-slate-700 shadow-sm"
+                                                />
+                                            </div>
+                                            <p className="text-xs text-slate-500 mt-2">Daha sonra eklenecek olan otomatik e-postalarda ve veli uygulamalarında firmanızın kurumsal kimliğini öne çıkarır.</p>
+                                        </div>
+
+                                        <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                                            <div>
+                                                <label className="block text-sm font-bold text-slate-700 mb-1.5">Vergi Dairesi</label>
+                                                <div className="relative">
+                                                    <div className="absolute inset-y-0 left-0 pl-4 flex items-center pointer-events-none">
+                                                        <Briefcase className="h-5 w-5 text-slate-400" />
+                                                    </div>
+                                                    <input
+                                                        type="text"
+                                                        value={taxOffice}
+                                                        onChange={(e) => setTaxOffice(e.target.value)}
+                                                        placeholder="Örn: Kadıköy V.D."
+                                                        className="w-full pl-12 pr-4 py-3 bg-white border border-slate-200 rounded-xl focus:outline-none focus:ring-2 focus:ring-amber-500/20 focus:border-amber-500 transition-all font-medium text-slate-700 shadow-sm"
+                                                    />
+                                                </div>
+                                            </div>
+                                            <div>
+                                                <label className="block text-sm font-bold text-slate-700 mb-1.5">Vergi Numarası</label>
+                                                <div className="relative">
+                                                    <div className="absolute inset-y-0 left-0 pl-4 flex items-center pointer-events-none">
+                                                        <FileText className="h-5 w-5 text-slate-400" />
+                                                    </div>
+                                                    <input
+                                                        type="text"
+                                                        value={taxNumber}
+                                                        onChange={(e) => setTaxNumber(e.target.value)}
+                                                        placeholder="Örn: 1234567890"
+                                                        className="w-full pl-12 pr-4 py-3 bg-white border border-slate-200 rounded-xl focus:outline-none focus:ring-2 focus:ring-amber-500/20 focus:border-amber-500 transition-all font-medium text-slate-700 shadow-sm"
+                                                    />
+                                                </div>
+                                            </div>
+                                        </div>
+
+                                        <div>
+                                            <label className="block text-sm font-bold text-slate-700 mb-1.5">İletişim Numarası (Destek / Ofis)</label>
+                                            <div className="relative">
+                                                <div className="absolute inset-y-0 left-0 pl-4 flex items-center pointer-events-none">
+                                                    <Phone className="h-5 w-5 text-slate-400" />
+                                                </div>
+                                                <input
+                                                    type="tel"
+                                                    value={phone}
+                                                    onChange={(e) => setPhone(e.target.value)}
+                                                    placeholder="Örn: 0850 123 45 67"
+                                                    className="w-full pl-12 pr-4 py-3 bg-white border border-slate-200 rounded-xl focus:outline-none focus:ring-2 focus:ring-amber-500/20 focus:border-amber-500 transition-all font-medium text-slate-700 shadow-sm"
+                                                />
+                                            </div>
+                                        </div>
+
+                                        <div>
+                                            <label className="block text-sm font-bold text-slate-700 mb-1.5">Açık Adres</label>
+                                            <textarea
+                                                value={address}
+                                                onChange={(e) => setAddress(e.target.value)}
+                                                placeholder="Fatura ve iletişim adresinizi giriniz..."
+                                                rows={3}
+                                                className="w-full px-4 py-3 bg-white border border-slate-200 rounded-xl focus:outline-none focus:ring-2 focus:ring-amber-500/20 focus:border-amber-500 transition-all font-medium text-slate-700 shadow-sm resize-none"
+                                            />
+                                        </div>
+
                                         <button
                                             type="submit"
-                                            disabled={isCitySubmitting || (!city && !companyName) || (city === profile?.companies?.city && companyName === profile?.companies?.company_name)}
-                                            className="w-full py-3.5 bg-amber-600 text-white rounded-xl font-bold hover:bg-amber-700 transition-colors shadow-lg shadow-amber-500/20 disabled:opacity-50 flex items-center justify-center gap-2 mt-4"
+                                            disabled={isCitySubmitting || (!city && !companyName)}
+                                            className="w-full py-3.5 bg-amber-600 text-white rounded-xl font-bold hover:bg-amber-700 transition-colors shadow-lg shadow-amber-500/20 disabled:opacity-50 flex items-center justify-center gap-2 mt-6"
                                         >
                                             {isCitySubmitting ? <><Loader2 size={18} className="animate-spin" /> Kaydediliyor...</> : 'Değişiklikleri Kaydet'}
                                         </button>
@@ -481,12 +616,12 @@ const Settings: React.FC = () => {
                                         </h3>
                                         <p className="text-sm text-slate-500 mb-6">Velilerinizin şifresiz olarak firmanıza kayıt başvurusu yapabilmeleri için aşağıdaki linki veya QR Kodu kullanabilirsiniz.</p>
                                         
-                                        {profile?.companies?.public_token ? (
+                                        {profile?.companies?.public_registration_token ? (
                                             <div className="flex flex-col xl:flex-row gap-6 items-center xl:items-start bg-white border border-slate-200 p-6 rounded-2xl shadow-sm">
                                                 <div className="flex-shrink-0 bg-white p-3 rounded-xl shadow-sm border border-slate-200">
                                                     <QRCodeSVG 
                                                         id="application-qr-code"
-                                                        value={`${window.location.origin}/apply/${profile.companies.public_token}`} 
+                                                        value={`${window.location.origin}/apply/${profile.companies.public_registration_token}`} 
                                                         size={120} 
                                                         level="H"
                                                     />
@@ -498,12 +633,12 @@ const Settings: React.FC = () => {
                                                             <input 
                                                                 type="text" 
                                                                 readOnly 
-                                                                value={`${window.location.origin}/apply/${profile.companies.public_token}`}
+                                                                value={`${window.location.origin}/apply/${profile.companies.public_registration_token}`}
                                                                 className="w-full text-sm bg-slate-50 border border-slate-200 rounded-lg px-3 py-2 text-slate-600 focus:outline-none focus:ring-1 focus:ring-indigo-500"
                                                             />
                                                             <button 
                                                                 onClick={() => {
-                                                                    navigator.clipboard.writeText(`${window.location.origin}/apply/${profile?.companies?.public_token}`);
+                                                                    navigator.clipboard.writeText(`${window.location.origin}/apply/${profile?.companies?.public_registration_token}`);
                                                                     alert("Bağlantı kopyalandı!");
                                                                 }}
                                                                 className="p-2 bg-indigo-50 text-indigo-600 rounded-lg hover:bg-indigo-100 transition-colors shrink-0"
@@ -516,7 +651,7 @@ const Settings: React.FC = () => {
                                                     
                                                     <div className="flex gap-2">
                                                         <a 
-                                                            href={`/apply/${profile.companies.public_token}`}
+                                                            href={`/apply/${profile.companies.public_registration_token}`}
                                                             target="_blank"
                                                             rel="noopener noreferrer"
                                                             className="flex-1 flex items-center justify-center gap-2 py-2 border border-slate-200 text-slate-700 font-bold rounded-lg hover:bg-slate-50 transition-colors text-sm"
@@ -768,25 +903,19 @@ const Settings: React.FC = () => {
                                         </div>
                                         Fiyatlandırma Kuralı
                                     </h2>
-                                    <p className="text-sm text-slate-500 mb-6">Öğrenciler eklendiğinde "Okul Seviyesi"ne göre otomatik atanacak başlangıç fiyatları belirleyin.</p>
+                                    <p className="text-sm text-slate-500 mb-6">Mahallelere özel fiyat belirleyerek faturalandırmayı otomatikleştirin.</p>
 
                                     <form onSubmit={handleAddPricing} className="space-y-5">
                                         <div>
-                                            <label className="block text-sm font-bold text-slate-700 mb-1.5">Okul Seviyesi (Şablon)</label>
-                                            <select
+                                            <label className="block text-sm font-bold text-slate-700 mb-1.5">Fiyatlandırma Mahallesi</label>
+                                            <input
+                                                type="text"
                                                 required
-                                                className="w-full px-4 py-3 bg-white border border-slate-200 rounded-xl focus:outline-none focus:ring-2 focus:ring-emerald-500/20 focus:border-emerald-500 transition-all font-medium text-slate-700 cursor-pointer appearance-none shadow-sm"
+                                                placeholder="Örn: Kemerköprü Mahallesi"
+                                                className="w-full px-4 py-3 bg-white border border-slate-200 rounded-xl focus:outline-none focus:ring-2 focus:ring-emerald-500/20 focus:border-emerald-500 transition-all font-medium text-slate-700 shadow-sm"
                                                 value={pricingFormData.school_level || ''}
                                                 onChange={e => setPricingFormData({ ...pricingFormData, school_level: e.target.value })}
-                                            >
-                                                <option value="" disabled>Seviye Seçiniz</option>
-                                                <option value="Anaokulu">Anaokulu</option>
-                                                <option value="İlkokul">İlkokul</option>
-                                                <option value="Ortaokul">Ortaokul</option>
-                                                <option value="Lise">Lise</option>
-                                                <option value="Üniversite / Personel">Üniversite / Personel</option>
-                                                <option value="Diğer">Diğer</option>
-                                            </select>
+                                            />
                                         </div>
                                         <div>
                                             <label className="block text-sm font-bold text-slate-700 mb-1.5">Standart Aylık Tutar (₺)</label>
@@ -835,7 +964,7 @@ const Settings: React.FC = () => {
                                             <table className="w-full text-left border-collapse">
                                                 <thead>
                                                     <tr className="bg-slate-50 border-b border-slate-200">
-                                                        <th className="p-4 font-bold text-slate-600 text-sm">Okul Seviyesi</th>
+                                                        <th className="p-4 font-bold text-slate-600 text-sm">Mahalle</th>
                                                         <th className="p-4 font-bold text-slate-600 text-sm">Aylık Tutar</th>
                                                         <th className="p-4 font-bold text-slate-600 text-sm text-right">İşlem</th>
                                                     </tr>
@@ -984,6 +1113,15 @@ const Settings: React.FC = () => {
                                                              member.role === 'admin' ? 'Yönetici' : member.role}
                                                         </p>
                                                     </div>
+                                                    {member.role !== 'owner' && member.id !== profile?.id && (
+                                                        <button 
+                                                            onClick={() => handleDeleteUser(member.id, member.full_name)}
+                                                            className="p-2 text-slate-400 hover:text-red-500 hover:bg-red-50 rounded-lg transition-colors"
+                                                            title="Kullanıcıyı Sil"
+                                                        >
+                                                            <Trash2 size={18} />
+                                                        </button>
+                                                    )}
                                                 </div>
                                             ))}
                                         </div>

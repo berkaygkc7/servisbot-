@@ -1,6 +1,8 @@
 import { useState, useEffect } from 'react';
 import { supabase } from '../../lib/supabase';
-import { LogIn, Edit, ShieldAlert, Eye, X, Users, Bus, GraduationCap, School, Route, DollarSign } from 'lucide-react';
+import { supabaseSecondary } from '../../lib/supabaseSecondary';
+import { LogIn, Edit, ShieldAlert, Eye, X, Users, Bus, GraduationCap, School, Route, DollarSign, Plus, Loader2, Building, Mail, User, KeyRound, MapPin } from 'lucide-react';
+import { TURKISH_CITIES } from '../../constants/cities';
 
 interface Company {
   id: string;
@@ -11,6 +13,7 @@ interface Company {
   created_at: string;
   owner_id: string;
   owner_email: string;
+  details?: CompanyDetails; // Added to store details directly on the company object
 }
 
 interface CompanyDetails {
@@ -35,6 +38,18 @@ export default function CompaniesList() {
   const [details, setDetails] = useState<CompanyDetails | null>(null);
   const [loadingDetails, setLoadingDetails] = useState(false);
 
+  // New Client Modal State
+  const [isNewClientModalOpen, setIsNewClientModalOpen] = useState(false);
+  const [isSubmittingNewClient, setIsSubmittingNewClient] = useState(false);
+  const [newClientForm, setNewClientForm] = useState({
+    companyName: '',
+    fullName: '',
+    email: '',
+    password: '',
+    city: '',
+    subscriptionTier: 'premium'
+  });
+
   useEffect(() => {
     fetchCompanies();
   }, []);
@@ -44,7 +59,25 @@ export default function CompaniesList() {
     try {
       const { data, error } = await supabase.rpc('sa_get_all_companies');
       if (error) throw error;
-      setCompanies(data || []);
+      
+      const rawCompanies = data || [];
+      
+      // Fetch details for all companies in parallel
+      const companiesWithDetails = await Promise.all(
+        rawCompanies.map(async (company: Company) => {
+          try {
+            const { data: detailsData, error: detailsError } = await supabase.rpc('sa_get_company_details', { p_company_id: company.id });
+            if (!detailsError && detailsData) {
+              return { ...company, details: detailsData as CompanyDetails };
+            }
+          } catch (e) {
+            console.error(`Error fetching details for company ${company.id}`, e);
+          }
+          return company;
+        })
+      );
+      
+      setCompanies(companiesWithDetails);
     } catch (err) {
       console.error('Error fetching companies:', err);
     } finally {
@@ -105,7 +138,57 @@ export default function CompaniesList() {
     return new Intl.NumberFormat('tr-TR', { style: 'currency', currency: 'TRY', maximumFractionDigits: 0 }).format(val);
   };
 
-  if (loading) {
+  const handleCreateNewClient = async (e: React.FormEvent) => {
+    e.preventDefault();
+    setIsSubmittingNewClient(true);
+
+    try {
+      // 1. Create auth user with secondary client to avoid logging out Super Admin
+      const { data: authData, error: authError } = await supabaseSecondary.auth.signUp({
+          email: newClientForm.email,
+          password: newClientForm.password,
+          options: {
+              data: {
+                  full_name: newClientForm.fullName
+              }
+          }
+      });
+
+      if (authError) throw authError;
+      if (!authData.user) throw new Error("Kullanıcı oluşturulamadı.");
+
+      // Small delay to ensure Auth user is fully committed in Supabase DB
+      await new Promise(resolve => setTimeout(resolve, 1000));
+
+      // 2. Call the RPC to create Company and Profile atomically
+      const { error: registrationError } = await supabase.rpc('register_company', {
+          p_user_id: authData.user.id,
+          p_company_name: newClientForm.companyName,
+          p_full_name: newClientForm.fullName,
+          p_city: newClientForm.city,
+          p_subscription_tier: newClientForm.subscriptionTier
+      });
+
+      if (registrationError) throw registrationError;
+
+      alert(`Başarılı! ${newClientForm.companyName} firması sisteme eklendi ve müşteri hesabı oluşturuldu.`);
+      
+      setIsNewClientModalOpen(false);
+      setNewClientForm({
+        companyName: '', fullName: '', email: '', password: '', city: '', subscriptionTier: 'premium'
+      });
+      
+      fetchCompanies();
+
+    } catch (error: any) {
+      console.error('Error creating new client:', error);
+      alert(`Müşteri hesabı oluşturulurken bir hata meydana geldi: ${error.message || 'Bilinmeyen Hata'}`);
+    } finally {
+      setIsSubmittingNewClient(false);
+    }
+  };
+
+  if (loading && companies.length === 0) {
     return (
       <div className="flex items-center justify-center min-h-[400px]">
         <div className="animate-spin rounded-full h-10 w-10 border-b-2 border-primary"></div>
@@ -116,11 +199,18 @@ export default function CompaniesList() {
 
   return (
     <div className="space-y-6">
-      <div className="flex items-center justify-between">
+      <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4">
         <div>
           <h1 className="text-2xl font-bold text-slate-900">Şirket Yönetimi</h1>
-          <p className="text-slate-600">Platformdaki tüm şirketleri (tenantları) görüntüleyin ve yönetin.</p>
+          <p className="text-slate-600">Sistemi lisansladığınız müşterilerinizi (şirketleri) ekleyin ve yönetin.</p>
         </div>
+        <button 
+          onClick={() => setIsNewClientModalOpen(true)}
+          className="flex items-center gap-2 bg-primary text-white px-4 py-2.5 rounded-xl font-bold hover:bg-blue-600 transition shadow-lg shadow-primary/20"
+        >
+          <Plus size={20} />
+          Yeni Müşteri Ekle
+        </button>
       </div>
 
       <div className="bg-white rounded-xl shadow-sm border border-slate-200 overflow-hidden">
@@ -128,11 +218,10 @@ export default function CompaniesList() {
           <table className="w-full text-left text-sm">
             <thead className="bg-slate-50 border-b border-slate-200 text-slate-600">
               <tr>
-                <th className="p-4 font-medium">Şirket Adı</th>
-                <th className="p-4 font-medium">Sahibi (Email)</th>
-                <th className="p-4 font-medium">Paket</th>
-                <th className="p-4 font-medium">Durum</th>
-                <th className="p-4 font-medium">Kayıt Tarihi</th>
+                <th className="p-4 font-medium">Şirket / Kurucu</th>
+                <th className="p-4 font-medium">Paket & Durum</th>
+                <th className="p-4 font-medium">Operasyon (Kapasite)</th>
+                <th className="p-4 font-medium">Finans (Gelir / Gider)</th>
                 <th className="p-4 font-medium text-right">İşlemler</th>
               </tr>
             </thead>
@@ -142,53 +231,100 @@ export default function CompaniesList() {
                   <td className="p-4">
                     <button 
                       onClick={() => openDetailsModal(company)}
-                      className="font-semibold text-slate-900 hover:text-primary transition-colors text-left outline-none"
+                      className="font-bold text-slate-900 hover:text-primary transition-colors text-left outline-none text-base block"
                     >
                       {company.company_name}
                     </button>
-                    <p className="text-xs text-slate-500">{company.city || '-'}</p>
-                  </td>
-                  <td className="p-4 text-slate-600 font-medium">
-                    {company.owner_email || company.owner_id.substring(0, 8) + '...'}
-                  </td>
-                  <td className="p-4">
-                    {editingId === company.id ? (
-                      <select 
-                        value={editForm.tier} 
-                        onChange={(e) => setEditForm({...editForm, tier: e.target.value})}
-                        className="border border-slate-300 rounded p-1 text-sm focus:ring-primary focus:border-primary"
-                      >
-                        <option value="free">Free</option>
-                        <option value="premium">Premium</option>
-                      </select>
-                    ) : (
-                      <span className={`inline-flex items-center px-2.5 py-1 rounded-full text-xs font-semibold ${
-                        company.subscription_tier === 'premium' ? 'bg-amber-100 text-amber-700 border border-amber-200' : 'bg-slate-100 text-slate-700'
-                      }`}>
-                        {company.subscription_tier.toUpperCase()}
+                    <div className="flex items-center gap-2 mt-1">
+                      <span className="text-xs font-medium text-slate-500 bg-slate-100 px-2 py-0.5 rounded flex items-center gap-1">
+                        <MapPin size={12} /> {company.city || 'Şehir Yok'}
                       </span>
+                      <span className="text-xs text-slate-400" title="Kayıt Tarihi">
+                        {new Date(company.created_at).toLocaleDateString('tr-TR')}
+                      </span>
+                    </div>
+                    <p className="text-xs text-slate-500 mt-2 flex items-center gap-1">
+                      <User size={12} />
+                      {company.owner_email || company.owner_id.substring(0, 8) + '...'}
+                    </p>
+                  </td>
+                  
+                  <td className="p-4 space-y-2">
+                    {editingId === company.id ? (
+                      <div className="flex flex-col gap-2">
+                        <select 
+                          value={editForm.tier} 
+                          onChange={(e) => setEditForm({...editForm, tier: e.target.value})}
+                          className="border border-slate-300 rounded p-1 text-sm focus:ring-primary focus:border-primary"
+                        >
+                          <option value="free">Free</option>
+                          <option value="premium">Premium</option>
+                        </select>
+                        <select 
+                          value={editForm.status} 
+                          onChange={(e) => setEditForm({...editForm, status: e.target.value})}
+                          className="border border-slate-300 rounded p-1 text-sm focus:ring-primary focus:border-primary"
+                        >
+                          <option value="active">Active</option>
+                          <option value="suspended">Suspended</option>
+                        </select>
+                      </div>
+                    ) : (
+                      <div className="flex flex-col gap-1.5 items-start">
+                        <span className={`inline-flex items-center px-2.5 py-1 rounded-md text-[11px] uppercase tracking-wider font-bold ${
+                          company.subscription_tier === 'premium' ? 'bg-amber-100 text-amber-700 border border-amber-200' : 'bg-slate-100 text-slate-700'
+                        }`}>
+                          {company.subscription_tier}
+                        </span>
+                        <span className={`inline-flex items-center px-2.5 py-1 rounded-md text-[11px] uppercase tracking-wider font-bold ${
+                          company.subscription_status === 'active' ? 'bg-green-100 text-green-700 border border-green-200' : 'bg-red-100 text-red-700 border border-red-200'
+                        }`}>
+                          {company.subscription_status}
+                        </span>
+                      </div>
                     )}
                   </td>
+                  
                   <td className="p-4">
-                    {editingId === company.id ? (
-                      <select 
-                        value={editForm.status} 
-                        onChange={(e) => setEditForm({...editForm, status: e.target.value})}
-                        className="border border-slate-300 rounded p-1 text-sm focus:ring-primary focus:border-primary"
-                      >
-                        <option value="active">Active</option>
-                        <option value="suspended">Suspended</option>
-                      </select>
+                    {company.details ? (
+                      <div className="flex flex-wrap gap-2 max-w-[250px]">
+                        <div className="flex items-center gap-1.5 bg-blue-50 text-blue-700 px-2.5 py-1 rounded-lg text-xs font-semibold border border-blue-100" title="Öğrenci Sayısı">
+                          <GraduationCap size={14} />
+                          {company.details.students_count}
+                        </div>
+                        <div className="flex items-center gap-1.5 bg-emerald-50 text-emerald-700 px-2.5 py-1 rounded-lg text-xs font-semibold border border-emerald-100" title="Araç Sayısı">
+                          <Bus size={14} />
+                          {company.details.vehicles_count}
+                        </div>
+                        <div className="flex items-center gap-1.5 bg-violet-50 text-violet-700 px-2.5 py-1 rounded-lg text-xs font-semibold border border-violet-100" title="Şoför Sayısı">
+                          <Users size={14} />
+                          {company.details.drivers_count}
+                        </div>
+                        <div className="flex items-center gap-1.5 bg-cyan-50 text-cyan-700 px-2.5 py-1 rounded-lg text-xs font-semibold border border-cyan-100" title="Güzergah Sayısı">
+                          <Route size={14} />
+                          {company.details.routes_count}
+                        </div>
+                      </div>
                     ) : (
-                      <span className={`inline-flex items-center px-2.5 py-1 rounded-full text-xs font-semibold ${
-                        company.subscription_status === 'active' ? 'bg-green-100 text-green-700 border border-green-200' : 'bg-red-100 text-red-700 border border-red-200'
-                      }`}>
-                        {company.subscription_status.toUpperCase()}
-                      </span>
+                      <span className="text-xs text-slate-400">Veri yok</span>
                     )}
                   </td>
-                  <td className="p-4 text-slate-600">
-                    {new Date(company.created_at).toLocaleDateString('tr-TR')}
+                  
+                  <td className="p-4">
+                     {company.details ? (
+                      <div className="space-y-1.5">
+                        <div className="flex flex-col">
+                          <span className="text-[10px] text-slate-500 uppercase tracking-wider font-bold">Gelir (Tahsilat)</span>
+                          <span className="text-sm font-extrabold text-emerald-600">{formatMoney(company.details.payments_total)}</span>
+                        </div>
+                        <div className="flex flex-col">
+                          <span className="text-[10px] text-slate-500 uppercase tracking-wider font-bold">Giderler</span>
+                          <span className="text-sm font-extrabold text-rose-600">{formatMoney(company.details.expenses_total)}</span>
+                        </div>
+                      </div>
+                     ) : (
+                      <span className="text-xs text-slate-400">Veri yok</span>
+                     )}
                   </td>
                   <td className="p-4 text-right space-x-2">
                     {editingId === company.id ? (
@@ -241,7 +377,7 @@ export default function CompaniesList() {
               {companies.length === 0 && (
                 <tr>
                   <td colSpan={6} className="p-8 text-center text-slate-500">
-                    Henüz kayıtlı şirket bulunmuyor.
+                    Henüz kayıtlı şirket bulunmuyor. Yeni bir müşteri ekleyerek başlayın.
                   </td>
                 </tr>
               )}
@@ -259,6 +395,137 @@ export default function CompaniesList() {
           </p>
         </div>
       </div>
+
+      {/* New Client Modal */}
+      {isNewClientModalOpen && (
+        <div className="fixed inset-0 bg-slate-900/50 backdrop-blur-sm z-50 flex items-center justify-center p-4">
+          <div className="bg-white rounded-2xl max-w-lg w-full shadow-2xl border border-slate-100 overflow-hidden flex flex-col">
+            <div className="px-6 py-4 border-b border-slate-100 flex items-center justify-between bg-slate-950 text-white">
+              <h3 className="font-bold text-lg flex items-center gap-2">
+                <Building className="h-5 w-5 text-primary" />
+                Yeni Müşteri (Şirket) Ekle
+              </h3>
+              <button 
+                onClick={() => setIsNewClientModalOpen(false)}
+                className="p-1 hover:bg-white/10 rounded-lg text-slate-400 hover:text-white transition"
+              >
+                <X className="h-5 w-5" />
+              </button>
+            </div>
+            <div className="p-6">
+                <form onSubmit={handleCreateNewClient} className="space-y-4">
+                    <div>
+                        <label className="block text-sm font-bold text-slate-700 mb-1.5 ml-1">Firma Adı</label>
+                        <div className="relative">
+                            <div className="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none">
+                                <Building className="h-5 w-5 text-slate-400" />
+                            </div>
+                            <input
+                                type="text"
+                                required
+                                value={newClientForm.companyName}
+                                onChange={(e) => setNewClientForm({...newClientForm, companyName: e.target.value})}
+                                className="block w-full pl-10 pr-3 py-2.5 border border-slate-200 rounded-xl bg-slate-50 focus:bg-white focus:outline-none focus:ring-2 focus:ring-primary/20 focus:border-primary transition-all text-slate-900"
+                                placeholder="Örn: Yıldız Turizm"
+                            />
+                        </div>
+                    </div>
+                    
+                    <div className="grid grid-cols-2 gap-4">
+                        <div>
+                            <label className="block text-sm font-bold text-slate-700 mb-1.5 ml-1">Firma Sahibi</label>
+                            <div className="relative">
+                                <div className="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none">
+                                    <User className="h-5 w-5 text-slate-400" />
+                                </div>
+                                <input
+                                    type="text"
+                                    required
+                                    value={newClientForm.fullName}
+                                    onChange={(e) => setNewClientForm({...newClientForm, fullName: e.target.value})}
+                                    className="block w-full pl-10 pr-3 py-2.5 border border-slate-200 rounded-xl bg-slate-50 focus:bg-white focus:outline-none focus:ring-2 focus:ring-primary/20 focus:border-primary transition-all text-slate-900"
+                                    placeholder="Ad Soyad"
+                                />
+                            </div>
+                        </div>
+                        <div>
+                            <label className="block text-sm font-bold text-slate-700 mb-1.5 ml-1">Şehir</label>
+                            <div className="relative">
+                                <div className="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none">
+                                    <MapPin className="h-5 w-5 text-slate-400" />
+                                </div>
+                                <select
+                                    required
+                                    value={newClientForm.city}
+                                    onChange={(e) => setNewClientForm({...newClientForm, city: e.target.value})}
+                                    className="block w-full pl-10 pr-3 py-2.5 border border-slate-200 rounded-xl bg-slate-50 focus:bg-white focus:outline-none focus:ring-2 focus:ring-primary/20 focus:border-primary transition-all text-slate-900"
+                                >
+                                    <option value="" disabled>Seçiniz</option>
+                                    {TURKISH_CITIES.map(c => (
+                                        <option key={c.name} value={c.name}>{c.name}</option>
+                                    ))}
+                                </select>
+                            </div>
+                        </div>
+                    </div>
+
+                    <div>
+                        <label className="block text-sm font-bold text-slate-700 mb-1.5 ml-1">E-posta (Giriş ID)</label>
+                        <div className="relative">
+                            <div className="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none">
+                                <Mail className="h-5 w-5 text-slate-400" />
+                            </div>
+                            <input
+                                type="email"
+                                required
+                                value={newClientForm.email}
+                                onChange={(e) => setNewClientForm({...newClientForm, email: e.target.value})}
+                                className="block w-full pl-10 pr-3 py-2.5 border border-slate-200 rounded-xl bg-slate-50 focus:bg-white focus:outline-none focus:ring-2 focus:ring-primary/20 focus:border-primary transition-all text-slate-900"
+                                placeholder="musteri@firma.com"
+                            />
+                        </div>
+                    </div>
+
+                    <div>
+                        <label className="block text-sm font-bold text-slate-700 mb-1.5 ml-1">Geçici Şifre</label>
+                        <div className="relative">
+                            <div className="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none">
+                                <KeyRound className="h-5 w-5 text-slate-400" />
+                            </div>
+                            <input
+                                type="text"
+                                required
+                                minLength={8}
+                                value={newClientForm.password}
+                                onChange={(e) => setNewClientForm({...newClientForm, password: e.target.value})}
+                                className="block w-full pl-10 pr-3 py-2.5 border border-slate-200 rounded-xl bg-slate-50 focus:bg-white focus:outline-none focus:ring-2 focus:ring-primary/20 focus:border-primary transition-all text-slate-900"
+                                placeholder="En az 8 karakter"
+                            />
+                        </div>
+                        <p className="text-xs text-slate-500 mt-1.5 ml-1">Müşterinize bu şifreyi iletiniz. Giriş yaptıktan sonra değiştirebilirler.</p>
+                    </div>
+
+                    <div className="pt-4 border-t border-slate-100 flex gap-3 justify-end">
+                        <button 
+                            type="button"
+                            onClick={() => setIsNewClientModalOpen(false)}
+                            className="px-4 py-2 text-slate-600 font-bold hover:bg-slate-100 rounded-xl transition"
+                        >
+                            İptal
+                        </button>
+                        <button 
+                            type="submit"
+                            disabled={isSubmittingNewClient}
+                            className="flex items-center gap-2 bg-primary text-white font-bold px-6 py-2 rounded-xl hover:bg-blue-600 transition shadow-lg shadow-primary/20 disabled:opacity-50"
+                        >
+                            {isSubmittingNewClient ? <><Loader2 size={18} className="animate-spin" /> Oluşturuluyor</> : 'Müşteriyi Oluştur'}
+                        </button>
+                    </div>
+                </form>
+            </div>
+          </div>
+        </div>
+      )}
 
       {/* Details Modal */}
       {selectedCompany && (

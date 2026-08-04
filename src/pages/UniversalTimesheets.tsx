@@ -14,7 +14,8 @@ import {
     Loader2, 
     AlertCircle,
     Sliders,
-    Calendar
+    Calendar,
+    Share2
 } from 'lucide-react';
 import { supabase } from '../lib/supabase';
 import { useAuth } from '../contexts/AuthContext';
@@ -395,6 +396,26 @@ const UniversalTimesheets: React.FC = () => {
         } finally {
             setSaving(false);
         }
+    };
+
+    const handleShare = () => {
+        if (rows.length === 0) {
+            alert('Paylaşılacak puantaj verisi bulunamadı.');
+            return;
+        }
+
+        let summary = `*${timesheet?.title || 'Puantaj Özeti'} - ${selectedMonth}/${selectedYear}*\n\n`;
+        
+        rows.forEach((row, idx) => {
+            const { totalAdet, totalAmount } = rowCalculations(row);
+            summary += `${idx + 1}. ${row.primary_name} (${row.category || '-'}): ${totalAdet} Adet/Gün - Toplam: ${totalAmount.toLocaleString('tr-TR')} ₺\n`;
+        });
+        
+        summary += `\n*Genel Toplamlar:*\n`;
+        summary += `Net Tutar: ${financeSummary.netTutar.toLocaleString('tr-TR')} ₺\n`;
+        
+        const whatsappUrl = `https://wa.me/?text=${encodeURIComponent(summary)}`;
+        window.open(whatsappUrl, '_blank');
     };
 
     // Calculate days of the selected month
@@ -810,6 +831,13 @@ const UniversalTimesheets: React.FC = () => {
                                 <span>Değişiklikleri Kaydet</span>
                             </>
                         )}
+                    </button>
+                    <button
+                        onClick={handleShare}
+                        className="flex items-center gap-1.5 px-4 py-2 bg-emerald-500 hover:bg-emerald-600 text-white text-xs font-bold rounded-xl transition-all shadow-md shadow-emerald-500/10"
+                    >
+                        <Share2 size={14} />
+                        <span className="hidden sm:inline">Paylaş</span>
                     </button>
                 </div>
             </div>

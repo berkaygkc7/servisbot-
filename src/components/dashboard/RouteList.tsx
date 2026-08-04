@@ -1,5 +1,5 @@
 import React from 'react';
-import { Map, Clock, Navigation, Trash2 } from 'lucide-react';
+import { Map, Clock, Navigation, Trash2, Share2 } from 'lucide-react';
 
 interface RouteDef {
     id: string;
@@ -20,9 +20,10 @@ interface RouteListProps {
     onSelect: (id: string) => void;
     onDelete: (id: string) => void;
     onEdit?: (id: string) => void;
+    onShare?: (id: string) => void;
 }
 
-const RouteList: React.FC<RouteListProps> = ({ routes, selectedRouteId, onSelect, onDelete, onEdit }) => {
+const RouteList: React.FC<RouteListProps> = ({ routes, selectedRouteId, onSelect, onDelete, onEdit, onShare }) => {
     return (
         <div className="bg-white rounded-2xl border border-slate-100 shadow-sm h-full flex flex-col">
             <div className="p-4 border-b border-slate-100 flex justify-between items-center">
@@ -77,6 +78,18 @@ const RouteList: React.FC<RouteListProps> = ({ routes, selectedRouteId, onSelect
                                         title="Rotayı Düzenle"
                                     >
                                         <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className="lucide lucide-pencil"><path d="M21.174 6.812a1 1 0 0 0-3.986-3.987L3.842 16.174a2 2 0 0 0-.5.83l-1.321 4.352a.5.5 0 0 0 .623.622l4.353-1.32a2 2 0 0 0 .83-.497z" /><path d="m15 5 4 4" /></svg>
+                                    </button>
+                                )}
+                                {onShare && (
+                                    <button
+                                        onClick={(e) => {
+                                            e.stopPropagation();
+                                            onShare(route.id);
+                                        }}
+                                        className="p-1.5 text-emerald-600 bg-emerald-50 hover:bg-emerald-100 rounded-lg transition-colors shadow-xs"
+                                        title="Şoförle / WhatsApp ile Paylaş"
+                                    >
+                                        <Share2 size={16} />
                                     </button>
                                 )}
                                 <button

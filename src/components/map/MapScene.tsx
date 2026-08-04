@@ -1,5 +1,5 @@
 /// <reference types="@types/google.maps" />
-import React, { useEffect, useState } from 'react';
+import React, { useEffect, useState, useRef } from 'react';
 import { Map, AdvancedMarker, useMap, useMapsLibrary } from '@vis.gl/react-google-maps';
 import { useAuth } from '../../contexts/AuthContext';
 import { getCityCoordinates } from '../../constants/cities';
@@ -30,6 +30,11 @@ interface MapSceneProps {
     center?: [number, number];
     zoom?: number;
     hideControls?: boolean;
+    
+    // For interactive draggable routing (My Maps style)
+    directionsResponse?: google.maps.DirectionsResult;
+    onDirectionsChanged?: (result: google.maps.DirectionsResult) => void;
+    suppressMarkers?: boolean;
 }
 
 // Controller handles the imperative Map APIs (Bounds, Layers, Styles)
@@ -42,14 +47,76 @@ const MapSceneController: React.FC<Omit<MapSceneProps, 'className' | 'simulation
     onRouteHover,
     center,
     zoom,
-    mapStyle
+    mapStyle,
+    directionsResponse,
+    onDirectionsChanged,
+    autoCenter,
+    suppressMarkers
 }) => {
     const map = useMap();
     const mapsLibrary = useMapsLibrary('maps');
+    const routesLibrary = useMapsLibrary('routes');
+    
+    // Refs to prevent infinite loops
+    const onDirectionsChangedRef = useRef(onDirectionsChanged);
+    const isProgrammaticRef = useRef(false);
+    
+    // Keep callback ref up to date without causing re-renders
+    useEffect(() => {
+        onDirectionsChangedRef.current = onDirectionsChanged;
+    }, [onDirectionsChanged]);
 
     const [routeData, setRouteData] = useState<google.maps.Data | null>(null);
     const [multiRouteData, setMultiRouteData] = useState<google.maps.Data | null>(null);
     const [colorfulData, setColorfulData] = useState<google.maps.Data | null>(null);
+    const [directionsRenderer, setDirectionsRenderer] = useState<google.maps.DirectionsRenderer | null>(null);
+
+    // Initialize DirectionsRenderer ONCE (no callback in deps)
+    useEffect(() => {
+        if (!map || !routesLibrary) return;
+        const renderer = new routesLibrary.DirectionsRenderer({
+            map,
+            draggable: true,
+            suppressMarkers: suppressMarkers !== false,
+            preserveViewport: true,
+            polylineOptions: {
+                strokeColor: '#10b981',
+                strokeWeight: 7,
+                strokeOpacity: 0.95,
+                zIndex: 100
+            }
+        });
+
+        // This fires when USER drags the route or markers
+        renderer.addListener('directions_changed', () => {
+            // Skip if this was triggered by our own setDirections call
+            if (isProgrammaticRef.current) return;
+            
+            const directions = renderer.getDirections();
+            if (directions && onDirectionsChangedRef.current) {
+                onDirectionsChangedRef.current(directions);
+            }
+        });
+
+        setDirectionsRenderer(renderer);
+        return () => {
+            renderer.setMap(null);
+        };
+    }, [map, routesLibrary, suppressMarkers]);
+
+    // Apply directionsResponse from parent (from autoDrawRoute)
+    useEffect(() => {
+        if (!directionsRenderer) return;
+        if (directionsResponse) {
+            // Mark as programmatic so directions_changed listener ignores it
+            isProgrammaticRef.current = true;
+            directionsRenderer.setDirections(directionsResponse);
+            // Reset flag after a tick (Google fires the event synchronously)
+            setTimeout(() => { isProgrammaticRef.current = false; }, 50);
+        } else {
+            directionsRenderer.set('directions', null);
+        }
+    }, [directionsRenderer, directionsResponse]);
 
     // Initialize Map Options and Click
     useEffect(() => {
@@ -105,9 +172,9 @@ const MapSceneController: React.FC<Omit<MapSceneProps, 'className' | 'simulation
         };
     }, [map, mapsLibrary]);
 
-    // Single Route
+    // Single Route (GeoJSON) - Fallback for non-interactive routes
     useEffect(() => {
-        if (!routeData || !routeGeoJson) {
+        if (!routeData || !routeGeoJson || directionsResponse) {
             if (routeData) routeData.forEach((f: google.maps.Data.Feature) => routeData.remove(f));
             return;
         }
@@ -118,10 +185,11 @@ const MapSceneController: React.FC<Omit<MapSceneProps, 'className' | 'simulation
             strokeColor: '#3b82f6',
             strokeWeight: 6,
             strokeOpacity: 0.9,
-            zIndex: 10
+            zIndex: 10,
+            clickable: false // Never block map clicks
         });
 
-    }, [routeData, routeGeoJson]);
+    }, [routeData, routeGeoJson, directionsResponse]);
 
     // Multi Routes (with Hover/Click)
     useEffect(() => {
@@ -194,7 +262,7 @@ const MapSceneController: React.FC<Omit<MapSceneProps, 'className' | 'simulation
 
     // AUTO-ZOOM: Güzergah seçildiğinde çizilen rotaya zoom yap
     useEffect(() => {
-        if (!map || !routeGeoJson) return;
+        if (!map || !routeGeoJson || !autoCenter) return;
 
         try {
             const bounds = new google.maps.LatLngBounds();
@@ -280,7 +348,11 @@ const MapScene: React.FC<MapSceneProps> = ({
     simulation,
     center,
     zoom,
-    hideControls = false
+    hideControls = false,
+    directionsResponse,
+    onDirectionsChanged,
+    autoCenter,
+    suppressMarkers
 }) => {
     const { profile } = useAuth();
     const [showLayerMenu, setShowLayerMenu] = useState(false);
@@ -311,14 +383,17 @@ const MapScene: React.FC<MapSceneProps> = ({
             sizeClass = 'w-6 h-6 text-[10px]';
             html = `<span class="drop-shadow-sm">${label}</span>`;
         } else if (p.type === 'search_result') {
-            bgClass = 'bg-transparent';
-            sizeClass = 'w-16 h-16'; 
+            bgClass = 'bg-transparent cursor-pointer hover:scale-105 transition-transform translate-y-[-24px] translate-x-[20px]';
+            sizeClass = 'w-auto h-auto min-w-[32px]'; 
             extraClass = 'z-[999]';
-            html = `<div class="relative flex items-center justify-center w-full h-full" style="pointer-events: none;">
-                        <div style="position: absolute; width: 24px; height: 24px; background: #ef4444; border-radius: 9999px; animation: ping 1.5s cubic-bezier(0, 0, 0.2, 1) infinite; opacity: 0.8;"></div>
-                        <div style="position: relative; width: 44px; height: 44px; background: #dc2626; border-radius: 9999px; border: 3px solid white; box-shadow: 0 10px 25px -5px rgba(220, 38, 38, 0.5); display: flex; align-items: center; justify-content: center; pointer-events: auto;">
-                             <svg xmlns="http://www.w3.org/2000/svg" width="28" height="28" viewBox="0 0 24 24" fill="none" stroke="white" stroke-width="3" stroke-linecap="round" stroke-linejoin="round"><path d="M21 10c0 7-9 13-9 13s-9-6-9-13a9 9 0 0 1 18 0z"></path><circle cx="12" cy="10" r="3"></circle></svg>
+            html = `<div class="relative flex flex-col items-center justify-center w-full h-full" style="pointer-events: auto;" title="Kapatmak için tıkla">
+                        <div class="flex items-center gap-1.5 bg-red-600 text-white px-2.5 py-1 rounded-full border-2 border-white shadow-md">
+                            <span class="text-xs font-bold whitespace-nowrap">${p.title}</span>
+                            <div class="w-4 h-4 bg-red-500 rounded-full flex items-center justify-center cursor-pointer hover:bg-red-400 shrink-0">
+                                <svg xmlns="http://www.w3.org/2000/svg" width="10" height="10" viewBox="0 0 24 24" fill="none" stroke="white" stroke-width="3" stroke-linecap="round" stroke-linejoin="round"><line x1="18" y1="6" x2="6" y2="18"></line><line x1="6" y1="6" x2="18" y2="18"></line></svg>
+                            </div>
                         </div>
+                        <div class="w-0 h-0 border-l-[6px] border-r-[6px] border-t-[8px] border-l-transparent border-r-transparent border-t-red-600 absolute -bottom-[7px] left-3"></div>
                     </div>`;
         } else if (p.id === 'start' || p.title.toLowerCase().includes('başlangıç')) {
             bgClass = 'bg-green-600';
@@ -359,6 +434,10 @@ const MapScene: React.FC<MapSceneProps> = ({
                         center={center}
                         zoom={zoom}
                         mapStyle={mapStyle}
+                        directionsResponse={directionsResponse}
+                        onDirectionsChanged={onDirectionsChanged}
+                        autoCenter={autoCenter}
+                        suppressMarkers={suppressMarkers}
                     />
 
                     {markers.map(m => (

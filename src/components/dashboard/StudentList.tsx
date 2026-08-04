@@ -1,5 +1,5 @@
 import React from 'react';
-import { Edit, Trash2, MapPin, Eye, Users } from 'lucide-react';
+import { Edit, Trash2, MapPin, Eye, Users, CheckCircle, Circle } from 'lucide-react';
 
 export interface Student {
     id: string;
@@ -14,6 +14,7 @@ export interface Student {
     vehicle_id?: string;
     vehicle_plate?: string;
     location?: string;
+    neighborhood?: string;
     coordinates?: [number, number];
     address?: string;
     blood_group?: string;
@@ -24,6 +25,7 @@ export interface Student {
     custom_price?: number | null;
     driver_name?: string;
     login_token?: string;
+    payment_status_this_month?: string;
 
     // UI helpers
     name: string;
@@ -40,12 +42,13 @@ interface StudentListProps {
     onShowDetails: (student: Student) => void;
     onShowQr: (student: Student) => void;
     onAddSibling: (student: Student) => void;
+    onQuickPay?: (student: Student) => void;
     onApprove?: (student: Student) => void;
     onReject?: (student: Student) => void;
 }
 
 const StudentList: React.FC<StudentListProps> = ({ 
-    students, onEdit, onDelete, onShowLocation, onShowDetails, onShowQr, onAddSibling, onApprove, onReject 
+    students, onEdit, onDelete, onShowLocation, onShowDetails, onShowQr, onAddSibling, onQuickPay, onApprove, onReject 
 }) => {
 
     return (
@@ -57,6 +60,7 @@ const StudentList: React.FC<StudentListProps> = ({
                             <th className="p-4 font-semibold text-slate-600 text-sm">Öğrenci Adı</th>
                             <th className="p-4 font-semibold text-slate-600 text-sm">Veli & İletişim</th>
                             <th className="p-4 font-semibold text-slate-600 text-sm">Okul / Kurum</th>
+                            <th className="p-4 font-semibold text-slate-600 text-sm">Ödeme Durumu</th>
                             <th className="p-4 font-semibold text-slate-600 text-sm">Servis Aracı</th>
                             <th className="p-4 font-semibold text-slate-600 text-sm text-right">İşlemler</th>
                         </tr>
@@ -99,6 +103,23 @@ const StudentList: React.FC<StudentListProps> = ({
                                     <div className="text-xs text-slate-500">{student.phone}</div>
                                 </td>
                                 <td className="p-4 text-slate-600">{student.school}</td>
+                                <td className="p-4">
+                                    {student.payment_status_this_month === 'Ödendi' ? (
+                                        <div className="flex items-center gap-1.5 text-emerald-600 cursor-default" title="Ödendi">
+                                            <CheckCircle size={22} className="fill-emerald-100" />
+                                            <span className="text-xs font-bold">Ödendi</span>
+                                        </div>
+                                    ) : (
+                                        <button
+                                            onClick={() => onQuickPay && onQuickPay(student)}
+                                            className="flex items-center gap-1.5 text-slate-400 hover:text-emerald-500 transition-colors group"
+                                            title="Ödendi Olarak İşaretle"
+                                        >
+                                            <Circle size={22} className="group-hover:fill-emerald-50" />
+                                            <span className="text-xs font-medium">Bekliyor</span>
+                                        </button>
+                                    )}
+                                </td>
                                 <td className="p-4">
                                     {student.vehicle_plate ? (
                                         <div className="inline-flex items-center px-2.5 py-1 rounded-lg text-xs font-bold bg-blue-50 text-blue-700 border border-blue-100">

@@ -1,9 +1,9 @@
-import { BrowserRouter, Routes, Route } from 'react-router-dom';
+import { BrowserRouter, Routes, Route, Navigate } from 'react-router-dom';
 import Navbar from './components/layout/Navbar';
 import Hero from './components/home/Hero';
 import FeatureSection from './components/home/FeatureSection';
 import MobileAppShowcase from './components/home/MobileAppShowcase';
-import Pricing from './components/home/Pricing';
+
 import Footer from './components/layout/Footer';
 import DashboardLayout from './layouts/DashboardLayout';
 import DashboardHome from './pages/DashboardHome';
@@ -21,6 +21,13 @@ import ProtectedRoute from './components/auth/ProtectedRoute';
 import Login from './pages/auth/Login';
 import Register from './pages/auth/Register';
 import ApplicationForm from './pages/public/ApplicationForm';
+import { KVKK, PrivacyPolicy, TermsOfService } from './pages/public/LegalPages';
+
+// Driver Pages
+import DriverLayout from './layouts/DriverLayout';
+import DriverHome from './pages/driver/DriverHome';
+import DriverRouteExecution from './pages/driver/DriverRouteExecution';
+import SharedRouteViewer from './pages/driver/SharedRouteViewer';
 
 // Super Admin
 import SuperAdminLayout from './layouts/SuperAdminLayout';
@@ -28,6 +35,7 @@ import SuperAdminDashboard from './pages/superadmin/SuperAdminDashboard';
 import CompaniesList from './pages/superadmin/CompaniesList';
 import AdminUsers from './pages/superadmin/AdminUsers';
 import PlatformSettings from './pages/superadmin/PlatformSettings';
+import AuditLogs from './pages/superadmin/AuditLogs';
 
 import { useEffect, useState } from 'react';
 import { CheckCircle2 } from 'lucide-react';
@@ -56,7 +64,6 @@ const LandingPage = () => {
       <Hero />
       <FeatureSection />
       <MobileAppShowcase />
-      <Pricing />
       <Footer />
 
       {showConfirmPopup && (
@@ -92,6 +99,9 @@ function App() {
             <Route path="/login" element={<Login />} />
             <Route path="/register" element={<Register />} />
             <Route path="/apply/:token" element={<ApplicationForm />} />
+            <Route path="/kvkk" element={<KVKK />} />
+            <Route path="/gizlilik-politikasi" element={<PrivacyPolicy />} />
+            <Route path="/kullanim-sartlari" element={<TermsOfService />} />
 
             {/* Dashboard Routes (Protected) */}
             <Route path="/dashboard" element={<ProtectedRoute><DashboardLayout /></ProtectedRoute>}>
@@ -107,13 +117,26 @@ function App() {
               <Route path="settings" element={<ProtectedRoute allowedRoles={['owner', 'admin']}><Settings /></ProtectedRoute>} />
             </Route>
 
+            {/* Driver Routes (Protected) */}
+            <Route path="/driver" element={<ProtectedRoute allowedRoles={['driver', 'owner', 'admin']}><DriverLayout /></ProtectedRoute>}>
+              <Route index element={<DriverHome />} />
+              <Route path="route/:id" element={<DriverRouteExecution />} />
+            </Route>
+
+            {/* Shared Route Viewer (Protected) */}
+            <Route path="/share/route/:id" element={<ProtectedRoute allowedRoles={['driver', 'owner', 'admin']}><SharedRouteViewer /></ProtectedRoute>} />
+
             {/* Super Admin Routes */}
             <Route path="/superadmin" element={<ProtectedRoute><SuperAdminLayout /></ProtectedRoute>}>
               <Route index element={<SuperAdminDashboard />} />
               <Route path="companies" element={<CompaniesList />} />
               <Route path="admins" element={<AdminUsers />} />
+              <Route path="logs" element={<AuditLogs />} />
               <Route path="settings" element={<PlatformSettings />} />
             </Route>
+
+            {/* Fallback Catch-All Route */}
+            <Route path="*" element={<Navigate to="/" replace />} />
           </Routes>
         </BrowserRouter>
       </AuthProvider>

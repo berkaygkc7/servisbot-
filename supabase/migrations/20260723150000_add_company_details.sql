@@ -1,0 +1,1 @@
+ALTER TABLE companies ADD COLUMN IF NOT EXISTS logo_url text; ALTER TABLE companies ADD COLUMN IF NOT EXISTS tax_office text; ALTER TABLE companies ADD COLUMN IF NOT EXISTS tax_number text; ALTER TABLE companies ADD COLUMN IF NOT EXISTS address text; ALTER TABLE companies ADD COLUMN IF NOT EXISTS phone text;

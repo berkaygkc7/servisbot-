@@ -28,6 +28,7 @@ interface PaymentListProps {
     onToggleSelectAll: () => void;
     onDelete: (payment: Payment) => void;
     onMarkAsPaid: (payment: Payment) => void;
+    onMarkAsUnpaid?: (payment: Payment) => void;
     onRemind: (payment: Payment) => void;
 }
 
@@ -38,7 +39,7 @@ const statusConfig = {
     'İptal': { icon: Trash2, color: 'text-slate-700', bg: 'bg-slate-50', border: 'border-slate-200' },
 };
 
-const PaymentList: React.FC<PaymentListProps> = ({ payments, selectedIds, onToggleSelect, onToggleSelectAll, onDelete, onMarkAsPaid, onRemind }) => {
+const PaymentList: React.FC<PaymentListProps> = ({ payments, selectedIds, onToggleSelect, onToggleSelectAll, onDelete, onMarkAsPaid, onMarkAsUnpaid, onRemind }) => {
     const allSelected = payments.length > 0 && selectedIds.length === payments.length;
     const someSelected = selectedIds.length > 0 && selectedIds.length < payments.length;
     return (
@@ -152,6 +153,17 @@ const PaymentList: React.FC<PaymentListProps> = ({ payments, selectedIds, onTogg
                                                         title="Ödendi İşaretle"
                                                     >
                                                         <CheckCircle size={16} />
+                                                    </button>
+                                                )}
+
+                                                {/* Mark as Unpaid (Geri Al) */}
+                                                {displayStatus === 'Ödendi' && onMarkAsUnpaid && (
+                                                    <button
+                                                        onClick={() => onMarkAsUnpaid(payment)}
+                                                        className="p-2 text-orange-600 bg-orange-50 hover:bg-orange-100 rounded-lg transition-colors border border-orange-100 shadow-sm"
+                                                        title="Ödemeyi Geri Al (Bekliyor'a Döndür)"
+                                                    >
+                                                        <RotateCcw size={16} />
                                                     </button>
                                                 )}
 

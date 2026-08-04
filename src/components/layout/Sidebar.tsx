@@ -29,7 +29,7 @@ const Sidebar: React.FC = () => {
         { icon: Users, label: 'Öğrenciler', path: '/dashboard/students', allowedRoles: ['owner', 'admin', 'dispatcher'] },
         { icon: Map, label: 'Rotalar', path: '/dashboard/routes', allowedRoles: ['owner', 'admin', 'dispatcher'] },
         { icon: CreditCard, label: 'Ödemeler', path: '/dashboard/payments', allowedRoles: ['owner', 'admin', 'accountant'] },
-        { icon: Wallet, label: 'Giderler', path: '/dashboard/expenses', allowedRoles: ['owner', 'admin', 'accountant'] },
+        { icon: Wallet, label: 'Gelir / Giderler', path: '/dashboard/expenses', allowedRoles: ['owner', 'admin', 'accountant'] },
         { icon: ClipboardList, label: 'Puantaj', path: '/dashboard/timesheets', allowedRoles: ['owner', 'admin', 'accountant'] },
         { icon: Layers, label: 'Evrensel Puantaj', path: '/dashboard/universal-timesheets', allowedRoles: ['owner', 'admin', 'accountant'] },
         { icon: Settings, label: 'Ayarlar', path: '/dashboard/settings', allowedRoles: ['owner', 'admin'] },
