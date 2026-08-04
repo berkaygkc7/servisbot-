@@ -15,6 +15,7 @@ const ApplicationForm: React.FC = () => {
     const [contractAccepted, setContractAccepted] = useState(false);
     const [companyName, setCompanyName] = useState<string>('');
     const [schools, setSchools] = useState<{id: string, name: string}[]>([]);
+    const [neighborhoods, setNeighborhoods] = useState<string[]>([]);
 
     const [formData, setFormData] = useState({
         studentName: '',
@@ -52,6 +53,7 @@ const ApplicationForm: React.FC = () => {
                 if (data && data.success) {
                     setCompanyName(data.company_name);
                     setSchools(data.schools || []);
+                    setNeighborhoods(data.neighborhoods || []);
                 } else {
                     setError('Geçersiz veya süresi dolmuş başvuru bağlantısı.');
                 }
@@ -357,15 +359,19 @@ const ApplicationForm: React.FC = () => {
                                         Fiyatlandırma Mahallesi
                                         <span className="text-red-500 ml-1">*</span>
                                     </label>
-                                    <input
+                                    <select
                                         required
-                                        type="text"
                                         name="neighborhood"
                                         value={formData.neighborhood}
-                                        onChange={handleChange}
-                                        placeholder="Örn: Kemerköprü Mahallesi"
+                                        onChange={handleChange as any}
                                         className="w-full px-4 py-3 bg-white border border-slate-200 rounded-xl focus:outline-none focus:ring-2 focus:ring-blue-500/20 focus:border-blue-500 transition-all font-medium text-slate-700"
-                                    />
+                                    >
+                                        <option value="">Lütfen Mahalle Seçin</option>
+                                        {neighborhoods.map((n, i) => (
+                                            <option key={i} value={n}>{n}</option>
+                                        ))}
+                                        <option value="Diğer">Diğer (Listede Yok)</option>
+                                    </select>
                                 </div>
                             </div>
                         )}
