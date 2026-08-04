@@ -458,8 +458,15 @@ const ApplicationForm: React.FC = () => {
 
                         {/* Sözleşme Kabul */}
                         <div className="pt-1">
-                            <label
-                                htmlFor="contract-checkbox"
+                            <div
+                                onClick={() => {
+                                    if (submitting) return;
+                                    if (contractAccepted) {
+                                        setContractAccepted(false);
+                                    } else {
+                                        setIsTermsModalOpen(true);
+                                    }
+                                }}
                                 className={`flex items-start gap-3 p-4 rounded-xl border-2 cursor-pointer transition-all select-none ${
                                     contractAccepted
                                         ? 'border-blue-500 bg-blue-50'
@@ -468,10 +475,9 @@ const ApplicationForm: React.FC = () => {
                             >
                                 <div className="relative flex-shrink-0 mt-0.5">
                                     <input
-                                        id="contract-checkbox"
                                         type="checkbox"
                                         checked={contractAccepted}
-                                        onChange={(e) => setContractAccepted(e.target.checked)}
+                                        readOnly
                                         disabled={submitting}
                                         className="sr-only"
                                     />
@@ -491,13 +497,16 @@ const ApplicationForm: React.FC = () => {
                                     <span className="font-semibold text-slate-800">Sözleşme metnini okudum, kabul ediyorum.</span>
                                     {' '}
                                     <span 
-                                        onClick={() => setIsTermsModalOpen(true)}
+                                        onClick={(e) => {
+                                            e.stopPropagation(); // prevent div onClick
+                                            setIsTermsModalOpen(true);
+                                        }}
                                         className="text-blue-600 underline underline-offset-2 cursor-pointer hover:text-blue-700"
                                     >
                                         Sözleşmeyi görüntüle
                                     </span>
                                 </span>
-                            </label>
+                            </div>
                         </div>
 
                         <div className="pt-2">
