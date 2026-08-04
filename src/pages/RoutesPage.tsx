@@ -522,10 +522,17 @@ const RoutesPage: React.FC = () => {
                     matchesNeighborhood = !!(s.address && s.address.toLowerCase().includes(selectedNeighborhood.toLowerCase()));
                 }
 
-                // Apply Main School Filter (only when not creating a route)
-                const activeSchoolName = activeSchoolFilter !== 'all' ? schools.find(sch => sch.id === activeSchoolFilter)?.name : null;
-                const matchesMainSchool = creationStep !== 'idle' || activeSchoolFilter === 'all' ||
-                    (s.schools && s.schools.name === activeSchoolName);
+                // Apply Main School Filter
+                let matchesMainSchool = true;
+                if (creationStep !== 'idle') {
+                    if (newRouteSchoolId) {
+                        const targetSchoolName = schools.find(sch => sch.id === newRouteSchoolId)?.name;
+                        matchesMainSchool = !!(s.schools && s.schools.name === targetSchoolName);
+                    }
+                } else {
+                    const activeSchoolName = activeSchoolFilter !== 'all' ? schools.find(sch => sch.id === activeSchoolFilter)?.name : null;
+                    matchesMainSchool = activeSchoolFilter === 'all' || !!(s.schools && s.schools.name === activeSchoolName);
+                }
 
                 if (matchesTags && matchesNeighborhood && matchesMainSchool && s.home_latitude && s.home_longitude) {
                     const lng = Number(s.home_longitude);
