@@ -104,7 +104,10 @@ const Login = () => {
                                         <Mail className="h-5 w-5 text-slate-400" />
                                     </div>
                                     <input
+                                        id="email"
+                                        name="email"
                                         type="email"
+                                        autoComplete="email"
                                         required
                                         value={email}
                                         onChange={(e) => setEmail(e.target.value)}
@@ -121,7 +124,10 @@ const Login = () => {
                                         <KeyRound className="h-5 w-5 text-slate-400" />
                                     </div>
                                     <input
+                                        id="password"
+                                        name="password"
                                         type={showPassword ? 'text' : 'password'}
+                                        autoComplete="current-password"
                                         required
                                         value={password}
                                         onChange={(e) => setPassword(e.target.value)}
