@@ -246,7 +246,7 @@ const Payments = () => {
                 // Determine price
                 let billAmount = s.custom_price;
                 if (!billAmount) {
-                    const rule = pricingRules?.find(pr => pr.school_level === s.neighborhood);
+                    const rule = pricingRules?.find(pr => pr.school_level?.toLocaleLowerCase('tr-TR')?.trim() === s.neighborhood?.toLocaleLowerCase('tr-TR')?.trim());
                     billAmount = rule?.amount || 0;
                 }
 

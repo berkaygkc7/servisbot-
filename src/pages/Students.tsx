@@ -412,7 +412,7 @@ const Students: React.FC = () => {
                         .select('school_level, amount')
                         .eq('company_id', profile.company_id);
                         
-                    const rule = pricingRules?.find(pr => pr.school_level === student.neighborhood);
+                    const rule = pricingRules?.find(pr => pr.school_level?.toLocaleLowerCase('tr-TR')?.trim() === student.neighborhood?.toLocaleLowerCase('tr-TR')?.trim());
                     billAmount = rule?.amount || 0;
                 }
 
