@@ -2,7 +2,7 @@ import React, { useMemo } from 'react';
 import { motion } from 'framer-motion';
 import { ArrowRight, CheckCircle2 } from 'lucide-react';
 import { Link } from 'react-router-dom';
-import MapScene from '../map/MapScene';
+import PublicMapScene from './PublicMapScene';
 
 const Hero: React.FC = () => {
     // Ankara Center (Longitude, Latitude)
@@ -69,10 +69,9 @@ const Hero: React.FC = () => {
                         transition={{ duration: 0.8, delay: 0.2 }}
                         className="relative h-[600px] hidden lg:block"
                     >
-                        {/* Map Container Frame */}
                         <div className="absolute inset-0 bg-gradient-to-b from-slate-800 to-slate-900 rounded-3xl p-2 border border-slate-700 shadow-2xl skew-y-3 transform hover:skew-y-0 transition-transform duration-700 ease-out">
-                            <div className="absolute inset-0 rounded-3xl overflow-hidden opacity-90">
-                                <MapScene
+                            <div className="absolute inset-0 rounded-3xl overflow-hidden opacity-90 z-0">
+                                <PublicMapScene
                                     className="h-full w-full"
                                     center={baseCenter}
                                     zoom={11}
