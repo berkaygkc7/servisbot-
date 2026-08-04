@@ -14,6 +14,7 @@ const ApplicationForm: React.FC = () => {
     const [error, setError] = useState<string | null>(null);
     const [contractAccepted, setContractAccepted] = useState(false);
     const [isTermsModalOpen, setIsTermsModalOpen] = useState(false);
+    const [isScrolledToBottom, setIsScrolledToBottom] = useState(false);
     const [companyName, setCompanyName] = useState<string>('');
     const [schools, setSchools] = useState<{id: string, name: string}[]>([]);
     const [neighborhoods, setNeighborhoods] = useState<string[]>([]);
@@ -536,7 +537,16 @@ const ApplicationForm: React.FC = () => {
                                 <X size={24} />
                             </button>
                         </div>
-                        <div className="p-6 overflow-y-auto text-sm text-slate-600 space-y-4">
+                        <div 
+                            className="p-6 overflow-y-auto text-sm text-slate-600 space-y-4"
+                            onScroll={(e) => {
+                                const { scrollTop, scrollHeight, clientHeight } = e.currentTarget;
+                                // 10px tolerance
+                                if (scrollHeight - scrollTop <= clientHeight + 10) {
+                                    setIsScrolledToBottom(true);
+                                }
+                            }}
+                        >
                             <p className="font-semibold text-slate-700">Lütfen aşağıdaki metni dikkatlice okuyunuz. "Okudum ve Onaylıyorum" seçeneğini işaretleyerek aşağıdaki şartları kabul etmiş sayılırsınız.</p>
                             
                             <h4 className="font-bold text-slate-800 mt-4">1. Taraflar</h4>
@@ -595,13 +605,18 @@ const ApplicationForm: React.FC = () => {
                         </div>
                         <div className="p-5 border-t border-slate-100 flex justify-end gap-3 bg-slate-50 rounded-b-2xl">
                             <button 
+                                disabled={!isScrolledToBottom}
                                 onClick={() => {
                                     setIsTermsModalOpen(false);
                                     setContractAccepted(true);
                                 }}
-                                className="px-6 py-2.5 bg-blue-600 text-white rounded-xl font-bold hover:bg-blue-700 transition-colors shadow-sm"
+                                className={`px-6 py-2.5 text-white rounded-xl font-bold transition-all shadow-sm ${
+                                    isScrolledToBottom 
+                                        ? 'bg-blue-600 hover:bg-blue-700' 
+                                        : 'bg-slate-300 cursor-not-allowed'
+                                }`}
                             >
-                                Okudum, Onaylıyorum
+                                {isScrolledToBottom ? 'Okudum, Onaylıyorum' : 'Aşağıya Kaydırın'}
                             </button>
                         </div>
                     </div>
