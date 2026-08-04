@@ -12,7 +12,8 @@ import {
     Wallet,
     CreditCard,
     ClipboardList,
-    Layers
+    Layers,
+    ShieldAlert
 } from 'lucide-react';
 import logo from '../../assets/servisbot_bus_logo.png';
 import { useAuth } from '../../contexts/AuthContext';
@@ -101,7 +102,17 @@ const Sidebar: React.FC = () => {
             </nav>
 
             {/* User Profile / Logout */}
-            <div className="p-4 border-t border-slate-800/50 bg-slate-900/30">
+            <div className="p-4 border-t border-slate-800/50 bg-slate-900/30 space-y-2">
+                {profile?.is_superadmin && (
+                    <button
+                        onClick={() => navigate('/superadmin')}
+                        className="flex items-center gap-3 px-4 py-3 w-full rounded-xl text-amber-400 hover:bg-amber-500/20 hover:text-amber-300 hover:translate-x-1 transition-all duration-300 group font-bold"
+                    >
+                        <ShieldAlert size={20} className="group-hover:scale-110 transition-transform duration-300" />
+                        <span className="font-semibold text-sm">Süper Admin</span>
+                    </button>
+                )}
+                
                 <button
                     onClick={() => setShowLogoutModal(true)}
                     className="flex items-center gap-3 px-4 py-3 w-full rounded-xl text-slate-400 hover:bg-red-500/20 hover:text-red-400 hover:translate-x-1 transition-all duration-300 group"
