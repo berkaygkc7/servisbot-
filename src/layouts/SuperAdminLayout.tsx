@@ -1,5 +1,5 @@
 import { Outlet, Link, useLocation, useNavigate } from 'react-router-dom';
-import { LayoutDashboard, Building2, LogOut, ArrowLeft, Users, Settings, ShieldAlert } from 'lucide-react';
+import { LayoutDashboard, Building2, LogOut, ArrowLeft, Users, Settings, ShieldAlert, User } from 'lucide-react';
 import { useAuth } from '../contexts/AuthContext';
 import { supabase } from '../lib/supabase';
 import { useEffect, useState } from 'react';
@@ -66,6 +66,7 @@ const SuperAdminLayout = () => {
     { name: 'Yöneticiler', href: '/superadmin/admins', icon: Users },
     { name: 'Denetim Kayıtları', href: '/superadmin/logs', icon: ShieldAlert },
     { name: 'Sistem Ayarları', href: '/superadmin/settings', icon: Settings },
+    { name: 'Hesabım', href: '/superadmin/account', icon: User },
   ];
 
   return (

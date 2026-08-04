@@ -36,6 +36,7 @@ import CompaniesList from './pages/superadmin/CompaniesList';
 import AdminUsers from './pages/superadmin/AdminUsers';
 import PlatformSettings from './pages/superadmin/PlatformSettings';
 import AuditLogs from './pages/superadmin/AuditLogs';
+import SuperAdminAccount from './pages/superadmin/SuperAdminAccount';
 
 import { useEffect, useState } from 'react';
 import { CheckCircle2 } from 'lucide-react';
@@ -133,6 +134,7 @@ function App() {
               <Route path="admins" element={<AdminUsers />} />
               <Route path="logs" element={<AuditLogs />} />
               <Route path="settings" element={<PlatformSettings />} />
+              <Route path="account" element={<SuperAdminAccount />} />
             </Route>
 
             {/* Fallback Catch-All Route */}
