@@ -9,7 +9,7 @@ const Hero: React.FC = () => {
     const baseCenter = useMemo<[number, number]>(() => [32.8597, 39.9334], []);
 
     return (
-        <div className="relative bg-gradient-to-br from-slate-900 via-primary to-slate-900 min-h-screen flex items-center pt-20 overflow-hidden">
+        <div className="relative bg-[#0f172a] min-h-screen flex items-center pt-20 overflow-hidden">
             {/* Background Overlay */}
             <div className="absolute inset-0 opacity-20 brightness-100 contrast-150 mix-blend-overlay"></div>
 
