@@ -38,7 +38,7 @@ const Register = () => {
                                     </div>
                                     <span className="font-medium">info@servisbot.pro</span>
                                 </a>
-                                <a href="https://wa.me/905050451711" target="_blank" rel="noopener noreferrer" className="flex items-center gap-3 text-slate-600 hover:text-green-600 transition-colors">
+                                <a href="https://wa.me/905050451711?text=Merhaba,%20ServisBot%20hakkında%20detaylı%20bilgi%20almak%20istiyorum." target="_blank" rel="noopener noreferrer" className="flex items-center gap-3 text-slate-600 hover:text-green-600 transition-colors">
                                     <div className="p-2 bg-white rounded-lg shadow-sm border border-slate-200">
                                         <Phone className="w-5 h-5" />
                                     </div>
@@ -47,7 +47,7 @@ const Register = () => {
                                         <div className="text-sm">0505 045 17 11 <span className="text-xs text-green-600 font-semibold ml-1">(WhatsApp)</span></div>
                                     </div>
                                 </a>
-                                <a href="https://wa.me/905054171299" target="_blank" rel="noopener noreferrer" className="flex items-center gap-3 text-slate-600 hover:text-green-600 transition-colors">
+                                <a href="https://wa.me/905054171299?text=Merhaba,%20ServisBot%20hakkında%20detaylı%20bilgi%20almak%20istiyorum." target="_blank" rel="noopener noreferrer" className="flex items-center gap-3 text-slate-600 hover:text-green-600 transition-colors">
                                     <div className="p-2 bg-white rounded-lg shadow-sm border border-slate-200">
                                         <Phone className="w-5 h-5" />
                                     </div>
