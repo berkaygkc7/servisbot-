@@ -32,17 +32,29 @@ const Register = () => {
                         <div className="bg-slate-50 border border-slate-200 rounded-2xl p-6">
                             <h3 className="font-bold text-slate-900 mb-4">Sistemi Satın Almak veya Demo Görmek İçin:</h3>
                             <div className="space-y-4">
-                                <a href="mailto:iletisim@servisbot.com" className="flex items-center gap-3 text-slate-600 hover:text-primary transition-colors">
+                                <a href="mailto:info@servisbot.pro" className="flex items-center gap-3 text-slate-600 hover:text-primary transition-colors">
                                     <div className="p-2 bg-white rounded-lg shadow-sm border border-slate-200">
                                         <Mail className="w-5 h-5" />
                                     </div>
-                                    <span className="font-medium">iletisim@servisbot.com</span>
+                                    <span className="font-medium">info@servisbot.pro</span>
                                 </a>
-                                <a href="tel:+905555555555" className="flex items-center gap-3 text-slate-600 hover:text-primary transition-colors">
+                                <a href="tel:+905050451711" className="flex items-center gap-3 text-slate-600 hover:text-primary transition-colors">
                                     <div className="p-2 bg-white rounded-lg shadow-sm border border-slate-200">
                                         <Phone className="w-5 h-5" />
                                     </div>
-                                    <span className="font-medium">0850 123 45 67</span>
+                                    <div>
+                                        <div className="font-medium text-slate-900">Eren Canıkat</div>
+                                        <div className="text-sm">0505 045 17 11</div>
+                                    </div>
+                                </a>
+                                <a href="tel:+905054171299" className="flex items-center gap-3 text-slate-600 hover:text-primary transition-colors">
+                                    <div className="p-2 bg-white rounded-lg shadow-sm border border-slate-200">
+                                        <Phone className="w-5 h-5" />
+                                    </div>
+                                    <div>
+                                        <div className="font-medium text-slate-900">Berkay Gökçe</div>
+                                        <div className="text-sm">0505 417 12 99</div>
+                                    </div>
                                 </a>
                             </div>
                         </div>
