@@ -31,6 +31,7 @@ const Students: React.FC = () => {
     const [page, setPage] = useState(1);
     const [pageSize] = useState(50);
     const [totalStudents, setTotalStudents] = useState(0);
+    const [pendingCount, setPendingCount] = useState(0);
     const [debouncedSearch, setDebouncedSearch] = useState('');
     const [refreshKey, setRefreshKey] = useState(0);
 
@@ -222,6 +223,13 @@ const Students: React.FC = () => {
 
             if (error) throw error;
             if (count !== null) setTotalStudents(count);
+            
+            const { count: pCount } = await supabase
+                .from('students')
+                .select('*', { count: 'exact', head: true })
+                .eq('company_id', profile.company_id)
+                .eq('status', 'pending');
+            setPendingCount(pCount || 0);
             
             let paymentMap = new Map();
             if (profile?.company_id) {
@@ -835,7 +843,7 @@ const Students: React.FC = () => {
                         <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-amber-400 opacity-75"></span>
                         <span className="relative inline-flex rounded-full h-2 w-2 bg-amber-500"></span>
                     </span>
-                    Onay Bekleyenler ({students.filter(s => s.status === 'pending').length})
+                    Onay Bekleyenler ({pendingCount})
                 </button>
             </div>
 
