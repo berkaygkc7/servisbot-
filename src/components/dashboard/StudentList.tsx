@@ -183,7 +183,7 @@ const StudentList: React.FC<StudentListProps> = ({
                                                 <div className="w-px h-6 bg-slate-200 mx-1"></div>
                                                 <button
                                                     onClick={() => {
-                                                        const message = `Merhaba, ${student.full_name || student.name} isimli öğrencinin servis ön kaydı alınmıştır. İlk taksidinizi ödediğiniz anda kaydınız onaylanacaktır.\n\nIBAN: TR02 0006 2001 0910 0006 2958 65\nAlıcı: Öz hamle Turizm TAŞ.TİC.LTD.ŞTİ`;
+                                                        const message = `Merhaba, ${student.full_name || student.name} isimli öğrencinin servis ön kaydı alınmıştır. İlk taksidinizi ödediğiniz anda kaydınız onaylanacaktır.\n\nIBAN: TR02 0006 2001 0910 0006 2958 65\nAlıcı: ÖZ HAMLE TURİZM TAŞ.TİC.LTD.ŞTİ`;
                                                         const phoneToUse = student.parent_phone || student.phone;
                                                         if (phoneToUse) {
                                                             const cleanPhone = phoneToUse.replace(/[^0-9]/g, '').slice(-10);
