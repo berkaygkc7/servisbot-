@@ -742,6 +742,7 @@ const Students: React.FC = () => {
                         onQuickPay={handleQuickPay}
                         onApprove={handleApprove}
                         onReject={handleReject}
+                        whatsappTemplate={profile?.companies?.whatsapp_template}
                     />
 
                     {/* Pagination Controls */}

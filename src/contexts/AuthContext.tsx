@@ -19,6 +19,7 @@ export interface UserProfile {
         city?: string;
         public_registration_token?: string;
         logo_url?: string;
+        whatsapp_template?: string;
         tax_office?: string;
         tax_number?: string;
         address?: string;
@@ -145,7 +146,7 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
                 // 2. Fetch company info (Separate simple query)
                 const { data: companyData } = await supabase
                     .from('companies')
-                    .select('company_name, city, public_registration_token, logo_url, tax_office, tax_number, address, phone, subscription_status')
+                    .select('company_name, city, public_registration_token, logo_url, whatsapp_template, tax_office, tax_number, address, phone, subscription_status')
                     .eq('id', userData.company_id)
                     .single();
 
@@ -184,7 +185,7 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
                     try {
                         const { data: userData, error: userError } = await supabase.from('users').select('*').eq('id', userId).single();
                         if (userError) throw userError;
-                        const { data: companyData } = await supabase.from('companies').select('company_name, city, public_registration_token, logo_url, tax_office, tax_number, address, phone').eq('id', userData.company_id).single();
+                        const { data: companyData } = await supabase.from('companies').select('company_name, city, public_registration_token, logo_url, whatsapp_template, tax_office, tax_number, address, phone').eq('id', userData.company_id).single();
 
                         const profileData = { ...userData, companies: companyData } as UserProfile;
                         console.log("Profile found on retry:", profileData);

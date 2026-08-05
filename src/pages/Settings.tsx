@@ -64,6 +64,7 @@ const Settings: React.FC = () => {
     const [taxNumber, setTaxNumber] = useState(profile?.companies?.tax_number || '');
     const [address, setAddress] = useState(profile?.companies?.address || '');
     const [phone, setPhone] = useState(profile?.companies?.phone || '');
+    const [whatsappTemplate, setWhatsappTemplate] = useState(profile?.companies?.whatsapp_template || '');
 
     // Submit States
     const [isSubmitting, setIsSubmitting] = useState(false);
@@ -91,6 +92,7 @@ const Settings: React.FC = () => {
             setTaxNumber(profile.companies.tax_number || '');
             setAddress(profile.companies.address || '');
             setPhone(profile.companies.phone || '');
+            setWhatsappTemplate(profile.companies.whatsapp_template || '');
         }
     }, [profile?.companies]);
 
@@ -106,7 +108,8 @@ const Settings: React.FC = () => {
                 tax_office: taxOffice,
                 tax_number: taxNumber,
                 address,
-                phone
+                phone,
+                whatsapp_template: whatsappTemplate
             }).eq('id', profile.company_id);
             if (error) throw error;
             alert('Firma ayarları başarıyla güncellendi. Sayfa yenilendiğinde değişiklikler yansıyacaktır.');
@@ -588,6 +591,23 @@ const Settings: React.FC = () => {
                                                 rows={3}
                                                 className="w-full px-4 py-3 bg-white border border-slate-200 rounded-xl focus:outline-none focus:ring-2 focus:ring-amber-500/20 focus:border-amber-500 transition-all font-medium text-slate-700 shadow-sm resize-none"
                                             />
+                                        </div>
+
+                                        <div>
+                                            <label className="block text-sm font-bold text-slate-700 mb-1.5 flex items-center justify-between">
+                                                <span>WhatsApp Ödeme Mesajı Şablonu</span>
+                                                <span className="text-xs font-normal text-slate-500 bg-slate-100 px-2 py-0.5 rounded-full">Kullanılabilir: {`{Ogrenci_Adi}`}, {`{Kayit_Numarasi}`}</span>
+                                            </label>
+                                            <textarea
+                                                value={whatsappTemplate}
+                                                onChange={(e) => setWhatsappTemplate(e.target.value)}
+                                                placeholder="Örn: Merhaba, {Ogrenci_Adi} isimli öğrencinin kaydı için ödeme..."
+                                                rows={4}
+                                                className="w-full px-4 py-3 bg-white border border-slate-200 rounded-xl focus:outline-none focus:ring-2 focus:ring-amber-500/20 focus:border-amber-500 transition-all font-medium text-slate-700 shadow-sm"
+                                            />
+                                            <p className="mt-2 text-xs text-slate-500">
+                                                Velilere "Mesaj Gönder" butonuna bastığınızda gidecek mesaj şablonu. Öğrenci adını otomatik yazdırmak için <strong>{`{Ogrenci_Adi}`}</strong>, kayıt numarası için <strong>{`{Kayit_Numarasi}`}</strong> yazabilirsiniz.
+                                            </p>
                                         </div>
 
                                         <button

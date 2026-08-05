@@ -46,10 +46,11 @@ interface StudentListProps {
     onQuickPay?: (student: Student) => void;
     onApprove?: (student: Student) => void;
     onReject?: (student: Student) => void;
+    whatsappTemplate?: string;
 }
 
 const StudentList: React.FC<StudentListProps> = ({ 
-    students, onEdit, onDelete, onShowLocation, onShowDetails, onShowQr, onAddSibling, onQuickPay, onApprove, onReject 
+    students, onEdit, onDelete, onShowLocation, onShowDetails, onShowQr, onAddSibling, onQuickPay, onApprove, onReject, whatsappTemplate 
 }) => {
 
     return (
@@ -184,8 +185,18 @@ const StudentList: React.FC<StudentListProps> = ({
                                                 <div className="w-px h-6 bg-slate-200 mx-1"></div>
                                                 <button
                                                     onClick={() => {
-                                                        const regNum = student.registration_number ? student.registration_number : '___';
-                                                        const message = `Merhaba, ${student.full_name || student.name} isimli öğrencinin servis ön kaydı alınmıştır. İlk taksidinizi ödediğiniz anda kaydınız onaylanacaktır.\n\nIBAN: TR02 0006 2001 0910 0006 2958 65\nAlıcı: ÖZ HAMLE TURİZM TAŞ.TİC.LTD.ŞTİ\n\nLütfen ödeme yaparken açıklama kısmına Kayıt Numaranızı (${regNum}) yazmayı unutmayınız.`;
+                                                        const regNum = student.registration_number ? student.registration_number.toString() : '___';
+                                                        const studentName = student.full_name || student.name || 'Öğrenci';
+                                                        
+                                                        let message = '';
+                                                        if (whatsappTemplate) {
+                                                            message = whatsappTemplate
+                                                                .replace(/{Ogrenci_Adi}/g, studentName)
+                                                                .replace(/{Kayit_Numarasi}/g, regNum);
+                                                        } else {
+                                                            message = `Merhaba, ${studentName} isimli öğrencinin servis ön kaydı alınmıştır. Kayıt işlemlerinin tamamlanması için lütfen iletişime geçiniz. Kayıt Numaranız: ${regNum}`;
+                                                        }
+
                                                         const phoneToUse = student.parent_phone || student.phone;
                                                         if (phoneToUse) {
                                                             const cleanPhone = phoneToUse.replace(/[^0-9]/g, '').slice(-10);
