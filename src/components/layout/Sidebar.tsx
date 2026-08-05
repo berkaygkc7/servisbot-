@@ -59,7 +59,11 @@ const Sidebar: React.FC = () => {
                 <div className="flex items-center gap-3">
                     <div className="w-11 h-11 rounded-xl bg-gradient-to-br from-blue-500 via-blue-600 to-indigo-700 flex items-center justify-center font-bold text-white text-xl shadow-lg shadow-blue-500/40 ring-1 ring-white/20 relative group overflow-hidden">
                         <div className="absolute inset-0 bg-white/20 translate-y-full group-hover:translate-y-0 transition-transform duration-300"></div>
-                        <span className="relative z-10">{profile?.companies?.company_name?.charAt(0) || 'C'}</span>
+                        {profile?.companies?.logo_url ? (
+                            <img src={profile.companies.logo_url} alt="Firma Logo" className="w-full h-full object-cover relative z-10" />
+                        ) : (
+                            <span className="relative z-10">{profile?.companies?.company_name?.charAt(0) || 'C'}</span>
+                        )}
                     </div>
                     <div className="flex flex-col min-w-0">
                         <span className="text-[15px] font-bold truncate text-white tracking-wide">
