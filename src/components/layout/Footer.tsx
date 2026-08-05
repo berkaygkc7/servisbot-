@@ -42,18 +42,21 @@ const Footer: React.FC = () => {
                     <div className="text-center md:text-left">
                         <h4 className="text-white font-bold mb-4 uppercase text-sm tracking-wider">İletişim</h4>
                         <ul className="space-y-3 text-sm flex flex-col items-center md:items-start">
-                            <li className="flex items-center gap-3">
-                                <Mail className="w-5 h-5 text-secondary" />
-                                <span>info@servisbot.com.tr</span>
-                            </li>
-                            <li className="flex items-center gap-3">
-                                <Phone className="w-5 h-5 text-secondary" />
-                                <span>0312 555 00 00</span>
-                            </li>
-                            <li className="flex items-start gap-3 justify-center md:justify-start">
-                                <MapPin className="w-5 h-5 text-secondary flex-shrink-0" />
-                                <span>Çankaya, Ankara, Türkiye</span>
-                            </li>
+                              <li className="flex items-center gap-3">
+                                  <Mail className="w-5 h-5 text-secondary" />
+                                  <span>info@servisbot.pro</span>
+                              </li>
+                              <li className="flex items-start gap-3 justify-center md:justify-start">
+                                  <Phone className="w-5 h-5 text-secondary flex-shrink-0 mt-0.5" />
+                                  <div className="flex flex-col text-left">
+                                      <span>0505 417 12 99</span>
+                                      <span>0505 045 17 11</span>
+                                  </div>
+                              </li>
+                              <li className="flex items-start gap-3 justify-center md:justify-start">
+                                  <MapPin className="w-5 h-5 text-secondary flex-shrink-0" />
+                                  <span>Ankara, Türkiye</span>
+                              </li>
                         </ul>
                     </div>
                 </div>
