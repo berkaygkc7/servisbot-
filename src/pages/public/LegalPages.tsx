@@ -7,7 +7,7 @@ import { ShieldCheck, FileText, Lock } from 'lucide-react';
 const LegalLayout: React.FC<{ children: React.ReactNode; title: string; icon: React.ReactNode; lastUpdated: string }> = ({ children, title, icon, lastUpdated }) => {
     return (
         <div className="min-h-screen bg-slate-50 flex flex-col">
-            <Navbar />
+            <Navbar forceSolid={true} />
             <main className="flex-grow pt-24 pb-16">
                 <div className="max-w-4xl mx-auto px-4 sm:px-6 lg:px-8">
                     <div className="bg-white rounded-3xl shadow-xl border border-slate-100 overflow-hidden">

@@ -4,7 +4,11 @@ import { Menu, X, ChevronDown } from 'lucide-react';
 import { motion, useScroll, useMotionValueEvent, AnimatePresence } from 'framer-motion';
 import logo from '../../assets/yeni_navbar_logo.png';
 
-const Navbar: React.FC = () => {
+interface NavbarProps {
+    forceSolid?: boolean;
+}
+
+const Navbar: React.FC<NavbarProps> = ({ forceSolid = false }) => {
     const [isScrolled, setIsScrolled] = useState(false);
     const [isMobileMenuOpen, setIsMobileMenuOpen] = useState(false);
     const { scrollY } = useScroll();
@@ -30,6 +34,8 @@ const Navbar: React.FC = () => {
     useMotionValueEvent(scrollY, "change", (latest) => {
         setIsScrolled(latest > 50);
     });
+
+    const solid = isScrolled || forceSolid;
 
     const toggleMobileMenu = () => setIsMobileMenuOpen(!isMobileMenuOpen);
 
@@ -72,7 +78,7 @@ const Navbar: React.FC = () => {
     return (
         <>
             <motion.nav
-                className={`fixed top-0 left-0 right-0 z-50 transition-colors duration-300 ${isScrolled ? 'bg-white/90 backdrop-blur-md shadow-sm border-b border-slate-100' : 'bg-transparent'
+                className={`fixed top-0 left-0 right-0 z-50 transition-colors duration-300 ${solid ? 'bg-white/90 backdrop-blur-md shadow-sm border-b border-slate-100' : 'bg-transparent'
                     }`}
                 initial={{ y: -100 }}
                 animate={{ y: 0 }}
@@ -84,7 +90,7 @@ const Navbar: React.FC = () => {
                             <img
                                 src={logo}
                                 alt="ServisBot Logo"
-                                className={`h-20 w-[240px] md:w-[280px] object-contain object-left transition-all duration-300 transform md:scale-125 scale-110 ${isScrolled || isMobileMenuOpen ? 'brightness-0 opacity-80' : 'brightness-100 opacity-90'}`}
+                                className={`h-20 w-[240px] md:w-[280px] object-contain object-left transition-all duration-300 transform md:scale-125 scale-110 ${solid || isMobileMenuOpen ? 'brightness-0 opacity-80' : 'brightness-100 opacity-90'}`}
                             />
                         </Link>
 
@@ -92,7 +98,7 @@ const Navbar: React.FC = () => {
                         <div className="hidden md:flex items-center space-x-6">
                             {navItems.map((menu) => (
                                 <div key={menu.title} className="relative group">
-                                    <button className={`flex items-center gap-1 text-sm font-semibold transition-colors hover:text-secondary py-6 ${isScrolled ? 'text-slate-700' : 'text-slate-100 hover:text-white'}`}>
+                                    <button className={`flex items-center gap-1 text-sm font-semibold transition-colors hover:text-secondary py-6 ${solid ? 'text-slate-700' : 'text-slate-100 hover:text-white'}`}>
                                         {menu.title}
                                         <ChevronDown size={14} className="opacity-70 group-hover:rotate-180 transition-transform duration-200" />
                                     </button>
@@ -117,11 +123,11 @@ const Navbar: React.FC = () => {
                         {/* Auth Buttons */}
                         <div className="hidden md:flex items-center gap-4">
                             <Link to="/login">
-                                <button className={`px-5 py-2.5 rounded-xl font-bold text-sm transition-all duration-300 ${isScrolled
+                                <button className={`px-5 py-2.5 rounded-xl font-bold text-sm transition-all duration-300 ${solid
                                     ? 'bg-slate-900 text-white hover:bg-slate-800 shadow-md hover:shadow-lg'
                                     : 'bg-white text-primary hover:bg-slate-50 shadow-none'
                                     }`}>
-                                    Sisteme Giriş Yap
+                                    Giriş Yap
                                 </button>
                             </Link>
                         </div>
@@ -130,7 +136,7 @@ const Navbar: React.FC = () => {
                         <div className="md:hidden flex items-center z-50">
                             <button 
                                 onClick={toggleMobileMenu}
-                                className={`p-2 rounded-lg transition-colors ${isScrolled || isMobileMenuOpen ? 'text-slate-800 hover:bg-slate-100' : 'text-white hover:bg-white/10'}`}
+                                className={`p-2 rounded-lg transition-colors ${solid || isMobileMenuOpen ? 'text-slate-800 hover:bg-slate-100' : 'text-white hover:bg-white/10'}`}
                                 aria-label="Toggle mobile menu"
                             >
                                 {isMobileMenuOpen ? <X size={28} /> : <Menu size={28} />}
