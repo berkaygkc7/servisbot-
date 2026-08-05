@@ -18,7 +18,7 @@ const Students: React.FC = () => {
     const [loading, setLoading] = useState(true);
     const [showDeleteMenu, setShowDeleteMenu] = useState(false);
     const [searchTerm, setSearchTerm] = useState('');
-    const [activeFilter, setActiveFilter] = useState<'all' | 'primary' | 'middle' | 'high' | 'pending'>('all');
+    const [activeFilter, setActiveFilter] = useState<string>('all');
     const [activeTagFilter, setActiveTagFilter] = useState<string[]>([]);
     const [isModalOpen, setIsModalOpen] = useState(false);
     const [editingStudent, setEditingStudent] = useState<Student | null>(null);
@@ -201,7 +201,7 @@ const Students: React.FC = () => {
             } else if (activeFilter === 'all') {
                 query = query.neq('status', 'pending');
             } else {
-                query = query.eq('school_level', activeFilter).neq('status', 'pending');
+                query = query.eq('school_id', activeFilter).neq('status', 'pending');
             }
 
             // Search logic
@@ -518,7 +518,6 @@ const Students: React.FC = () => {
                 parent_phone: formData.parent_phone,
                 school_id: formData.school_id || null,
                 vehicle_id: formData.vehicle_id || null, // Handle vehicle assignment
-                school_level: formData.schoolLevel || null,
                 neighborhood: formData.neighborhood || null,
                 address: formData.location || '',
                 tags: formData.tags || [],
@@ -690,48 +689,33 @@ const Students: React.FC = () => {
                 </div>
             )}
 
-            {/* School Level Filters */}
+            {/* School Filters */}
             <div className="flex gap-2 pb-2 overflow-x-auto">
                 <button
                     onClick={() => setActiveFilter('all')}
-                    className={`px-4 py-2 rounded-xl text-sm font-medium transition-colors ${activeFilter === 'all'
+                    className={`shrink-0 px-4 py-2 rounded-xl text-sm font-medium transition-colors ${activeFilter === 'all'
                         ? 'bg-secondary text-white shadow-md shadow-blue-100'
                         : 'bg-white text-slate-600 hover:bg-slate-50 border border-slate-200'
                         }`}
                 >
                     Tümü
                 </button>
-                <button
-                    onClick={() => setActiveFilter('primary')}
-                    className={`px-4 py-2 rounded-xl text-sm font-medium transition-colors ${activeFilter === 'primary'
-                        ? 'bg-purple-500 text-white shadow-md shadow-purple-100'
-                        : 'bg-white text-slate-600 hover:bg-slate-50 border border-slate-200'
-                        }`}
-                >
-                    İlkokul
-                </button>
-                <button
-                    onClick={() => setActiveFilter('middle')}
-                    className={`px-4 py-2 rounded-xl text-sm font-medium transition-colors ${activeFilter === 'middle'
-                        ? 'bg-orange-500 text-white shadow-md shadow-orange-100'
-                        : 'bg-white text-slate-600 hover:bg-slate-50 border border-slate-200'
-                        }`}
-                >
-                    Ortaokul
-                </button>
-                <button
-                    onClick={() => setActiveFilter('high')}
-                    className={`px-4 py-2 rounded-xl text-sm font-medium transition-colors ${activeFilter === 'high'
-                        ? 'bg-emerald-500 text-white shadow-md shadow-emerald-100'
-                        : 'bg-white text-slate-600 hover:bg-slate-50 border border-slate-200'
-                        }`}
-                >
-                    Lise
-                </button>
-                <div className="w-px h-6 bg-slate-200 mx-2 self-center"></div>
+                {schools.map(school => (
+                    <button
+                        key={school.id}
+                        onClick={() => setActiveFilter(school.id)}
+                        className={`shrink-0 px-4 py-2 rounded-xl text-sm font-medium transition-colors ${activeFilter === school.id
+                            ? 'bg-purple-500 text-white shadow-md shadow-purple-100'
+                            : 'bg-white text-slate-600 hover:bg-slate-50 border border-slate-200'
+                            }`}
+                    >
+                        {school.name}
+                    </button>
+                ))}
+                <div className="shrink-0 w-px h-6 bg-slate-200 mx-2 self-center"></div>
                 <button
                     onClick={() => setActiveFilter('pending')}
-                    className={`px-4 py-2 rounded-xl text-sm font-bold flex items-center gap-2 transition-colors ${activeFilter === 'pending'
+                    className={`shrink-0 px-4 py-2 rounded-xl text-sm font-bold flex items-center gap-2 transition-colors ${activeFilter === 'pending'
                         ? 'bg-amber-500 text-white shadow-md shadow-amber-100'
                         : 'bg-amber-50 text-amber-600 hover:bg-amber-100 border border-amber-200'
                         }`}
@@ -868,19 +852,6 @@ const Students: React.FC = () => {
                                     </select>
                                 </div>
                                 <div className="grid grid-cols-2 gap-4">
-                                    <div>
-                                        <label className="block text-sm font-medium text-slate-700 mb-1">Okul Seviyesi</label>
-                                        <select
-                                            className="w-full px-3 py-2 border border-slate-200 rounded-lg focus:outline-none focus:border-secondary appearance-none bg-white"
-                                            value={formData.schoolLevel || ''}
-                                            onChange={e => setFormData({ ...formData, schoolLevel: e.target.value as any })}
-                                        >
-                                            <option value="">Seçiniz</option>
-                                            <option value="primary">İlkokul</option>
-                                            <option value="middle">Ortaokul</option>
-                                            <option value="high">Lise</option>
-                                        </select>
-                                    </div>
                                     <div>
                                         <label className="block text-sm font-medium text-slate-700 mb-1">Sınıf</label>
                                         <input
