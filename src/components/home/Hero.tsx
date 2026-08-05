@@ -5,8 +5,8 @@ import { Link } from 'react-router-dom';
 import PublicMapScene from './PublicMapScene';
 
 const Hero: React.FC = () => {
-    // Ankara Center (Longitude, Latitude)
-    const baseCenter = useMemo<[number, number]>(() => [32.8597, 39.9334], []);
+    // Ankara Center (Latitude, Longitude) for Leaflet
+    const baseCenter = useMemo<[number, number]>(() => [39.9334, 32.8597], []);
 
     return (
         <div className="relative bg-[#0f172a] min-h-screen flex items-center pt-20 overflow-hidden">
