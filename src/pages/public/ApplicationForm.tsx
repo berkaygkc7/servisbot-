@@ -567,59 +567,29 @@ const ApplicationForm: React.FC = () => {
                         >
                             <p className="font-semibold text-slate-700">Lütfen aşağıdaki metni dikkatlice okuyunuz. "Okudum ve Onaylıyorum" seçeneğini işaretleyerek aşağıdaki şartları kabul etmiş sayılırsınız.</p>
                             
-                            <h4 className="font-bold text-slate-800 mt-4">1. Taraflar</h4>
-                            <p>Bu sözleşme, ServisBot sistemini kullanan servis taşımacılığı firması ("Firma") ile ServisBot üzerinden kayıt oluşturan öğrenci veya 18 yaşından küçük öğrenciler adına kayıt işlemini gerçekleştiren veli/vasi ("Kullanıcı") arasında elektronik ortamda akdedilmiştir.</p>
-                            
-                            <h4 className="font-bold text-slate-800 mt-4">2. Hizmetin Kapsamı</h4>
-                            <p>ServisBot, servis kayıt süreçlerinin dijital ortamda yürütülmesi, öğrenci bilgilerinin alınması, adres konumlarının belirlenmesi, rota planlamalarının yapılması ve servis organizasyonunun daha verimli yönetilmesi amacıyla kullanılan bir yazılım platformudur.</p>
-                            
-                            <h4 className="font-bold text-slate-800 mt-4">3. Kullanıcı Beyanları</h4>
-                            <p>Kullanıcı;</p>
-                            <ul className="list-disc pl-5 space-y-1">
-                                <li>Sisteme girdiği tüm bilgilerin doğru, eksiksiz ve güncel olduğunu,</li>
-                                <li>Yanlış veya eksik bilgi verilmesinden doğabilecek tüm sorumluluğun kendisine ait olduğunu,</li>
-                                <li>Adres bilgilerinin servis güzergâhının oluşturulması amacıyla harita üzerinde konumlandırılabileceğini,</li>
-                                <li>Gerektiğinde Firma tarafından iletişim kurulabilmesi için paylaşılan iletişim bilgilerinin kullanılabileceğini,</li>
-                                <li>Kayıt sırasında verdiği bilgilerin servis planlaması amacıyla işleneceğini kabul eder.</li>
-                            </ul>
-                            
-                            <h4 className="font-bold text-slate-800 mt-4">4. Kişisel Verilerin İşlenmesi</h4>
-                            <p>Kullanıcının paylaştığı ad, soyad, telefon numarası, adres, öğrenci bilgileri ve diğer kayıt bilgileri;</p>
-                            <ul className="list-disc pl-5 space-y-1">
-                                <li>Servis kayıt işlemlerinin yürütülmesi,</li>
-                                <li>Servis güzergâhlarının planlanması,</li>
-                                <li>Operasyonel süreçlerin yönetilmesi,</li>
-                                <li>Kullanıcı ile iletişim kurulması,</li>
-                                <li>Yasal yükümlülüklerin yerine getirilmesi</li>
-                            </ul>
-                            <p>amaçlarıyla ilgili mevzuata uygun şekilde işlenebilir.</p>
-                            <p>Veriler yalnızca hizmetin sunulması amacıyla kullanılacak olup, yürürlükteki kişisel verilerin korunmasına ilişkin mevzuat kapsamında korunacaktır.</p>
+                            <h3 className="font-bold text-lg text-slate-800 text-center mt-4">ÖĞRENCİ SERVİS KAYIT SÖZLEŞMESİ</h3>
 
-                            <h4 className="font-bold text-slate-800 mt-4">5. Konum Bilgileri</h4>
-                            <p>Kullanıcı tarafından girilen adres bilgileri, servis güzergâhlarının oluşturulabilmesi amacıyla harita sistemleri üzerinde işaretlenebilir ve rota planlamasında kullanılabilir.</p>
+                            <p className="font-semibold text-slate-800"><span className="underline">KONU:</span> 202..../202..... Eğitim ve öğretim yılında öğrenci taşımacılığında velinin ve taşımacılığı üstlenen firmanın menfaatlerini korumak amacıyla bahsedilen öğretim yılında aşağıda belirtilecek şekilde yapılacaktır.</p>
 
-                            <h4 className="font-bold text-slate-800 mt-4">6. Sorumluluk</h4>
-                            <p>ServisBot yalnızca dijital kayıt ve planlama altyapısı sunmaktadır.</p>
-                            <p>Servis hizmetinin uygulanması, servis saatleri, güzergâh değişiklikleri, ücretlendirme, taşıma hizmetinin sunulması ve operasyonel kararlar tamamen ilgili servis firmasının sorumluluğundadır.</p>
-
-                            <h4 className="font-bold text-slate-800 mt-4">7. Bilgilerin Güncellenmesi</h4>
-                            <p>İkamet adresi, telefon numarası veya diğer kayıt bilgilerinde değişiklik olması halinde Kullanıcı, bu değişiklikleri en kısa sürede ilgili servis firmasına bildirmekle yükümlüdür.</p>
-
-                            <h4 className="font-bold text-slate-800 mt-4">8. Hizmet Bedeli ve Ödeme</h4>
-                            <p>Servis taşımacılığı hizmetine ilişkin ücret, ödeme şekli, ödeme tarihleri, taksitlendirme koşulları ve diğer mali hususlar, Kullanıcı ile ilgili servis taşımacılığı firmasının karşılıklı mutabakatı doğrultusunda belirlenir.</p>
-                            <p>ServisBot, yalnızca dijital kayıt ve servis planlama altyapısını sağlayan bir yazılım platformudur. ServisBot, servis ücretini belirleyen, tahsil eden veya ücretlendirme politikalarını yöneten taraf değildir.</p>
-                            <p>Kullanıcı, servis hizmetine ilişkin tüm ücretlerin ve ödeme yükümlülüklerinin doğrudan ilgili servis taşımacılığı firmasına ait olduğunu kabul eder.</p>
-                            <p>Servis ücretinin ödenmemesi, geç ödenmesi veya ödeme kaynaklı doğabilecek uyuşmazlıklardan ServisBot sorumlu değildir. Bu tür uyuşmazlıklar yalnızca Kullanıcı ile ilgili firma arasında çözülür.</p>
-
-                            <h4 className="font-bold text-slate-800 mt-4">9. Ödeme Yükümlülüğü, Gecikme ve Hizmetin Askıya Alınması</h4>
-                            <p>Kullanıcı, servis hizmeti karşılığında ilgili servis taşımacılığı firması tarafından belirlenen ücretleri, sözleşmede veya firma tarafından bildirilen ödeme planına uygun şekilde eksiksiz ve zamanında ödemeyi kabul eder.</p>
-                            <p>Ödeme yükümlülüğünün süresinde yerine getirilmemesi halinde, servis taşımacılığı firması Kullanıcıya bildirimde bulunarak ödemenin belirlenen süre içinde tamamlanmasını talep edebilir.</p>
-                            <p>Bildirim yapılmasına rağmen ödeme yükümlülüğünün yerine getirilmemesi durumunda, ilgili mevzuata uygun olmak kaydıyla servis taşımacılığı firması servis hizmetini geçici olarak askıya alabilir veya sözleşmeyi feshedebilir.</p>
-                            <p>Gecikmiş ödemeler nedeniyle doğabilecek yasal takip, tahsilat masrafları ve diğer yasal haklar saklıdır. Taraflar arasında çıkabilecek ödeme uyuşmazlıklarında, yürürlükteki mevzuat hükümleri uygulanır.</p>
-                            <p>Kullanıcı, servis ücretini ödememesi nedeniyle servis hizmetinden yararlanamaması durumunda, bu nedenle ServisBot'a veya servis taşımacılığı firmasına karşı haksız tazminat veya benzeri taleplerde bulunmayacağını kabul eder.</p>
-
-                            <h4 className="font-bold text-slate-800 mt-4">10. Elektronik Onay</h4>
-                            <p>"Okudum ve Onaylıyorum" seçeneğinin işaretlenmesi, bu sözleşmenin elektronik ortamda okunarak kabul edildiği ve taraflar açısından hukuken bağlayıcı onay niteliği taşıdığı anlamına gelir.</p>
+                            <ol className="list-decimal pl-5 space-y-3 font-medium text-slate-700">
+                                <li>Servis araçlarımız İçişleri Bakanlığı'nın 28.08.2007 tarih 26627 sayılı okul servis araçları yönetmeliğine uygundur.</li>
+                                <li>Servis araçları öğrenciyi aldığı durağa 15 dakika gecikmesi halinde öğrenci ya da öğrenci velisi okul servis yetkilisini arayıp servis aracı hakkında bilgi alır. Servis yetkilisinin aracın gelemeyeceğini bildirmesi durumunda güzergah üzerindeki diğer servis öğrencilerini almak suretiyle taksi ile okula gelebilir. Bu durumda taksi ücreti servis yetkilisi tarafından karşılanır. Öğrencinin kendi kusuruyla servisi kaçırması durumunda sorumluluk öğrenciye aittir.</li>
+                                <li>Servis konusunda velinin muhatabı firmadır. Veli veya öğrenci servis hakkında şikayet ve isteklerini (servis güzergahı, durağı, saati, vb. konularda) servis yetkilisine iletmelidir. Servis şoförü bu konularda yetkili değildir.</li>
+                                <li>Öğrencinin servisteki hal ve hareketleri bir öğrenciye yakışır, diğer öğrenciler ve servis şoförünü rahatsız etmeyecek şekilde olmalıdır. Araçta alkol, sigara vb. bağımlılık yaratıcı ve kullanımı yasak olan maddelerin kullanımı kesinlikle yasaktır. Bu kurallara aykırılık tespit edilmesi halinde yetkili makamlara bildirilmekle birlikte öğrencinin servisle ilişkisi kesilir. Kalan borç miktarı muaccel olur.</li>
+                                <li>Servis araçlarımızın ulaşım hattı belediye güzergahına göre düzenlenir, tüm öğrencilerin ikamet adresleri düşünülerek servis şirketi tarafından belirlenir. Şirket tarafından belirlenen güzergaha uygun olduğu ölçüde öğrenci ikametinin önünde ya da ikametine yakın bir noktada indirilir.</li>
+                                <li>
+                                    <p>Servis ücretlerinin ödemesi okuldaki servis yetkilisine yapılır. Başka birine yapılan ödemeler geçerli değildir. İlk taksit en geç okulların açıldığı gün peşin olarak alınmak suretiyle, taksit ödemeleri her ayın 1'i ile 10'u arasında yapılır. Servis ücretleri belirlenip 10 (on) taksit halinde ödenmesi kararlaştırıldığı için toplam sene üzerinden hesaplanmakta olup, ara tatiller, resmi ve milli tatiller ile eğitim öğretime ara verildiği dönemler belirlenen fiyata dahil değildir.</p>
+                                    <p>Yıllık servis ücreti ....................................TL+KDV'dir.</p>
+                                    <p>Ödeme günü üzerinden 15 gün geçmiş olmasına rağmen ödeme yapılmadığı takdirde, tüm alacak miktarı muacceliyet kazanmış olacaktır.</p>
+                                </li>
+                                <li>Ücretlendirme Ankara Ticaret Odası ya da Ankara Servisçiler Odası tarafından belirlenen fiyatlar dikkate alınarak servis şirketi tarafından belirlenir. Bahsedilen kuruluşların fiyat açıklamaması durumunda fiyat listesi okulun açılış tarihinden itibaren akaryakıt zammı, önceki yıla ait servis ücretleri, enflasyon artışı, işçilik giderlerindeki artış, tarife değişikliği göz önünde bulundurularak servis şirketi tarafından yapılacaktır. Enflasyon artışı nedeniyle sene içerisinde tarafların anlaştığı fiyatlarda artış ve güncelleme yapılabilir. Bu değişiklikler velilerin telefonlarına yazılı bildirim olarak gönderilecektir. Servis şirketinin sene içerisinde akaryakıt ve diğer giderlere gelen zamlar nedeniyle servis ücretinde değişiklik yapma hakkı saklı tutulmaktadır.</li>
+                                <li>Servis araçları sene başında serviste bulunan boş yer ve kayıt olan öğrenci sayısına göre belirlendiği için servis şirketi öğrencinin servise kaydını tüm eğitim öğretim yılı düşünülerek yapmaktadır. Sözleşmede belirtilen eğitim öğretim yılı bitiminden önce öğrencinin servisten ayrılması durumunda velinin</li>
+                                <li>Servis şirketi ile yapılan sözleşmenin veli tarafından, haklı sebebe dayanmadan, tek taraflı feshedilmesi durumunda tüm alacak muacceliyet kazanır. Mücbir sebepler dışında taşınma, nakil gibi sebepler haklı sebep sayılmamaktadır.</li>
+                                <li>Öğrenci sayısının serviste azalması durumunda şirketin mevcut öğrencileri diğer servis araçları ile birleştirme imkanı bulunmaktadır. Şirketin bu konuda sözleşmede değişiklik yapma hakkı saklıdır.</li>
+                                <li>Bir bölgede servise kayıt olan öğrenci sayısının 12'yi geçmemesi halinde şirket sözleşmeyi tek taraflı olarak feshetme hakkına haizdir. Veli bu durumda hiçbir hak talep etmeyeceğini kabul ederek sözleşmeyi imzalamıştır.</li>
+                                <li>Ödenen servis borçları öğrenci zarfına ve öğrenci ödeme listesine servis yetkilisi tarafından işlenir. Veli ödemelerini öğrenci zarfından takip edecektir. Ödemeler hususunda herhangi bir ihtilafa düşülmesi durumunda firmada bulunan öğrenci ödeme listeleri geçerlidir.</li>
+                                <li>Öğretim yılı sonunda öğrencinin öğrenci zarfında borcu gözükmüyorsa senet yetkili tarafından iptal edilip, veliye iade edilir. İş bu sözleşme iki nüsha olarak tanzim edilmiştir.</li>
+                            </ol>
                         </div>
                         <div className="p-5 border-t border-slate-100 flex justify-end gap-3 bg-slate-50 rounded-b-2xl">
                             <button 
