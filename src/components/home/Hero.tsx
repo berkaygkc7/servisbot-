@@ -74,7 +74,6 @@ const Hero: React.FC = () => {
                                 <PublicMapScene
                                     className="h-full w-full"
                                     center={baseCenter}
-                                    zoom={11}
                                     hideControls={true}
                                 />
                             </div>
