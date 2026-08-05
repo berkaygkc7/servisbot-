@@ -275,6 +275,7 @@ const Students: React.FC = () => {
                 status: s.status,
                 tags: s.tags || [],
                 custom_price: s.custom_price || null,
+                parent_tc: s.parent_tc,
                 login_token: s.login_token,
                 payment_status_this_month: paymentMap.get(s.id) || 'unpaid'
             })) || [];
@@ -1238,6 +1239,10 @@ const Students: React.FC = () => {
                                             <div className="flex justify-between items-center group">
                                                 <dt className="text-sm font-medium text-slate-400">Veli:</dt>
                                                 <dd className="text-sm font-black text-slate-900">{selectedStudentDetails.parent}</dd>
+                                            </div>
+                                            <div className="flex justify-between items-center group">
+                                                <dt className="text-sm font-medium text-slate-400">Veli TC:</dt>
+                                                <dd className="text-sm font-black text-slate-900">{selectedStudentDetails.parent_tc || 'Belirtilmedi'}</dd>
                                             </div>
                                             <div className="flex justify-between items-center group">
                                                 <dt className="text-sm font-medium text-slate-400">Telefon:</dt>

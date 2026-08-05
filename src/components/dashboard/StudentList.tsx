@@ -24,6 +24,7 @@ export interface Student {
     status?: 'active' | 'inactive' | 'pending';
     tags?: string[];
     custom_price?: number | null;
+    parent_tc?: string;
     driver_name?: string;
     login_token?: string;
     payment_status_this_month?: string;

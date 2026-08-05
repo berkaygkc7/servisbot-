@@ -1,6 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
-import { Send, CheckCircle2, User, Phone, MapPin, AlertCircle, Loader2, GraduationCap, School, Building2, Search, Smartphone, X } from 'lucide-react';
+import { Send, CheckCircle2, User, Phone, MapPin, AlertCircle, Loader2, GraduationCap, School, Building2, Search, Smartphone, X, Users, CreditCard } from 'lucide-react';
 import { supabase } from '../../lib/supabase';
 import { Map, AdvancedMarker, useMapsLibrary } from '@vis.gl/react-google-maps';
 
@@ -22,6 +22,7 @@ const ApplicationForm: React.FC = () => {
     const [formData, setFormData] = useState({
         studentName: '',
         parentName: '',
+        parentTc: '',
         parentPhone: '',
         address: '',
         neighborhood: '',
@@ -150,6 +151,7 @@ const ApplicationForm: React.FC = () => {
                 p_public_token: token,
                 p_full_name: formData.studentName,
                 p_parent_name: formData.parentName,
+                p_parent_tc: formData.parentTc || null,
                 p_parent_phone: formData.parentPhone,
                 p_address: addressStr,
                 p_lat: lat,
@@ -271,7 +273,6 @@ const ApplicationForm: React.FC = () => {
                                     onChange={handleChange}
                                     className="appearance-none block w-full pl-11 pr-3 py-3.5 border border-slate-200 rounded-xl focus:outline-none focus:ring-2 focus:ring-blue-500/20 focus:border-blue-500 font-medium text-slate-800 transition-colors"
                                     placeholder="Örn: Ahmet Yılmaz"
-                                    disabled={submitting}
                                 />
                             </div>
                         </div>
@@ -280,7 +281,7 @@ const ApplicationForm: React.FC = () => {
                             <label className="block text-sm font-bold text-slate-700 mb-1.5 ml-1">Veli Adı Soyadı</label>
                             <div className="relative">
                                 <div className="absolute inset-y-0 left-0 pl-3.5 flex items-center pointer-events-none">
-                                    <User className="h-5 w-5 text-slate-400" />
+                                    <Users className="h-5 w-5 text-slate-400" />
                                 </div>
                                 <input
                                     required
@@ -290,6 +291,27 @@ const ApplicationForm: React.FC = () => {
                                     onChange={handleChange}
                                     className="appearance-none block w-full pl-11 pr-3 py-3.5 border border-slate-200 rounded-xl focus:outline-none focus:ring-2 focus:ring-blue-500/20 focus:border-blue-500 font-medium text-slate-800 transition-colors"
                                     placeholder="Örn: Mehmet Yılmaz"
+                                    disabled={submitting}
+                                />
+                            </div>
+                        </div>
+
+                        <div>
+                            <label className="block text-sm font-bold text-slate-700 mb-1.5 ml-1">Veli TC Kimlik No</label>
+                            <div className="relative">
+                                <div className="absolute inset-y-0 left-0 pl-3.5 flex items-center pointer-events-none">
+                                    <CreditCard className="h-5 w-5 text-slate-400" />
+                                </div>
+                                <input
+                                    required
+                                    type="text"
+                                    name="parentTc"
+                                    value={formData.parentTc}
+                                    onChange={handleChange}
+                                    maxLength={11}
+                                    pattern="\d{11}"
+                                    className="appearance-none block w-full pl-11 pr-3 py-3.5 border border-slate-200 rounded-xl focus:outline-none focus:ring-2 focus:ring-blue-500/20 focus:border-blue-500 font-medium text-slate-800 transition-colors"
+                                    placeholder="11 haneli TC Kimlik Numaranız"
                                     disabled={submitting}
                                 />
                             </div>
