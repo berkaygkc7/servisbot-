@@ -182,6 +182,27 @@ const StudentList: React.FC<StudentListProps> = ({
                                             <>
                                                 <div className="w-px h-6 bg-slate-200 mx-1"></div>
                                                 <button
+                                                    onClick={() => {
+                                                        const message = `Merhaba, ${student.full_name || student.name} isimli öğrencinin servis ön kaydı alınmıştır. İlk taksidinizi ödediğiniz anda kaydınız onaylanacaktır.\n\nIBAN: TR02 0006 2001 0910 0006 2958 65\nAlıcı: Öz hamle Turizm TAŞ.TİC.LTD.ŞTİ`;
+                                                        const phoneToUse = student.parent_phone || student.phone;
+                                                        if (phoneToUse) {
+                                                            const cleanPhone = phoneToUse.replace(/[^0-9]/g, '').slice(-10);
+                                                            if (cleanPhone.length === 10) {
+                                                                const whatsappUrl = `https://wa.me/90${cleanPhone}?text=${encodeURIComponent(message)}`;
+                                                                window.open(whatsappUrl, '_blank');
+                                                            } else {
+                                                                alert('Geçerli bir telefon numarası bulunamadı.');
+                                                            }
+                                                        } else {
+                                                            alert('Öğrenciye ait telefon numarası bulunamadı.');
+                                                        }
+                                                    }}
+                                                    className="px-3 py-1 bg-blue-100 text-blue-700 font-medium text-xs rounded-lg hover:bg-blue-200 transition-colors"
+                                                    title="Ödeme İçin Mesaj Gönder"
+                                                >
+                                                    Mesaj Gönder
+                                                </button>
+                                                <button
                                                     onClick={() => onApprove(student)}
                                                     className="px-3 py-1 bg-emerald-100 text-emerald-700 font-medium text-xs rounded-lg hover:bg-emerald-200 transition-colors"
                                                     title="Başvuruyu Onayla"

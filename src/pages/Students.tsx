@@ -340,15 +340,6 @@ const Students: React.FC = () => {
             if (error) throw error;
             alert(`${student.full_name} başarıyla onaylandı.`);
             fetchStudents();
-            
-            if (student.parent_phone) {
-                const message = `Merhaba, ${student.full_name} isimli öğrencinin servis ön kaydı alınmıştır. İlk taksidinizi ödediğiniz anda kaydınız onaylanacaktır.`;
-                const cleanPhone = student.parent_phone.replace(/[^0-9]/g, '').slice(-10);
-                if (cleanPhone.length === 10) {
-                    const whatsappUrl = `https://wa.me/90${cleanPhone}?text=${encodeURIComponent(message)}`;
-                    window.open(whatsappUrl, '_blank');
-                }
-            }
         } catch (error) {
             console.error('Error approving student:', error);
             alert('Öğrenci onaylanırken bir hata oluştu.');
