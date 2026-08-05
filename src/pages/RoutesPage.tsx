@@ -71,6 +71,7 @@ interface Student {
     parent_name?: string;
     parent_phone?: string;
     tags?: string[];
+    school_id?: string;
     schools?: { name: string };
     vehicles?: { plate_number: string };
 }
@@ -231,7 +232,7 @@ const RoutesPage: React.FC = () => {
             if (vehiclesData) setAvailableVehicles(vehiclesData);
 
             // 2. Fetch Students
-            const { data: studentsData } = await supabase.from('students').select('id, full_name, home_latitude, home_longitude, address, tags, parent_name, parent_phone, grade, blood_group, allergies, registration_date, schools(name), vehicles(plate_number)');
+            const { data: studentsData } = await supabase.from('students').select('id, full_name, home_latitude, home_longitude, address, tags, parent_name, parent_phone, grade, blood_group, allergies, registration_date, school_id, schools(name), vehicles(plate_number)');
             if (studentsData) setAvailableStudents(studentsData as any);
 
             // 2.5 Fetch Tags
@@ -1877,6 +1878,10 @@ const RoutesPage: React.FC = () => {
                                                             <div className="max-h-48 overflow-y-auto space-y-1">
                                                                 {availableStudents
                                                                     .filter(student => student.full_name.toLowerCase().includes(studentSearchQuery.toLowerCase()))
+                                                                    .filter(student => {
+                                                                        const currentSchoolId = editingRouteData?.school_id || newRouteSchoolId;
+                                                                        return currentSchoolId ? student.school_id === currentSchoolId : true;
+                                                                    })
                                                                     .map(student => {
                                                                         const isAssigned = stop.assignedStudentIds.includes(student.id);
                                                                         return (
@@ -1900,7 +1905,13 @@ const RoutesPage: React.FC = () => {
                                                                         );
                                                                     })
                                                                 }
-                                                                {availableStudents.filter(s => s.full_name.toLowerCase().includes(studentSearchQuery.toLowerCase())).length === 0 && (
+                                                                {availableStudents
+                                                                    .filter(s => s.full_name.toLowerCase().includes(studentSearchQuery.toLowerCase()))
+                                                                    .filter(s => {
+                                                                        const currentSchoolId = editingRouteData?.school_id || newRouteSchoolId;
+                                                                        return currentSchoolId ? s.school_id === currentSchoolId : true;
+                                                                    })
+                                                                    .length === 0 && (
                                                                     <div className="text-xs text-slate-400 italic text-center py-2">Sonuç bulunamadı.</div>
                                                                 )}
                                                             </div>
