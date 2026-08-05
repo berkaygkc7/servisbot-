@@ -1,6 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import { useLocation, useNavigate } from 'react-router-dom';
-import { Plus, Search, Filter, Upload, X, Download, Trash2, Loader2, MapPin, Tag as TagIcon, Check, Smartphone } from 'lucide-react';
+import { Plus, Search, Filter, X, Download, Trash2, Loader2, MapPin, Tag as TagIcon, Check, Smartphone } from 'lucide-react';
 import * as XLSX from 'xlsx';
 import StudentList, { type Student } from '../components/dashboard/StudentList';
 import QrCodeModal from '../components/shared/QrCodeModal';
@@ -605,62 +605,6 @@ const Students: React.FC = () => {
         XLSX.writeFile(wb, students && students.length > 0 ? "ogrenci_listesi.xlsx" : "ogrenci_sablon.xlsx");
     };
 
-    const handleFileUpload = (e: React.ChangeEvent<HTMLInputElement>) => {
-        const file = e.target.files?.[0];
-        if (!file) return;
-
-        const reader = new FileReader();
-        reader.onload = (event) => {
-            const bstr = event.target?.result;
-            const wb = XLSX.read(bstr, { type: 'binary' });
-            const wsname = wb.SheetNames[0];
-            const ws = wb.Sheets[wsname];
-            const data = XLSX.utils.sheet_to_json(ws);
-
-            // Map Excel data to Student interface
-            // Expected headers: "Ad Soyad", "Veli", "Telefon", "Okul", "Adres"
-            const newStudents: Partial<Student>[] = data.map((row: any) => ({
-                company_id: profile?.company_id,
-                full_name: row['Ad Soyad'] || row['name'] || 'Bilinmiyor',
-                parent_name: row['Veli'] || row['parent'] || '',
-                parent_phone: row['Telefon'] || row['phone'] || '',
-                // school: row['Okul'] || row['school'] || '',
-                // schoolLevel: (row['Seviye'] === 'İlkokul' ? 'primary' : row['Seviye'] === 'Ortaokul' ? 'middle' : row['Seviye'] === 'Lise' ? 'high' : undefined),
-                address: row['Adres'] || row['location'] || '',
-                status: 'active',
-                tags: row['Etiketler'] ? row['Etiketler'].split(',').map((t: string) => t.trim()) : []
-            }));
-
-            if (newStudents.length > 0) {
-                if (window.confirm(`${newStudents.length} öğrenci bulundu. Eklemek istiyor musunuz?`)) {
-                    // Bulk insert to Supabase
-                    insertBulkStudents(newStudents);
-                }
-            } else {
-                alert('Excel dosyasında uygun veri bulunamadı. Lütfen sütun başlıklarını kontrol edin: "Ad Soyad", "Veli", "Telefon", "Okul", "Adres"');
-            }
-        };
-        reader.readAsBinaryString(file);
-
-        // Reset input
-        e.target.value = '';
-    };
-
-    const insertBulkStudents = async (students: any[]) => {
-        setLoading(true);
-        try {
-            const { error } = await supabase.from('students').insert(students);
-            if (error) throw error;
-            await fetchStudents();
-            alert('Öğrenciler başarıyla eklendi!');
-        } catch (error) {
-            console.error('Error bulk inserting:', error);
-            alert('Toplu ekleme sırasında hata oluştu.');
-        } finally {
-            setLoading(false);
-        }
-    };
-
     return (
         <div className="space-y-6">
             {/* Page Header */}
@@ -675,27 +619,8 @@ const Students: React.FC = () => {
                         className="flex items-center gap-2 px-4 py-2.5 bg-white border border-slate-200 text-slate-600 rounded-xl hover:bg-slate-50 transition-colors font-medium"
                     >
                         <Download size={18} />
-                        Şablon İndir
+                        Listeyi İndir
                     </button>
-                    <label className="group relative flex items-center gap-2 px-4 py-2.5 bg-white border border-slate-200 text-slate-600 rounded-xl hover:bg-slate-50 transition-colors font-medium cursor-pointer">
-                        <Upload size={18} />
-                        Excel Yükle
-                        <input
-                            type="file"
-                            accept=".xlsx, .xls"
-                            className="hidden"
-                            onChange={handleFileUpload}
-                        />
-                        {/* Tooltip */}
-                        <div className="absolute left-1/2 -translate-x-1/2 top-full mt-3 opacity-0 invisible group-hover:opacity-100 group-hover:visible transition-all duration-300 w-72 bg-slate-800 text-white text-xs p-3 rounded-xl shadow-xl z-50 flex flex-col gap-1.5 pointer-events-none">
-                            <p className="font-semibold text-blue-300 border-b border-slate-600 pb-1.5 mb-0.5">Excel Yükleme Rehberi</p>
-                            <p><span className="text-slate-400 font-bold">1-</span> Şablonunuz <em>Ad Soyad, Veli, Telefon, Okul, Adres</em> sütunlarından oluşmalıdır.</p>
-                            <p><span className="text-slate-400 font-bold">2-</span> Unutmayın, toplu yükleme yaptıktan sonra öğrencilerin diğer bilgilerini güncellemelisiniz.</p>
-                            <p><span className="text-slate-400 font-bold">3-</span> Adres kolonuna kordinat yazarsanız, öğrencinin konumu haritaya otomatik eklenir.</p>
-                            {/* Ok/Kuyruk yapısı (Yukarı bakan ok) */}
-                            <div className="absolute -top-2 left-1/2 -translate-x-1/2 border-8 border-transparent border-b-slate-800"></div>
-                        </div>
-                    </label>
                     <button
                         onClick={handleDeleteUnknowns}
                         className="flex items-center gap-2 px-4 py-2.5 bg-red-50 border border-red-200 text-red-600 rounded-xl hover:bg-red-100 transition-colors font-medium"
