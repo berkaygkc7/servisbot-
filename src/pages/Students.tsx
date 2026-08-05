@@ -690,31 +690,26 @@ const Students: React.FC = () => {
             )}
 
             {/* School Filters */}
-            <div className="flex gap-2 pb-2 overflow-x-auto">
-                <button
-                    onClick={() => setActiveFilter('all')}
-                    className={`shrink-0 px-4 py-2 rounded-xl text-sm font-medium transition-colors ${activeFilter === 'all'
-                        ? 'bg-secondary text-white shadow-md shadow-blue-100'
-                        : 'bg-white text-slate-600 hover:bg-slate-50 border border-slate-200'
-                        }`}
+            <div className="flex gap-2 pb-2 items-center">
+                <select
+                    value={activeFilter === 'pending' ? 'all' : activeFilter}
+                    onChange={(e) => setActiveFilter(e.target.value)}
+                    className={`px-4 py-2 rounded-xl text-sm font-medium border outline-none transition-all cursor-pointer ${
+                        activeFilter !== 'all' && activeFilter !== 'pending' 
+                        ? 'bg-purple-50 border-purple-200 text-purple-700 focus:border-purple-500 focus:ring-2 focus:ring-purple-500/20' 
+                        : 'bg-white border-slate-200 text-slate-700 hover:bg-slate-50 focus:border-secondary focus:ring-2 focus:ring-secondary/20'
+                    }`}
                 >
-                    Tümü
-                </button>
-                {schools.map(school => (
-                    <button
-                        key={school.id}
-                        onClick={() => setActiveFilter(school.id)}
-                        className={`shrink-0 px-4 py-2 rounded-xl text-sm font-medium transition-colors ${activeFilter === school.id
-                            ? 'bg-purple-500 text-white shadow-md shadow-purple-100'
-                            : 'bg-white text-slate-600 hover:bg-slate-50 border border-slate-200'
-                            }`}
-                    >
-                        {school.name}
-                    </button>
-                ))}
-                <div className="shrink-0 w-px h-6 bg-slate-200 mx-2 self-center"></div>
+                    <option value="all">Tüm Okullar</option>
+                    {schools.map(school => (
+                        <option key={school.id} value={school.id}>{school.name}</option>
+                    ))}
+                </select>
+
+                <div className="shrink-0 w-px h-6 bg-slate-200 mx-2"></div>
+
                 <button
-                    onClick={() => setActiveFilter('pending')}
+                    onClick={() => setActiveFilter(activeFilter === 'pending' ? 'all' : 'pending')}
                     className={`shrink-0 px-4 py-2 rounded-xl text-sm font-bold flex items-center gap-2 transition-colors ${activeFilter === 'pending'
                         ? 'bg-amber-500 text-white shadow-md shadow-amber-100'
                         : 'bg-amber-50 text-amber-600 hover:bg-amber-100 border border-amber-200'
