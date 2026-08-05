@@ -569,7 +569,7 @@ const ApplicationForm: React.FC = () => {
                             
                             <h3 className="font-bold text-lg text-slate-800 text-center mt-4">ÖĞRENCİ SERVİS KAYIT SÖZLEŞMESİ</h3>
 
-                            <p className="font-semibold text-slate-800"><span className="underline">KONU:</span> 202..../202..... Eğitim ve öğretim yılında öğrenci taşımacılığında velinin ve taşımacılığı üstlenen firmanın menfaatlerini korumak amacıyla bahsedilen öğretim yılında aşağıda belirtilecek şekilde yapılacaktır.</p>
+                            <p className="font-semibold text-slate-800"><span className="underline">KONU:</span> 2026/2027 Eğitim ve öğretim yılında öğrenci taşımacılığında velinin ve taşımacılığı üstlenen firmanın menfaatlerini korumak amacıyla bahsedilen öğretim yılında aşağıda belirtilecek şekilde yapılacaktır.</p>
 
                             <ol className="list-decimal pl-5 space-y-3 font-medium text-slate-700">
                                 <li>Servis araçlarımız İçişleri Bakanlığı'nın 28.08.2007 tarih 26627 sayılı okul servis araçları yönetmeliğine uygundur.</li>
