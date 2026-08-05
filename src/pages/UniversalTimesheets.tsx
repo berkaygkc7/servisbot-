@@ -267,7 +267,7 @@ const UniversalTimesheets: React.FC = () => {
             // Auto-commit any active inline row edits first!
             let activeRows = rows;
             if (editingRowId && Object.keys(rowEditValues).length > 0) {
-                activeRows = rows.map(r => (r.id === editingRowId ? { ...r, ...rowEditValues } as TimesheetRow : r));
+                activeRows = rows.map(r => (r.id === editingRowId ? { ...r, ...rowEditValues, days_data: r.days_data } as TimesheetRow : r));
                 setRows(activeRows);
                 setEditingRowId(null);
                 setRowEditValues({});
@@ -470,7 +470,7 @@ const UniversalTimesheets: React.FC = () => {
         // Auto-commit any currently active inline edit first so no data is lost
         let currentRows = rows;
         if (editingRowId && Object.keys(rowEditValues).length > 0) {
-            currentRows = rows.map(r => (r.id === editingRowId ? { ...r, ...rowEditValues } as TimesheetRow : r));
+            currentRows = rows.map(r => (r.id === editingRowId ? { ...r, ...rowEditValues, days_data: r.days_data } as TimesheetRow : r));
             setRows(currentRows);
             setEditingRowId(null);
             setRowEditValues({});
@@ -504,7 +504,7 @@ const UniversalTimesheets: React.FC = () => {
     };
 
     const handleSaveRowEdit = (id: string) => {
-        setRows(rows.map(r => (r.id === id ? { ...r, ...rowEditValues } as TimesheetRow : r)));
+        setRows(rows.map(r => (r.id === id ? { ...r, ...rowEditValues, days_data: r.days_data } as TimesheetRow : r)));
         setEditingRowId(null);
         setRowEditValues({});
     };
