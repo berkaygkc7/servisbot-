@@ -329,28 +329,7 @@ const Students: React.FC = () => {
         }
     };
 
-    const handleDeleteUnknowns = async () => {
-        if (!window.confirm('"Bilinmiyor" veya isimsiz olan tüm öğrenci kayıtlarını kalıcı olarak silmek istediğinize emin misiniz?')) return;
-        
-        try {
-            setLoading(true);
-            const { error } = await supabase
-                .from('students')
-                .delete()
-                .or('full_name.eq.Bilinmiyor,full_name.eq.,full_name.is.null'); // Delete all blanks
-                // Supabase RLS handles company_id automatically, but we can append it if needed
-                
-            if (error) throw error;
-            
-            alert('İsimsiz / Bilinmeyen öğrenciler başarıyla temizlendi.');
-            fetchStudents();
-        } catch (error) {
-            console.error('Error deleting unknown students:', error);
-            alert('Silme işlemi sırasında hata oluştu.');
-        } finally {
-            setLoading(false);
-        }
-    };
+
 
     const handleApprove = async (student: Student) => {
         try {
@@ -621,14 +600,7 @@ const Students: React.FC = () => {
                         <Download size={18} />
                         Listeyi İndir
                     </button>
-                    <button
-                        onClick={handleDeleteUnknowns}
-                        className="flex items-center gap-2 px-4 py-2.5 bg-red-50 border border-red-200 text-red-600 rounded-xl hover:bg-red-100 transition-colors font-medium"
-                        title="İsmi 'Bilinmiyor' olan hatalı kayıtları temizle"
-                    >
-                        <Trash2 size={18} />
-                        Bilinmeyenleri Temizle
-                    </button>
+
                     <button
                         onClick={handleAddClick}
                         className="flex items-center gap-2 px-4 py-2.5 bg-secondary text-white rounded-xl hover:bg-blue-600 transition-colors font-medium shadow-sm hover:shadow-md"
