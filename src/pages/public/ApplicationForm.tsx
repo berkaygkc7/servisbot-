@@ -449,10 +449,19 @@ const ApplicationForm: React.FC = () => {
                                         )}
                                     </Map>
                                 </div>
-                                <p className="mt-2 text-[10px] text-slate-500 flex items-start gap-1">
-                                    <AlertCircle size={12} className="shrink-0 text-blue-500 mt-0.5" />
-                                    <span>Lütfen harita üzerinde tam konumunuzu tıklayarak işaretleyin. (Kırmızı pin çıkacaktır)</span>
-                                </p>
+                                <div className="mt-2 text-[10px] flex items-start gap-1">
+                                    {pickerCoordinates ? (
+                                        <>
+                                            <CheckCircle2 size={12} className="shrink-0 text-emerald-500 mt-0.5" />
+                                            <span className="text-emerald-600 font-medium">📍 Konum başarıyla işaretlendi. İsterseniz haritaya tıklayarak pimin yerini değiştirebilirsiniz.</span>
+                                        </>
+                                    ) : (
+                                        <>
+                                            <AlertCircle size={12} className="shrink-0 text-blue-500 mt-0.5" />
+                                            <span className="text-slate-500">Lütfen harita üzerinde tam konumunuzu tıklayarak işaretleyin veya 'Yazdığım Adresi Bul' butonuna basın. (Kırmızı pin çıkacaktır)</span>
+                                        </>
+                                    )}
+                                </div>
                             </div>
                         </div>
 
