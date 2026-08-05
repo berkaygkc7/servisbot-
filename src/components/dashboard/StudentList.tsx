@@ -20,6 +20,7 @@ export interface Student {
     blood_group?: string;
     allergies?: string;
     registration_date?: string;
+    registration_number?: number;
     status?: 'active' | 'inactive' | 'pending';
     tags?: string[];
     custom_price?: number | null;
@@ -183,7 +184,8 @@ const StudentList: React.FC<StudentListProps> = ({
                                                 <div className="w-px h-6 bg-slate-200 mx-1"></div>
                                                 <button
                                                     onClick={() => {
-                                                        const message = `Merhaba, ${student.full_name || student.name} isimli öğrencinin servis ön kaydı alınmıştır. İlk taksidinizi ödediğiniz anda kaydınız onaylanacaktır.\n\nIBAN: TR02 0006 2001 0910 0006 2958 65\nAlıcı: ÖZ HAMLE TURİZM TAŞ.TİC.LTD.ŞTİ`;
+                                                        const regNum = student.registration_number ? student.registration_number : '___';
+                                                        const message = `Merhaba, ${student.full_name || student.name} isimli öğrencinin servis ön kaydı alınmıştır. İlk taksidinizi ödediğiniz anda kaydınız onaylanacaktır.\n\nIBAN: TR02 0006 2001 0910 0006 2958 65\nAlıcı: ÖZ HAMLE TURİZM TAŞ.TİC.LTD.ŞTİ\n\nLütfen ödeme yaparken açıklama kısmına Kayıt Numaranızı (${regNum}) yazmayı unutmayınız.`;
                                                         const phoneToUse = student.parent_phone || student.phone;
                                                         if (phoneToUse) {
                                                             const cleanPhone = phoneToUse.replace(/[^0-9]/g, '').slice(-10);

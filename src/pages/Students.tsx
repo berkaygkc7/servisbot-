@@ -271,6 +271,7 @@ const Students: React.FC = () => {
                 blood_group: s.blood_group,
                 allergies: s.allergies,
                 registration_date: s.registration_date,
+                registration_number: s.registration_number,
                 status: s.status,
                 tags: s.tags || [],
                 custom_price: s.custom_price || null,
@@ -1202,7 +1203,11 @@ const Students: React.FC = () => {
                                             <span className="text-xl">🎒</span>
                                             <h3 className="font-black text-slate-800 uppercase tracking-wider text-sm">Öğrenci Bilgileri</h3>
                                         </div>
-                                        <dl className="space-y-4">
+                                            <dl className="space-y-4">
+                                            <div className="flex justify-between items-center group">
+                                                <dt className="text-sm font-medium text-slate-400">Kayıt Numarası:</dt>
+                                                <dd className="text-sm font-black text-blue-700 bg-blue-50 px-2 py-0.5 rounded-md border border-blue-100">{selectedStudentDetails.registration_number || 'Belirtilmedi'}</dd>
+                                            </div>
                                             <div className="flex justify-between items-center group">
                                                 <dt className="text-sm font-medium text-slate-400">Sınıf:</dt>
                                                 <dd className="text-sm font-black text-slate-900">{selectedStudentDetails.grade || 'Belirtilmedi'}</dd>
