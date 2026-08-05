@@ -1,13 +1,10 @@
-import React, { useMemo } from 'react';
+import React from 'react';
 import { motion } from 'framer-motion';
 import { ArrowRight, CheckCircle2 } from 'lucide-react';
 import { Link } from 'react-router-dom';
-import PublicMapScene from './PublicMapScene';
+import heroMapImage from '../../assets/hero-map-placeholder.png';
 
 const Hero: React.FC = () => {
-    // Ankara Center (Latitude, Longitude) for Leaflet
-    const baseCenter = useMemo<[number, number]>(() => [39.9334, 32.8597], []);
-
     return (
         <div className="relative bg-[#0f172a] min-h-screen flex items-center pt-20 overflow-hidden">
             {/* Background Overlay */}
@@ -71,10 +68,10 @@ const Hero: React.FC = () => {
                     >
                         <div className="absolute inset-0 bg-gradient-to-b from-slate-800 to-slate-900 rounded-3xl p-2 border border-slate-700 shadow-2xl skew-y-3 transform hover:skew-y-0 transition-transform duration-700 ease-out">
                             <div className="absolute inset-0 rounded-3xl overflow-hidden opacity-90 z-0">
-                                <PublicMapScene
-                                    className="h-full w-full"
-                                    center={baseCenter}
-                                    hideControls={true}
+                                <img
+                                    src={heroMapImage}
+                                    alt="ServisBot Harita Önizleme"
+                                    className="h-full w-full object-cover"
                                 />
                             </div>
                         </div>
