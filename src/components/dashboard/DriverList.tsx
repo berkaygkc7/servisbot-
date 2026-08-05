@@ -1,5 +1,5 @@
 import React from 'react';
-import { Edit, Trash2, Phone, BadgeCheck, ShieldAlert, Calendar, CalendarClock } from 'lucide-react';
+import { Edit, Trash2, Phone, BadgeCheck, ShieldAlert, Calendar, CalendarClock, MessageCircle } from 'lucide-react';
 
 export interface Driver {
     id: string;
@@ -78,6 +78,18 @@ const DriverList: React.FC<DriverListProps> = ({ drivers, onEdit, onDelete, onVi
                                         <Phone size={14} className="text-slate-400" />
                                         {driver.phone || 'Belirtilmemiş'}
                                     </div>
+                                    {driver.phone && (
+                                        <a
+                                            href={`https://wa.me/90${driver.phone.replace(/[^0-9]/g, '').slice(-10)}`}
+                                            target="_blank"
+                                            rel="noopener noreferrer"
+                                            className="flex items-center gap-1.5 bg-green-50 hover:bg-green-100 text-green-600 px-2.5 py-1 rounded-lg border border-green-100 transition-colors cursor-pointer"
+                                            title="WhatsApp'tan mesaj gönder"
+                                        >
+                                            <MessageCircle size={14} />
+                                            WhatsApp
+                                        </a>
+                                    )}
                                     {driver.blood_group && (
                                         <div className="flex items-center gap-1.5 text-red-600 bg-red-50 px-2.5 py-1 rounded-lg border border-red-100">
                                             <span>{driver.blood_group}</span>
