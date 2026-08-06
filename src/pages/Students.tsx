@@ -25,7 +25,7 @@ const Students: React.FC = () => {
     const [formData, setFormData] = useState<Partial<Student>>({});
     const [schools, setSchools] = useState<{ id: string; name: string }[]>([]);
     const [vehicles, setVehicles] = useState<{ id: string; plate_number: string }[]>([]);
-    const [neighborhoods, setNeighborhoods] = useState<string[]>([]);
+    const [pricingRules, setPricingRules] = useState<{ id: string; school_id: string | null; school_level: string; amount: number }[]>([]);
     
     // Pagination & Search State
     const [page, setPage] = useState(1);
@@ -176,8 +176,31 @@ const Students: React.FC = () => {
 
     const fetchNeighborhoods = async () => {
         if (!profile?.company_id) return;
-        const { data } = await supabase.from('pricing_rules').select('school_level').eq('company_id', profile.company_id);
-        if (data) setNeighborhoods(data.map(d => d.school_level));
+        const { data } = await supabase
+            .from('pricing_rules')
+            .select('id, school_id, school_level, amount')
+            .eq('company_id', profile.company_id)
+            .order('school_level');
+        if (data) setPricingRules(data);
+    };
+
+    const getFilteredNeighborhoodRules = (selectedSchoolId?: string) => {
+        if (!selectedSchoolId) {
+            const generalRules = pricingRules.filter(r => !r.school_id);
+            if (generalRules.length > 0) return generalRules;
+            return pricingRules;
+        }
+
+        const schoolRules = pricingRules.filter(r => r.school_id === selectedSchoolId);
+        const schoolNeighborhoodNames = new Set(
+            schoolRules.map(r => r.school_level.toLowerCase().trim())
+        );
+
+        const generalRules = pricingRules.filter(r => 
+            !r.school_id && !schoolNeighborhoodNames.has(r.school_level.toLowerCase().trim())
+        );
+
+        return [...schoolRules, ...generalRules];
     };
 
     const fetchStudents = async () => {
@@ -859,7 +882,16 @@ const Students: React.FC = () => {
                                     <select
                                         className="w-full px-3 py-2 border border-slate-200 rounded-lg focus:outline-none focus:border-secondary appearance-none bg-white"
                                         value={formData.school_id || ''}
-                                        onChange={e => setFormData({ ...formData, school_id: e.target.value })}
+                                        onChange={e => {
+                                            const newSchoolId = e.target.value;
+                                            const filteredRules = getFilteredNeighborhoodRules(newSchoolId);
+                                            const matchedRule = filteredRules.find(r => r.school_level === formData.neighborhood);
+                                            setFormData({
+                                                ...formData,
+                                                school_id: newSchoolId,
+                                                custom_price: matchedRule?.amount ? Number(matchedRule.amount) : formData.custom_price
+                                            });
+                                        }}
                                     >
                                         <option value="">Okul Seçiniz</option>
                                         {schools.map(school => (
@@ -896,12 +928,28 @@ const Students: React.FC = () => {
                                         <select
                                             className="w-full px-4 py-3 bg-slate-50 border border-slate-200 rounded-xl focus:outline-none focus:ring-2 focus:ring-blue-500/20 focus:border-blue-500 transition-all font-medium text-slate-700"
                                             value={formData.neighborhood || ''}
-                                            onChange={e => setFormData({ ...formData, neighborhood: e.target.value })}
+                                            onChange={e => {
+                                                const selectedNbr = e.target.value;
+                                                const filteredRules = getFilteredNeighborhoodRules(formData.school_id);
+                                                const matchedRule = filteredRules.find(r => r.school_level === selectedNbr);
+                                                setFormData({
+                                                    ...formData,
+                                                    neighborhood: selectedNbr,
+                                                    custom_price: matchedRule?.amount ? Number(matchedRule.amount) : formData.custom_price
+                                                });
+                                            }}
                                         >
                                             <option value="">Seçiniz (Opsiyonel)</option>
-                                            {neighborhoods.map(n => (
-                                                <option key={n} value={n}>{n}</option>
-                                            ))}
+                                            {getFilteredNeighborhoodRules(formData.school_id).map(rule => {
+                                                const isSchoolSpecific = rule.school_id === formData.school_id && formData.school_id;
+                                                const priceText = rule.amount ? ` (${Number(rule.amount).toLocaleString('tr-TR')} ₺)` : '';
+                                                const badge = isSchoolSpecific ? ' 🏫 Okula Özel' : '';
+                                                return (
+                                                    <option key={rule.id} value={rule.school_level}>
+                                                        {rule.school_level}{priceText}{badge}
+                                                    </option>
+                                                );
+                                            })}
                                         </select>
                                     </div>
                                     <div className="col-span-1 sm:col-span-2">
