@@ -1,5 +1,5 @@
 import React, { useState } from 'react';
-import { Plus, Search, Filter, X, Users, Printer, Phone, MessageSquare, School } from 'lucide-react';
+import { Plus, Search, Filter, X, Users, Printer, Phone, MessageSquare, School, Share2 } from 'lucide-react';
 import VehicleList, { type Vehicle } from '../components/dashboard/VehicleList';
 import { supabase } from '../lib/supabase';
 import { useAuth } from '../contexts/AuthContext';
@@ -96,6 +96,58 @@ const Vehicles: React.FC = () => {
             console.error('Error fetching vehicle students:', err);
         } finally {
             setLoadingVehicleStudents(false);
+        }
+    };
+
+    const handleShareStudents = async () => {
+        if (!selectedVehicleForStudents) return;
+
+        const filtered = vehicleStudents.filter(s => {
+            const term = studentSearchTerm.toLowerCase();
+            return (
+                (s.full_name || '').toLowerCase().includes(term) ||
+                (s.parent_name || '').toLowerCase().includes(term) ||
+                (s.neighborhood || '').toLowerCase().includes(term) ||
+                (s.schools?.name || '').toLowerCase().includes(term)
+            );
+        });
+
+        const lines = [
+            `🚌 ${selectedVehicleForStudents.plate} - TAŞINAN ÖĞRENCİ LİSTESİ`,
+            `Sürücü: ${selectedVehicleForStudents.driver || 'Atanmadı'}`,
+            `Kapasite: ${selectedVehicleForStudents.capacity} Kişilik (Toplam ${filtered.length} Öğrenci)`,
+            `----------------------------------------`,
+            ...filtered.map((s, index) => {
+                const school = s.schools?.name || s.school_level || 'Okul Belirtilmedi';
+                const gradeStr = s.grade ? ` (${s.grade})` : '';
+                const parentStr = s.parent_name ? ` - Veli: ${s.parent_name}` : '';
+                const phoneStr = s.parent_phone ? ` (${s.parent_phone})` : '';
+                const nbrStr = s.neighborhood ? ` [${s.neighborhood}]` : '';
+                return `${index + 1}. ${s.full_name}${gradeStr} - ${school}${parentStr}${phoneStr}${nbrStr}`;
+            }),
+            `----------------------------------------`,
+            `ServisBot Otomasyon Sistemi`
+        ];
+
+        const shareText = lines.join('\n');
+
+        if (navigator.share) {
+            try {
+                await navigator.share({
+                    title: `${selectedVehicleForStudents.plate} Öğrenci Listesi`,
+                    text: shareText
+                });
+                return;
+            } catch (err) {
+                // fallback to clipboard
+            }
+        }
+
+        try {
+            await navigator.clipboard.writeText(shareText);
+            alert('Öğrenci listesi panoya kopyalandı! WhatsApp veya e-postaya yapıştırarak paylaşabilirsiniz.');
+        } catch (err) {
+            alert('Liste kopyalanamadı.');
         }
     };
 
@@ -402,8 +454,56 @@ const Vehicles: React.FC = () => {
             )}
             {/* Student List Modal */}
             {isStudentsModalOpen && selectedVehicleForStudents && (
-                <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/50 backdrop-blur-sm">
-                    <div className="bg-white rounded-2xl w-full max-w-4xl max-h-[90vh] shadow-2xl flex flex-col animate-in fade-in zoom-in duration-200 overflow-hidden">
+                <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/50 backdrop-blur-sm vehicle-student-modal-container">
+                    <style>{`
+                        @media print {
+                            body * {
+                                visibility: hidden !important;
+                            }
+                            .vehicle-student-modal-container,
+                            .vehicle-student-modal-container * {
+                                visibility: visible !important;
+                            }
+                            .vehicle-student-modal-container {
+                                position: absolute !important;
+                                left: 0 !important;
+                                top: 0 !important;
+                                width: 100% !important;
+                                height: auto !important;
+                                background: white !important;
+                                padding: 0 !important;
+                                margin: 0 !important;
+                            }
+                            .vehicle-student-modal-content {
+                                max-height: none !important;
+                                height: auto !important;
+                                overflow: visible !important;
+                                border: none !important;
+                                box-shadow: none !important;
+                                width: 100% !important;
+                            }
+                            .vehicle-student-scroll-area {
+                                overflow: visible !important;
+                                max-height: none !important;
+                                height: auto !important;
+                            }
+                            .no-print {
+                                display: none !important;
+                            }
+                            table {
+                                page-break-inside: auto !important;
+                                width: 100% !important;
+                            }
+                            tr {
+                                page-break-inside: avoid !important;
+                                page-break-after: auto !important;
+                            }
+                            thead {
+                                display: table-header-group !important;
+                            }
+                        }
+                    `}</style>
+                    <div className="bg-white rounded-2xl w-full max-w-4xl max-h-[90vh] shadow-2xl flex flex-col animate-in fade-in zoom-in duration-200 overflow-hidden vehicle-student-modal-content">
                         {/* Modal Header */}
                         <div className="p-5 border-b border-slate-100 flex flex-wrap justify-between items-center bg-slate-50/80 gap-3">
                             <div>
@@ -419,10 +519,18 @@ const Vehicles: React.FC = () => {
                                     <span>Kapasite: <strong>{selectedVehicleForStudents.capacity} Kişilik</strong></span>
                                 </p>
                             </div>
-                            <div className="flex items-center gap-2">
+                            <div className="flex items-center gap-2 no-print">
+                                <button
+                                    onClick={handleShareStudents}
+                                    className="flex items-center gap-1.5 px-3 py-2 bg-emerald-600 hover:bg-emerald-700 text-white rounded-xl transition-all text-xs font-bold shadow-sm shadow-emerald-600/20 active:scale-95"
+                                    title="Öğrenci Listesini Paylaş"
+                                >
+                                    <Share2 size={15} />
+                                    <span>Paylaş</span>
+                                </button>
                                 <button
                                     onClick={() => window.print()}
-                                    className="flex items-center gap-1.5 px-3 py-2 bg-white border border-slate-200 text-slate-700 rounded-xl hover:bg-slate-50 transition-colors text-xs font-bold shadow-sm"
+                                    className="flex items-center gap-1.5 px-3 py-2 bg-white border border-slate-200 text-slate-700 rounded-xl hover:bg-slate-50 transition-colors text-xs font-bold shadow-sm active:scale-95"
                                     title="Listeyi Yazdır"
                                 >
                                     <Printer size={15} />
@@ -439,7 +547,7 @@ const Vehicles: React.FC = () => {
 
                         {/* Search & Stats Bar */}
                         <div className="p-4 border-b border-slate-100 bg-white flex flex-col sm:flex-row justify-between items-center gap-3">
-                            <div className="relative w-full sm:w-72">
+                            <div className="relative w-full sm:w-72 no-print">
                                 <Search className="absolute left-3 top-1/2 -translate-y-1/2 text-slate-400" size={16} />
                                 <input
                                     type="text"
@@ -460,7 +568,7 @@ const Vehicles: React.FC = () => {
                         </div>
 
                         {/* Student List Content */}
-                        <div className="flex-1 overflow-y-auto p-4">
+                        <div className="flex-1 overflow-y-auto p-4 vehicle-student-scroll-area">
                             {loadingVehicleStudents ? (
                                 <div className="text-center py-12 text-slate-500 font-medium">Öğrenciler yükleniyor...</div>
                             ) : vehicleStudents.length === 0 ? (
@@ -479,7 +587,7 @@ const Vehicles: React.FC = () => {
                                                 <th className="p-3">Okul / Sınıf</th>
                                                 <th className="p-3">Veli Bilgisi</th>
                                                 <th className="p-3">Mahalle / Adres</th>
-                                                <th className="p-3 text-right">İletişim</th>
+                                                <th className="p-3 text-right no-print">İletişim</th>
                                             </tr>
                                         </thead>
                                         <tbody className="divide-y divide-slate-100 text-xs">
@@ -512,7 +620,7 @@ const Vehicles: React.FC = () => {
                                                             {s.neighborhood && <span className="inline-block bg-slate-100 text-slate-700 px-2 py-0.5 rounded text-[11px] font-semibold mr-1">{s.neighborhood}</span>}
                                                             <span className="text-slate-500">{s.address}</span>
                                                         </td>
-                                                        <td className="p-3 text-right">
+                                                        <td className="p-3 text-right no-print">
                                                             {s.parent_phone && (
                                                                 <div className="flex items-center justify-end gap-1">
                                                                     <a
