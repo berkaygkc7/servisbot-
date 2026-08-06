@@ -335,9 +335,17 @@ const Students: React.FC = () => {
 
 
     const handleApprove = async (student: Student) => {
+        const effectivePrice = student.custom_price || student.total_debt;
+        const priceStr = (effectivePrice && Number(effectivePrice) > 0)
+            ? `${Number(effectivePrice).toLocaleString('tr-TR')} ₺`
+            : 'Fiyat Belirtilmedi';
+
+        if (!window.confirm(`${student.full_name || student.name} isimli öğrencinin başvurusunu onaylamak istiyor musunuz?\n\n💰 Form Kayıt Ücreti: ${priceStr}`)) {
+            return;
+        }
+
         try {
             const updatePayload: any = { status: 'active' };
-            const effectivePrice = student.custom_price || student.total_debt;
             if (effectivePrice && Number(effectivePrice) > 0) {
                 updatePayload.custom_price = Number(effectivePrice);
             }
@@ -346,7 +354,7 @@ const Students: React.FC = () => {
                 .update(updatePayload)
                 .eq('id', student.id);
             if (error) throw error;
-            alert(`${student.full_name} başarıyla onaylandı.`);
+            alert(`${student.full_name || student.name} (Anlaşılan Fiyat: ${priceStr}) başarıyla onaylandı.`);
             fetchStudents();
         } catch (error) {
             console.error('Error approving student:', error);

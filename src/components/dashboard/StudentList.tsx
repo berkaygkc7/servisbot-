@@ -108,7 +108,21 @@ const StudentList: React.FC<StudentListProps> = ({
                                 </td>
                                 <td className="p-4 text-slate-600">{student.school}</td>
                                 <td className="p-4">
-                                    {student.payment_status_this_month === 'Ödendi' ? (
+                                    {student.status === 'pending' ? (
+                                        <div className="flex flex-col gap-1">
+                                            <div className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-xl text-xs font-bold bg-emerald-50 text-emerald-800 border border-emerald-200/80 shadow-xs">
+                                                <span className="text-slate-500 font-medium">💰 Kayıt Ücreti:</span>
+                                                <span className="font-black text-sm text-emerald-700">
+                                                    {student.custom_price || student.total_debt 
+                                                        ? `${Number(student.custom_price || student.total_debt).toLocaleString('tr-TR')} ₺`
+                                                        : 'Belirtilmedi'}
+                                                </span>
+                                            </div>
+                                            <span className="text-[10px] text-amber-600 font-semibold flex items-center gap-1 px-1">
+                                                <span>⏳ Onay Bekliyor</span>
+                                            </span>
+                                        </div>
+                                    ) : student.payment_status_this_month === 'Ödendi' ? (
                                         <div className="flex items-center gap-1.5 text-emerald-600 cursor-default" title="Ödendi">
                                             <CheckCircle size={22} className="fill-emerald-100" />
                                             <span className="text-xs font-bold">Ödendi</span>
