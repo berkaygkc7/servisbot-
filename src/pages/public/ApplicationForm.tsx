@@ -76,6 +76,7 @@ const ApplicationForm: React.FC = () => {
     const [companyName, setCompanyName] = useState<string>('');
     const [schools, setSchools] = useState<{id: string, name: string}[]>([]);
     const [neighborhoods, setNeighborhoods] = useState<any[]>([]);
+    const [pricingRules, setPricingRules] = useState<any[]>([]);
 
     const [formData, setFormData] = useState({
         studentName: '',
@@ -114,7 +115,9 @@ const ApplicationForm: React.FC = () => {
                 if (data && data.success) {
                     setCompanyName(data.company_name);
                     setSchools(data.schools || []);
-                    setNeighborhoods(data.neighborhoods || []);
+                    const rules = data.pricing_rules || data.neighborhoods || [];
+                    setPricingRules(rules);
+                    setNeighborhoods(rules);
                 } else {
                     setError('Geçersiz veya süresi dolmuş başvuru bağlantısı.');
                 }
@@ -128,6 +131,15 @@ const ApplicationForm: React.FC = () => {
 
         fetchCompany();
     }, [token]);
+
+    const availableNeighborhoods = React.useMemo(() => {
+        if (!pricingRules || pricingRules.length === 0) return [];
+        if (formData.schoolId) {
+            const schoolSpecificRules = pricingRules.filter((r: any) => r.school_id === formData.schoolId);
+            if (schoolSpecificRules.length > 0) return schoolSpecificRules;
+        }
+        return pricingRules.filter((r: any) => !r.school_id);
+    }, [pricingRules, formData.schoolId]);
 
     const handleChange = (e: React.ChangeEvent<HTMLInputElement | HTMLTextAreaElement>) => {
         setFormData({ ...formData, [e.target.name]: e.target.value });
@@ -204,6 +216,10 @@ const ApplicationForm: React.FC = () => {
             }
         }
 
+        // Calculate debt from selected neighborhood
+        const selectedRule = availableNeighborhoods.find((n: any) => safeRender(n) === formData.neighborhood);
+        const calculatedTotalDebt = selectedRule && typeof selectedRule === 'object' && selectedRule.amount ? parseFloat(selectedRule.amount) : 0;
+
         try {
             const { data, error } = await supabase.rpc('submit_student_application', {
                 p_public_token: token,
@@ -217,7 +233,8 @@ const ApplicationForm: React.FC = () => {
                 p_school_id: formData.schoolId || null,
                 p_school_level: formData.schoolLevel || null,
                 p_grade: formData.grade || null,
-                p_neighborhood: formData.neighborhood || null
+                p_neighborhood: formData.neighborhood || null,
+                p_total_debt: calculatedTotalDebt
             });
 
             if (error) throw error;
@@ -451,9 +468,10 @@ const ApplicationForm: React.FC = () => {
                                         className="w-full px-4 py-3 bg-white border border-slate-200 rounded-xl focus:outline-none focus:ring-2 focus:ring-blue-500/20 focus:border-blue-500 transition-all font-medium text-slate-700"
                                     >
                                         <option value="">Lütfen Mahalle Seçin</option>
-                                        {neighborhoods.map((n, i) => {
+                                        {availableNeighborhoods.map((n: any, i: number) => {
                                             const name = safeRender(n);
-                                            return <option key={i} value={name}>{name}</option>;
+                                            const amountStr = typeof n === 'object' && n.amount ? ` (${Number(n.amount).toLocaleString('tr-TR')} ₺)` : '';
+                                            return <option key={i} value={name}>{name}{amountStr}</option>;
                                         })}
                                         <option value="Diğer">Diğer (Listede Yok)</option>
                                     </select>

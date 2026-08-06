@@ -28,6 +28,7 @@ interface TagData {
 
 interface PricingRule {
     id: string;
+    school_id?: string | null;
     school_level: string;
     amount: number;
 }
@@ -59,6 +60,11 @@ const Settings: React.FC = () => {
     const [pricingFormData, setPricingFormData] = useState<Partial<PricingRule>>({});
     const [userFormData, setUserFormData] = useState({ full_name: '', email: '', password: '', role: 'accountant' });
     const [companyName, setCompanyName] = useState(profile?.companies?.company_name || '');
+
+    // School Pricing Modal State
+    const [selectedSchoolForPricing, setSelectedSchoolForPricing] = useState<SchoolData | null>(null);
+    const [schoolPricingFormData, setSchoolPricingFormData] = useState<{ neighborhood: string; amount: string }>({ neighborhood: '', amount: '' });
+    const [isSchoolPricingSubmitting, setIsSchoolPricingSubmitting] = useState(false);
     const [city, setCity] = useState(profile?.companies?.city || '');
     const [logoUrl, setLogoUrl] = useState(profile?.companies?.logo_url || '');
     const [taxOffice, setTaxOffice] = useState(profile?.companies?.tax_office || '');
@@ -257,16 +263,17 @@ const Settings: React.FC = () => {
                 return;
             }
 
-            const { error } = await supabase.from('pricing_rules').upsert({
+            const { error } = await supabase.from('pricing_rules').insert([{
                 company_id: profile?.company_id,
+                school_id: pricingFormData.school_id || null,
                 school_level: pricingFormData.school_level,
                 amount: pricingFormData.amount,
                 updated_at: new Date().toISOString()
-            }, { onConflict: 'company_id,school_level' });
+            }]);
 
             if (error) throw error;
 
-            setPricingFormData({ ...pricingFormData, amount: undefined });
+            setPricingFormData({ ...pricingFormData, amount: undefined, school_level: '' });
             await fetchPricingRules();
             alert('Fiyatlandırma kuralı başarıyla kaydedildi.');
         } catch (error) {
@@ -274,6 +281,32 @@ const Settings: React.FC = () => {
             alert('Fiyatlandırma kaydedilirken bir hata oluştu.');
         } finally {
             setIsPricingSubmitting(false);
+        }
+    };
+
+    const handleAddSchoolPricing = async (e: React.FormEvent) => {
+        e.preventDefault();
+        if (!selectedSchoolForPricing || !schoolPricingFormData.neighborhood || !schoolPricingFormData.amount) return;
+
+        setIsSchoolPricingSubmitting(true);
+        try {
+            const { error } = await supabase.from('pricing_rules').insert([{
+                company_id: profile?.company_id,
+                school_id: selectedSchoolForPricing.id,
+                school_level: schoolPricingFormData.neighborhood,
+                amount: parseFloat(schoolPricingFormData.amount),
+                updated_at: new Date().toISOString()
+            }]);
+
+            if (error) throw error;
+
+            setSchoolPricingFormData({ neighborhood: '', amount: '' });
+            await fetchPricingRules();
+        } catch (error: any) {
+            console.error('Error saving school pricing rule:', error);
+            alert('Fiyat kaydedilirken hata oluştu: ' + (error.message || 'Bilinmeyen hata'));
+        } finally {
+            setIsSchoolPricingSubmitting(false);
         }
     };
 
@@ -821,7 +854,15 @@ const Settings: React.FC = () => {
                                                                 </p>
                                                             )}
                                                         </div>
-                                                        <div className="flex gap-2">
+                                                        <div className="flex gap-1.5 items-center">
+                                                            <button
+                                                                onClick={() => setSelectedSchoolForPricing(school)}
+                                                                className="text-emerald-600 bg-emerald-50 hover:bg-emerald-100 p-2 rounded-lg transition-colors flex items-center gap-1 text-xs font-bold"
+                                                                title="Mahalle Fiyatlandırması"
+                                                            >
+                                                                <DollarSign size={15} />
+                                                                <span>Fiyatlar</span>
+                                                            </button>
                                                             <button
                                                                 onClick={() => {
                                                                     setEditSchoolId(school.id);
@@ -1190,6 +1231,123 @@ const Settings: React.FC = () => {
                     )}
                 </div>
             </div>
+            
+            {/* =======================================================
+                SCHOOL SPECIFIC PRICING MODAL
+               ======================================================= */}
+            {selectedSchoolForPricing && (
+                <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-slate-900/60 backdrop-blur-sm animate-in fade-in duration-200">
+                    <div className="bg-white rounded-3xl shadow-2xl w-full max-w-xl overflow-hidden animate-in zoom-in-95 duration-200">
+                        <div className="p-6 bg-slate-50 border-b border-slate-100 flex items-center justify-between">
+                            <div className="flex items-center gap-3">
+                                <div className="p-2.5 bg-emerald-100 text-emerald-600 rounded-xl">
+                                    <School size={22} />
+                                </div>
+                                <div>
+                                    <h3 className="font-bold text-slate-800 text-lg">{selectedSchoolForPricing.name}</h3>
+                                    <p className="text-xs text-slate-500">Okula Özel Mahalle Fiyatlandırması</p>
+                                </div>
+                            </div>
+                            <button
+                                onClick={() => setSelectedSchoolForPricing(null)}
+                                className="text-slate-400 hover:text-slate-600 p-2 rounded-xl hover:bg-slate-200/50 transition-colors"
+                            >
+                                <X size={20} />
+                            </button>
+                        </div>
+
+                        <div className="p-6 space-y-6">
+                            {/* Add Neighborhood Price Form */}
+                            <form onSubmit={handleAddSchoolPricing} className="bg-slate-50 p-4 rounded-2xl border border-slate-200/80 space-y-4">
+                                <h4 className="text-sm font-bold text-slate-700 flex items-center gap-2">
+                                    <Plus size={16} className="text-emerald-600" />
+                                    Yeni Mahalle Fiyatı Ekle
+                                </h4>
+                                <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+                                    <div>
+                                        <label className="block text-xs font-bold text-slate-600 mb-1">Mahalle / Bölge</label>
+                                        <input
+                                            type="text"
+                                            required
+                                            placeholder="Örn: Beşevler"
+                                            className="w-full px-3.5 py-2.5 bg-white border border-slate-200 rounded-xl focus:outline-none focus:ring-2 focus:ring-emerald-500/20 focus:border-emerald-500 text-sm font-medium text-slate-800"
+                                            value={schoolPricingFormData.neighborhood}
+                                            onChange={e => setSchoolPricingFormData({ ...schoolPricingFormData, neighborhood: e.target.value })}
+                                        />
+                                    </div>
+                                    <div>
+                                        <label className="block text-xs font-bold text-slate-600 mb-1">Aylık Tutar (₺)</label>
+                                        <input
+                                            type="number"
+                                            required
+                                            placeholder="Örn: 1500"
+                                            className="w-full px-3.5 py-2.5 bg-white border border-slate-200 rounded-xl focus:outline-none focus:ring-2 focus:ring-emerald-500/20 focus:border-emerald-500 text-sm font-medium text-slate-800"
+                                            value={schoolPricingFormData.amount}
+                                            onChange={e => setSchoolPricingFormData({ ...schoolPricingFormData, amount: e.target.value })}
+                                        />
+                                    </div>
+                                </div>
+                                <button
+                                    type="submit"
+                                    disabled={isSchoolPricingSubmitting}
+                                    className="w-full py-2.5 bg-emerald-600 text-white rounded-xl font-bold text-sm hover:bg-emerald-700 transition-colors shadow-sm disabled:opacity-50 flex items-center justify-center gap-2"
+                                >
+                                    {isSchoolPricingSubmitting ? <Loader2 size={16} className="animate-spin" /> : 'Okul Fiyatını Kaydet'}
+                                </button>
+                            </form>
+
+                            {/* Existing Pricing List for this School */}
+                            <div>
+                                <h4 className="text-sm font-bold text-slate-700 mb-3 flex items-center justify-between">
+                                    <span>Tanımlı Mahalle Fiyatları</span>
+                                    <span className="text-xs bg-emerald-50 text-emerald-700 px-2.5 py-0.5 rounded-full font-semibold">
+                                        {pricingRules.filter(r => r.school_id === selectedSchoolForPricing.id).length} Mahalle
+                                    </span>
+                                </h4>
+
+                                {pricingRules.filter(r => r.school_id === selectedSchoolForPricing.id).length === 0 ? (
+                                    <div className="py-8 text-center bg-slate-50/50 rounded-2xl border border-dashed border-slate-200">
+                                        <p className="text-slate-400 text-xs font-medium">Bu okula özel henüz mahalle fiyatı tanımlanmamış.</p>
+                                        <p className="text-slate-400 text-[11px] mt-1">(Tanım yapılmazsa firmanın genel fiyatları geçerli olur)</p>
+                                    </div>
+                                ) : (
+                                    <div className="divide-y divide-slate-100 max-h-60 overflow-y-auto pr-1">
+                                        {pricingRules
+                                            .filter(r => r.school_id === selectedSchoolForPricing.id)
+                                            .map(rule => (
+                                                <div key={rule.id} className="py-3 flex items-center justify-between hover:bg-slate-50/80 px-2 rounded-xl transition-colors">
+                                                    <div className="flex items-center gap-2">
+                                                        <MapPin size={16} className="text-slate-400 shrink-0" />
+                                                        <span className="font-semibold text-slate-800 text-sm">{rule.school_level}</span>
+                                                    </div>
+                                                    <div className="flex items-center gap-3">
+                                                        <span className="font-extrabold text-emerald-600 text-sm">{Number(rule.amount).toLocaleString('tr-TR')} ₺</span>
+                                                        <button
+                                                            onClick={() => handleDeletePricing(rule.id, rule.school_level)}
+                                                            className="text-slate-300 hover:text-red-500 hover:bg-red-50 p-1.5 rounded-lg transition-colors"
+                                                            title="Sil"
+                                                        >
+                                                            <Trash2 size={16} />
+                                                        </button>
+                                                    </div>
+                                                </div>
+                                            ))}
+                                    </div>
+                                )}
+                            </div>
+                        </div>
+
+                        <div className="p-4 bg-slate-50 border-t border-slate-100 flex justify-end">
+                            <button
+                                onClick={() => setSelectedSchoolForPricing(null)}
+                                className="px-5 py-2 bg-white border border-slate-200 text-slate-700 rounded-xl font-bold text-sm hover:bg-slate-100 transition-colors shadow-sm"
+                            >
+                                Kapat
+                            </button>
+                        </div>
+                    </div>
+                </div>
+            )}
         </div>
     );
 };
