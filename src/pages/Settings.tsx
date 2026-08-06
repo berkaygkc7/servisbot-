@@ -843,46 +843,46 @@ const Settings: React.FC = () => {
                                     ) : (
                                         <div className="grid sm:grid-cols-2 gap-4">
                                             {schools.map((school) => (
-                                                <div key={school.id} className="group p-4 rounded-xl border border-slate-200 hover:border-blue-300 hover:shadow-md transition-all bg-white relative overflow-hidden">
+                                                <div key={school.id} className="group p-5 rounded-2xl border border-slate-200 hover:border-blue-400 hover:shadow-md transition-all bg-white flex flex-col justify-between relative overflow-hidden">
                                                     <div className="absolute top-0 left-0 w-1 h-full bg-blue-500 opacity-0 group-hover:opacity-100 transition-opacity"></div>
-                                                    <div className="flex justify-between items-start">
-                                                        <div>
-                                                            <h3 className="font-bold text-slate-800 text-[15px] leading-tight mb-1 pr-8">{school.name}</h3>
-                                                            {school.district && (
-                                                                <p className="text-xs text-slate-500 flex items-center gap-1 font-medium">
-                                                                    <MapPin size={12} /> {school.district}
-                                                                </p>
-                                                            )}
+                                                    <div>
+                                                        <div className="flex justify-between items-start mb-2">
+                                                            <h3 className="font-bold text-slate-900 text-base leading-snug pr-2">{school.name}</h3>
+                                                            <div className="flex gap-1 items-center shrink-0">
+                                                                <button
+                                                                    onClick={() => {
+                                                                        setEditSchoolId(school.id);
+                                                                        setFormData({ name: school.name, district: school.district, latitude: school.latitude, longitude: school.longitude });
+                                                                        window.scrollTo({ top: 0, behavior: 'smooth' });
+                                                                    }}
+                                                                    className="text-slate-400 hover:text-blue-600 hover:bg-blue-50 p-1.5 rounded-lg transition-colors"
+                                                                    title="Okul Adını Düzenle"
+                                                                >
+                                                                    <Edit2 size={16} />
+                                                                </button>
+                                                                <button
+                                                                    onClick={() => handleDeleteSchool(school.id, school.name)}
+                                                                    className="text-slate-400 hover:text-red-500 hover:bg-red-50 p-1.5 rounded-lg transition-colors"
+                                                                    title="Okulu Sil"
+                                                                >
+                                                                    <Trash2 size={16} />
+                                                                </button>
+                                                            </div>
                                                         </div>
-                                                        <div className="flex gap-1.5 items-center">
-                                                            <button
-                                                                onClick={() => setSelectedSchoolForPricing(school)}
-                                                                className="text-emerald-600 bg-emerald-50 hover:bg-emerald-100 p-2 rounded-lg transition-colors flex items-center gap-1 text-xs font-bold"
-                                                                title="Mahalle Fiyatlandırması"
-                                                            >
-                                                                <DollarSign size={15} />
-                                                                <span>Fiyatlar</span>
-                                                            </button>
-                                                            <button
-                                                                onClick={() => {
-                                                                    setEditSchoolId(school.id);
-                                                                    setFormData({ name: school.name, district: school.district, latitude: school.latitude, longitude: school.longitude });
-                                                                    window.scrollTo({ top: 0, behavior: 'smooth' });
-                                                                }}
-                                                                className="text-slate-400 hover:text-blue-600 hover:bg-blue-50 p-2 rounded-lg transition-colors"
-                                                                title="Düzenle"
-                                                            >
-                                                                <Edit2 size={16} />
-                                                            </button>
-                                                            <button
-                                                                onClick={() => handleDeleteSchool(school.id, school.name)}
-                                                                className="text-slate-400 hover:text-red-500 hover:bg-red-50 p-2 rounded-lg transition-colors"
-                                                                title="Sil"
-                                                            >
-                                                                <Trash2 size={16} />
-                                                            </button>
-                                                        </div>
+                                                        {school.district && (
+                                                            <p className="text-xs text-slate-500 flex items-center gap-1 font-medium mb-3">
+                                                                <MapPin size={13} className="text-slate-400" /> {school.district}
+                                                            </p>
+                                                        )}
                                                     </div>
+
+                                                    <button
+                                                        onClick={() => setSelectedSchoolForPricing(school)}
+                                                        className="w-full mt-2 py-2.5 px-3 bg-emerald-50 hover:bg-emerald-100 text-emerald-700 border border-emerald-200/80 rounded-xl font-bold text-xs transition-all flex items-center justify-center gap-1.5 shadow-sm active:scale-95"
+                                                    >
+                                                        <DollarSign size={16} />
+                                                        <span>Mahalle Fiyatlarını Yönet</span>
+                                                    </button>
                                                 </div>
                                             ))}
                                         </div>
