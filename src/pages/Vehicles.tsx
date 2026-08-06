@@ -150,11 +150,11 @@ const Vehicles: React.FC = () => {
             const vehicleData = {
                 company_id: profile?.company_id,
                 plate_number: formData.plate,
-                driver_name: formData.driver,
+                driver_name: formData.driver || null,
                 driver_phone: selectedDriverObj ? selectedDriverObj.phone : null,
-                driver_id: formData.driver_id,
-                capacity: formData.capacity,
-                status: formData.status
+                driver_id: formData.driver_id || null,
+                capacity: formData.capacity || 16,
+                status: formData.status || 'active'
             };
 
             if (editingVehicle) {
@@ -257,19 +257,18 @@ const Vehicles: React.FC = () => {
                             <div>
                                 <label className="block text-sm font-medium text-slate-700 mb-1">Sürücü</label>
                                 <select
-                                    required
                                     className="w-full px-3 py-2 border border-slate-200 rounded-lg focus:outline-none focus:border-secondary"
                                     value={formData.driver || ''}
                                     onChange={e => {
                                         const selectedDriver = drivers.find(d => d.full_name === e.target.value);
                                         setFormData({
                                             ...formData,
-                                            driver: e.target.value,
-                                            driver_id: selectedDriver?.id
+                                            driver: e.target.value || undefined,
+                                            driver_id: selectedDriver?.id || undefined
                                         });
                                     }}
                                 >
-                                    <option value="">Sürücü Seçin</option>
+                                    <option value="">Sürücü Atanmadı (İsteğe Bağlı)</option>
                                     {drivers.map(driver => (
                                         <option key={driver.id} value={driver.full_name}>
                                             {driver.full_name}

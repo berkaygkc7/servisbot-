@@ -69,7 +69,9 @@ const VehicleList: React.FC<VehicleListProps> = ({ vehicles, onEdit, onDelete, o
                         {vehicles.map((vehicle) => (
                             <tr key={vehicle.id} className="hover:bg-slate-50/50 transition-colors group">
                                 <td className="p-4 text-slate-800 font-medium">{vehicle.plate}</td>
-                                <td className="p-4 text-slate-600">{vehicle.driver}</td>
+                                <td className="p-4 text-slate-600">
+                                    {vehicle.driver ? vehicle.driver : <span className="text-slate-400 italic text-xs font-normal bg-slate-50 px-2 py-1 rounded-md border border-slate-200/60">Sürücü Atanmadı</span>}
+                                </td>
                                 <td className="p-4 text-slate-600">{vehicle.capacity} Kişilik</td>
                                 <td className="p-4 text-slate-600">
                                     <div className="flex items-center gap-1.5 text-xs text-slate-500">
