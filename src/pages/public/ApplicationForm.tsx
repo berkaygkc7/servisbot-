@@ -272,18 +272,26 @@ const ApplicationForm: React.FC = () => {
     if (error) {
         return (
             <div className="min-h-screen bg-slate-50 flex items-center justify-center p-4">
-                <div className="bg-white rounded-2xl p-8 shadow-xl max-w-md w-full text-center">
+                <div className="bg-white rounded-2xl p-8 shadow-xl max-w-md w-full text-center border border-slate-100">
                     <div className="w-16 h-16 bg-red-100 text-red-500 rounded-full flex items-center justify-center mx-auto mb-4">
                         <AlertCircle size={32} />
                     </div>
                     <h2 className="text-2xl font-bold text-slate-800 mb-2">Hata</h2>
-                    <p className="text-slate-500 mb-6">{error}</p>
-                    <button
-                        onClick={() => navigate('/')}
-                        className="px-6 py-2.5 bg-slate-100 text-slate-700 font-bold rounded-xl hover:bg-slate-200 transition-colors"
-                    >
-                        Ana Sayfaya Dön
-                    </button>
+                    <p className="text-slate-500 mb-6 font-medium text-sm">{error}</p>
+                    <div className="flex flex-col sm:flex-row gap-3 justify-center">
+                        <button
+                            onClick={() => setError(null)}
+                            className="px-6 py-3 bg-blue-600 text-white font-bold rounded-xl hover:bg-blue-700 transition-colors shadow-md shadow-blue-500/20 text-sm"
+                        >
+                            Forma Dön ve Yeniden Dene
+                        </button>
+                        <button
+                            onClick={() => navigate('/')}
+                            className="px-6 py-3 bg-slate-100 text-slate-700 font-bold rounded-xl hover:bg-slate-200 transition-colors text-sm"
+                        >
+                            Ana Sayfaya Dön
+                        </button>
+                    </div>
                 </div>
             </div>
         );
