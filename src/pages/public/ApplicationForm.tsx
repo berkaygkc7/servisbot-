@@ -172,16 +172,6 @@ const ApplicationForm: React.FC = () => {
         e.preventDefault();
         if (!token) return;
 
-        // Frontend LocalStorage Rate Limiting
-        const today = new Date().toISOString().split('T')[0];
-        const rateLimitKey = `registration_attempts_${today}`;
-        const attempts = parseInt(localStorage.getItem(rateLimitKey) || '0', 10);
-        
-        if (attempts >= 3) {
-            setError('Güvenlik nedeniyle bu cihazdan günlük kayıt sınırına (3) ulaştınız. Lütfen yarın tekrar deneyin.');
-            return;
-        }
-
         setSubmitting(true);
         setError(null);
 
@@ -238,8 +228,6 @@ const ApplicationForm: React.FC = () => {
             if (error) throw error;
 
             if (data && data.success) {
-                // Increment attempt counter on success
-                localStorage.setItem(rateLimitKey, (attempts + 1).toString());
                 setSubmitted(true);
             } else {
                 console.error("RPC returned error:", data?.error);
