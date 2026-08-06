@@ -75,7 +75,6 @@ const ApplicationForm: React.FC = () => {
     const [isScrolledToBottom, setIsScrolledToBottom] = useState(false);
     const [companyName, setCompanyName] = useState<string>('');
     const [schools, setSchools] = useState<{id: string, name: string}[]>([]);
-    const [neighborhoods, setNeighborhoods] = useState<any[]>([]);
     const [pricingRules, setPricingRules] = useState<any[]>([]);
 
     const [formData, setFormData] = useState({
@@ -117,7 +116,6 @@ const ApplicationForm: React.FC = () => {
                     setSchools(data.schools || []);
                     const rules = data.pricing_rules || data.neighborhoods || [];
                     setPricingRules(rules);
-                    setNeighborhoods(rules);
                 } else {
                     setError('Geçersiz veya süresi dolmuş başvuru bağlantısı.');
                 }
