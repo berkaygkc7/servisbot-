@@ -1,5 +1,5 @@
 import React from 'react';
-import { Edit, Trash2, MapPin, Eye, Users, CheckCircle, Circle } from 'lucide-react';
+import { Edit, Trash2, MapPin, Eye, CheckCircle, Circle } from 'lucide-react';
 
 export interface Student {
     id: string;
@@ -44,7 +44,7 @@ interface StudentListProps {
     onShowLocation: (student: Student) => void;
     onShowDetails: (student: Student) => void;
     onShowQr: (student: Student) => void;
-    onAddSibling: (student: Student) => void;
+    onAddSibling?: (student: Student) => void;
     onQuickPay?: (student: Student) => void;
     onApprove?: (student: Student) => void;
     onReject?: (student: Student) => void;
@@ -52,7 +52,7 @@ interface StudentListProps {
 }
 
 const StudentList: React.FC<StudentListProps> = ({ 
-    students, onEdit, onDelete, onShowLocation, onShowDetails, onShowQr, onAddSibling, onQuickPay, onApprove, onReject, whatsappTemplate 
+    students, onEdit, onDelete, onShowLocation, onShowDetails, onShowQr, onQuickPay, onApprove, onReject, whatsappTemplate 
 }) => {
 
     return (
@@ -149,13 +149,6 @@ const StudentList: React.FC<StudentListProps> = ({
                                 </td>
                                 <td className="p-4 text-right">
                                     <div className="flex items-center justify-end gap-2 xl:opacity-50 group-hover:opacity-100 transition-opacity">
-                                        <button
-                                            onClick={() => onAddSibling(student)}
-                                            className="p-2 hover:bg-blue-50 rounded-lg text-slate-400 hover:text-blue-600 transition-colors"
-                                            title="Kardeş Ekle (Hızlı Kayıt)"
-                                        >
-                                            <Users size={16} />
-                                        </button>
                                         <button
                                             onClick={() => onShowQr(student)}
                                             className="p-2 hover:bg-emerald-50 rounded-lg text-slate-400 hover:text-emerald-600 transition-colors"

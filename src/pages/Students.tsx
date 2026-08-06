@@ -499,31 +499,6 @@ const Students: React.FC = () => {
         setSelectedQrStudent(student);
         setIsQrModalOpen(true);
     };
-    
-    const handleAddSibling = (student: Student) => {
-        setEditingStudent(null);
-        // Pre-fill with sibling's shared data
-        setFormData({
-            parent_name: student.parent_name,
-            parent_phone: student.parent_phone,
-            location: student.address,
-            coordinates: student.coordinates && student.coordinates[0] !== 0 ? student.coordinates : undefined,
-            school_id: student.school_id, // Often same family goes to same school
-            route_status: 'unassigned'
-        });
-        
-        // Match location method
-        if (student.address === 'Veli Uygulamadan Seçecek' || (!student.coordinates || student.coordinates[0] === 0)) {
-            setLocationMethod('parent');
-        } else {
-            setLocationMethod('map');
-            if (student.coordinates && student.coordinates[0] !== 0) {
-                setPickerCoordinates(student.coordinates);
-            }
-        }
-        
-        setIsModalOpen(true);
-    };
 
     const handlePickLocation = () => {
         setIsPickingLocation(true);
@@ -790,7 +765,6 @@ const Students: React.FC = () => {
                         onShowLocation={handleShowLocation}
                         onShowDetails={handleShowDetails}
                         onShowQr={handleShowQr}
-                        onAddSibling={handleAddSibling}
                         onQuickPay={handleQuickPay}
                         onApprove={handleApprove}
                         onReject={handleReject}
@@ -833,7 +807,7 @@ const Students: React.FC = () => {
                     <div className="bg-white rounded-2xl w-full max-w-lg shadow-2xl animate-in fade-in zoom-in duration-200">
                         <div className="p-6 border-b border-slate-100 flex justify-between items-center">
                             <h3 className="text-xl font-bold text-slate-800">
-                                {editingStudent ? 'Öğrenciyi Düzenle' : formData.parent_name ? 'Kardeş Öğrenci Kaydı' : 'Yeni Öğrenci'}
+                                {editingStudent ? 'Öğrenciyi Düzenle' : 'Yeni Öğrenci Ekle'}
                             </h3>
                             <button onClick={() => setIsModalOpen(false)} className="text-slate-400 hover:text-slate-600">
                                 <X size={24} />
