@@ -1,5 +1,5 @@
 import React, { useState } from 'react';
-import { Plus, Search, Filter, X, Users, Printer, Phone, MessageSquare, School, MapPin } from 'lucide-react';
+import { Plus, Search, Filter, X, Users, Printer, Phone, MessageSquare, School } from 'lucide-react';
 import VehicleList, { type Vehicle } from '../components/dashboard/VehicleList';
 import { supabase } from '../lib/supabase';
 import { useAuth } from '../contexts/AuthContext';
