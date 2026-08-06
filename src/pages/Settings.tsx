@@ -3,7 +3,7 @@ import {
     Plus, Trash2, School, MapPin, Loader2, Tag as TagIcon,
     DollarSign, Settings as SettingsIcon, ShieldCheck, CreditCard, X, Building,
     Copy, Download, ExternalLink, QrCode, Users, UserPlus, Eye, EyeOff,
-    Image as ImageIcon, Briefcase, FileText, Phone
+    Image as ImageIcon, Briefcase, FileText, Phone, Edit2
 } from 'lucide-react';
 import { QRCodeSVG } from 'qrcode.react';
 import { supabase } from '../lib/supabase';
@@ -44,6 +44,7 @@ type TabType = 'schools' | 'tags' | 'pricing' | 'company' | 'users' | 'account';
 const Settings: React.FC = () => {
     const { profile } = useAuth();
     const [activeTab, setActiveTab] = useState<TabType>('schools');
+    const [editSchoolId, setEditSchoolId] = useState<string | null>(null);
 
     // Data States
     const [schools, setSchools] = useState<SchoolData[]>([]);
@@ -153,19 +154,32 @@ const Settings: React.FC = () => {
         setIsSubmitting(true);
 
         try {
-            const { error } = await supabase.from('schools').insert([{
-                company_id: profile?.company_id,
-                name: formData.name,
-                district: formData.district,
-                latitude: formData.latitude,
-                longitude: formData.longitude
-            }]);
-
-            if (error) throw error;
+            if (editSchoolId) {
+                const { error } = await supabase.from('schools').update({
+                    name: formData.name,
+                    district: formData.district,
+                    latitude: formData.latitude,
+                    longitude: formData.longitude
+                }).eq('id', editSchoolId);
+                
+                if (error) throw error;
+                alert('Okul başarıyla güncellendi.');
+            } else {
+                const { error } = await supabase.from('schools').insert([{
+                    company_id: profile?.company_id,
+                    name: formData.name,
+                    district: formData.district,
+                    latitude: formData.latitude,
+                    longitude: formData.longitude
+                }]);
+                
+                if (error) throw error;
+                alert('Okul başarıyla eklendi.');
+            }
 
             setFormData({});
+            setEditSchoolId(null);
             await fetchSchools();
-            alert('Okul başarıyla eklendi.');
         } catch (error) {
             console.error('Error adding school:', error);
             alert('Okul eklenirken bir hata oluştu.');
@@ -728,11 +742,22 @@ const Settings: React.FC = () => {
                             <div className="bg-white rounded-3xl border border-slate-100 shadow-sm overflow-hidden flex flex-col xl:flex-row">
                                 {/* Form Side */}
                                 <div className="xl:w-1/3 bg-slate-50 p-6 xl:p-8 xl:border-r border-slate-200">
-                                    <h2 className="text-xl font-bold text-slate-800 mb-6 flex items-center gap-2">
-                                        <div className="p-2 bg-blue-100 text-blue-600 rounded-lg">
-                                            <Plus size={20} />
+                                    <h2 className="text-xl font-bold text-slate-800 mb-6 flex items-center justify-between">
+                                        <div className="flex items-center gap-2">
+                                            <div className="p-2 bg-blue-100 text-blue-600 rounded-lg">
+                                                {editSchoolId ? <Edit2 size={20} /> : <Plus size={20} />}
+                                            </div>
+                                            {editSchoolId ? 'Okulu Düzenle' : 'Yeni Okul Kaydı'}
                                         </div>
-                                        Yeni Okul Kaydı
+                                        {editSchoolId && (
+                                            <button 
+                                                onClick={() => { setEditSchoolId(null); setFormData({}); }}
+                                                className="text-sm font-medium text-slate-500 hover:text-slate-800 flex items-center gap-1"
+                                                type="button"
+                                            >
+                                                Vazgeç
+                                            </button>
+                                        )}
                                     </h2>
                                     <form onSubmit={handleAddSchool} className="space-y-5">
                                         <div>
@@ -761,7 +786,7 @@ const Settings: React.FC = () => {
                                             disabled={isSubmitting}
                                             className="w-full py-3.5 bg-secondary text-white rounded-xl font-bold hover:bg-blue-600 transition-colors shadow-lg shadow-blue-500/20 disabled:opacity-50 flex items-center justify-center gap-2 mt-2"
                                         >
-                                            {isSubmitting ? <><Loader2 size={18} className="animate-spin" /> Ekleniyor...</> : 'Okulu Kaydet'}
+                                            {isSubmitting ? <><Loader2 size={18} className="animate-spin" /> {editSchoolId ? 'Güncelleniyor...' : 'Ekleniyor...'}</> : (editSchoolId ? 'Değişiklikleri Kaydet' : 'Okulu Kaydet')}
                                         </button>
                                     </form>
                                 </div>
@@ -796,13 +821,26 @@ const Settings: React.FC = () => {
                                                                 </p>
                                                             )}
                                                         </div>
-                                                        <button
-                                                            onClick={() => handleDeleteSchool(school.id, school.name)}
-                                                            className="text-slate-300 hover:text-red-500 hover:bg-red-50 p-2 rounded-lg transition-colors"
-                                                            title="Sil"
-                                                        >
-                                                            <Trash2 size={16} />
-                                                        </button>
+                                                        <div className="flex gap-2">
+                                                            <button
+                                                                onClick={() => {
+                                                                    setEditSchoolId(school.id);
+                                                                    setFormData({ name: school.name, district: school.district, latitude: school.latitude, longitude: school.longitude });
+                                                                    window.scrollTo({ top: 0, behavior: 'smooth' });
+                                                                }}
+                                                                className="text-slate-400 hover:text-blue-600 hover:bg-blue-50 p-2 rounded-lg transition-colors"
+                                                                title="Düzenle"
+                                                            >
+                                                                <Edit2 size={16} />
+                                                            </button>
+                                                            <button
+                                                                onClick={() => handleDeleteSchool(school.id, school.name)}
+                                                                className="text-slate-400 hover:text-red-500 hover:bg-red-50 p-2 rounded-lg transition-colors"
+                                                                title="Sil"
+                                                            >
+                                                                <Trash2 size={16} />
+                                                            </button>
+                                                        </div>
                                                     </div>
                                                 </div>
                                             ))}

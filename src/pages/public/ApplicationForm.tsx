@@ -17,7 +17,7 @@ const ApplicationForm: React.FC = () => {
     const [isScrolledToBottom, setIsScrolledToBottom] = useState(false);
     const [companyName, setCompanyName] = useState<string>('');
     const [schools, setSchools] = useState<{id: string, name: string}[]>([]);
-    const [neighborhoods, setNeighborhoods] = useState<string[]>([]);
+    const [neighborhoods, setNeighborhoods] = useState<any[]>([]);
 
     const [formData, setFormData] = useState({
         studentName: '',
@@ -391,9 +391,10 @@ const ApplicationForm: React.FC = () => {
                                         className="w-full px-4 py-3 bg-white border border-slate-200 rounded-xl focus:outline-none focus:ring-2 focus:ring-blue-500/20 focus:border-blue-500 transition-all font-medium text-slate-700"
                                     >
                                         <option value="">Lütfen Mahalle Seçin</option>
-                                        {neighborhoods.map((n, i) => (
-                                            <option key={i} value={n}>{n}</option>
-                                        ))}
+                                        {neighborhoods.map((n, i) => {
+                                            const name = typeof n === 'object' ? n.name : n;
+                                            return <option key={i} value={name}>{name}</option>
+                                        })}
                                         <option value="Diğer">Diğer (Listede Yok)</option>
                                     </select>
                                 </div>
