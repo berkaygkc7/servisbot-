@@ -187,20 +187,17 @@ const Students: React.FC = () => {
     const getFilteredNeighborhoodRules = (selectedSchoolId?: string) => {
         if (!selectedSchoolId) {
             const generalRules = pricingRules.filter(r => !r.school_id);
-            if (generalRules.length > 0) return generalRules;
-            return pricingRules;
+            return generalRules.length > 0 ? generalRules : pricingRules;
         }
 
         const schoolRules = pricingRules.filter(r => r.school_id === selectedSchoolId);
-        const schoolNeighborhoodNames = new Set(
-            schoolRules.map(r => r.school_level.toLowerCase().trim())
-        );
+        // Sadece seçilen okula ait tanımlanmış özel kurallar varsa YALNIZCA onları getir
+        if (schoolRules.length > 0) {
+            return schoolRules;
+        }
 
-        const generalRules = pricingRules.filter(r => 
-            !r.school_id && !schoolNeighborhoodNames.has(r.school_level.toLowerCase().trim())
-        );
-
-        return [...schoolRules, ...generalRules];
+        // Seçilen okula özel kural tanımlanmamışsa genel kuralları göster
+        return pricingRules.filter(r => !r.school_id);
     };
 
     const fetchStudents = async () => {
