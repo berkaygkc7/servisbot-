@@ -97,6 +97,17 @@ const ApplicationForm: React.FC = () => {
 
     // 1. Validate Token and Get Company
     useEffect(() => {
+        // Automatically clear any legacy rate limit entries from localStorage
+        try {
+            Object.keys(localStorage).forEach(key => {
+                if (key.startsWith('registration_attempts_')) {
+                    localStorage.removeItem(key);
+                }
+            });
+        } catch (e) {
+            // ignore storage errors
+        }
+
         const fetchCompany = async () => {
             if (!token) {
                 setError('Geçersiz bağlantı. Başvuru kodu bulunamadı.');
