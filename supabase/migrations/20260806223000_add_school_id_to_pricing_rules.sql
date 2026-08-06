@@ -2,6 +2,9 @@
 
 ALTER TABLE public.pricing_rules ADD COLUMN IF NOT EXISTS school_id UUID REFERENCES public.schools(id) ON DELETE CASCADE;
 
+-- Drop old single-school constraint so different schools can have the same neighborhood names or multiple custom prices
+ALTER TABLE public.pricing_rules DROP CONSTRAINT IF EXISTS pricing_rules_company_id_school_level_key;
+
 CREATE INDEX IF NOT EXISTS idx_pricing_rules_school_id ON public.pricing_rules(school_id);
 CREATE INDEX IF NOT EXISTS idx_pricing_rules_company_school ON public.pricing_rules(company_id, school_id);
 
