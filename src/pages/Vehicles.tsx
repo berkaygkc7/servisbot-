@@ -457,53 +457,133 @@ const Vehicles: React.FC = () => {
                 <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/50 backdrop-blur-sm vehicle-student-modal-container">
                     <style>{`
                         @media print {
-                            body * {
-                                visibility: hidden !important;
+                            @page {
+                                size: A4 portrait;
+                                margin: 12mm;
                             }
-                            .vehicle-student-modal-container,
-                            .vehicle-student-modal-container * {
-                                visibility: visible !important;
+                            html, body, #root, main, div {
+                                height: auto !important;
+                                overflow: visible !important;
+                                position: static !important;
+                                background: white !important;
+                                box-shadow: none !important;
+                                border: none !important;
+                            }
+                            .no-print {
+                                display: none !important;
                             }
                             .vehicle-student-modal-container {
+                                display: none !important;
+                            }
+                            .print-only-manifest {
+                                display: block !important;
                                 position: absolute !important;
                                 left: 0 !important;
                                 top: 0 !important;
                                 width: 100% !important;
                                 height: auto !important;
+                                overflow: visible !important;
                                 background: white !important;
-                                padding: 0 !important;
-                                margin: 0 !important;
+                                color: black !important;
+                                z-index: 999999 !important;
                             }
-                            .vehicle-student-modal-content {
-                                max-height: none !important;
-                                height: auto !important;
-                                overflow: visible !important;
-                                border: none !important;
-                                box-shadow: none !important;
+                            .print-manifest-table {
                                 width: 100% !important;
+                                border-collapse: collapse !important;
+                                margin-top: 10px !important;
+                                font-size: 10pt !important;
                             }
-                            .vehicle-student-scroll-area {
+                            .print-manifest-table th, .print-manifest-table td {
+                                border: 1px solid #475569 !important;
+                                padding: 7px 9px !important;
+                                text-align: left !important;
+                                white-space: normal !important;
+                                word-break: break-word !important;
                                 overflow: visible !important;
-                                max-height: none !important;
-                                height: auto !important;
+                                vertical-align: top !important;
                             }
-                            .no-print {
-                                display: none !important;
+                            .print-manifest-table th {
+                                background-color: #f1f5f9 !important;
+                                font-weight: bold !important;
+                                color: #0f172a !important;
                             }
-                            table {
-                                page-break-inside: auto !important;
-                                width: 100% !important;
-                            }
-                            tr {
+                            .print-manifest-table tr {
                                 page-break-inside: avoid !important;
-                                page-break-after: auto !important;
+                                break-inside: avoid !important;
                             }
-                            thead {
+                            .print-manifest-table thead {
                                 display: table-header-group !important;
                             }
                         }
                     `}</style>
-                    <div className="bg-white rounded-2xl w-full max-w-4xl max-h-[90vh] shadow-2xl flex flex-col animate-in fade-in zoom-in duration-200 overflow-hidden vehicle-student-modal-content">
+
+                    {/* DEDICATED PRINT MANIFEST CONTAINER (Shown ONLY when printing) */}
+                    <div className="print-only-manifest hidden">
+                        <div style={{ borderBottom: '2px solid #0f172a', paddingBottom: '8px', marginBottom: '12px' }}>
+                            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+                                <h1 style={{ fontSize: '18pt', fontWeight: 'bold', margin: 0, color: '#0f172a' }}>
+                                    {selectedVehicleForStudents.plate} — TAŞINAN ÖĞRENCİ / YOLCU LİSTESİ
+                                </h1>
+                                <span style={{ fontSize: '10pt', fontWeight: 'bold', border: '1px solid #0f172a', padding: '3px 8px', borderRadius: '4px' }}>
+                                    {vehicleStudents.length} / {selectedVehicleForStudents.capacity} Yolcu
+                                </span>
+                            </div>
+                            <div style={{ fontSize: '9.5pt', color: '#334155', marginTop: '6px', display: 'flex', gap: '15px' }}>
+                                <span><strong>Sürücü:</strong> {selectedVehicleForStudents.driver || 'Atanmadı'}</span>
+                                <span><strong>Kapasite:</strong> {selectedVehicleForStudents.capacity} Kişilik</span>
+                                <span><strong>Yazdırma Tarihi:</strong> {new Date().toLocaleDateString('tr-TR')}</span>
+                            </div>
+                        </div>
+
+                        <table className="print-manifest-table">
+                            <thead>
+                                <tr>
+                                    <th style={{ width: '30px' }}>#</th>
+                                    <th style={{ width: '180px' }}>Öğrenci Adı Soyadı</th>
+                                    <th style={{ width: '150px' }}>Okul / Sınıf</th>
+                                    <th style={{ width: '130px' }}>Veli Adı Soyadı</th>
+                                    <th style={{ width: '110px' }}>Telefon</th>
+                                    <th>Mahalle / Açık Adres</th>
+                                </tr>
+                            </thead>
+                            <tbody>
+                                {vehicleStudents
+                                    .filter(s => {
+                                        const term = studentSearchTerm.toLowerCase();
+                                        return (
+                                            (s.full_name || '').toLowerCase().includes(term) ||
+                                            (s.parent_name || '').toLowerCase().includes(term) ||
+                                            (s.neighborhood || '').toLowerCase().includes(term) ||
+                                            (s.schools?.name || '').toLowerCase().includes(term)
+                                        );
+                                    })
+                                    .map((s, index) => (
+                                        <tr key={s.id}>
+                                            <td>{index + 1}</td>
+                                            <td style={{ fontWeight: 'bold' }}>{s.full_name}</td>
+                                            <td>
+                                                {s.schools?.name || s.school_level || 'Belirtilmedi'}
+                                                {s.grade ? ` (${s.grade})` : ''}
+                                            </td>
+                                            <td>{s.parent_name || '-'}</td>
+                                            <td>{s.parent_phone || '-'}</td>
+                                            <td>
+                                                {s.neighborhood ? `[${s.neighborhood}] ` : ''}
+                                                {s.address || ''}
+                                            </td>
+                                        </tr>
+                                    ))}
+                            </tbody>
+                        </table>
+
+                        <div style={{ marginTop: '12px', fontSize: '8.5pt', color: '#64748b', display: 'flex', justifyContent: 'space-between' }}>
+                            <span>ServisBot Otomasyon Sistemi — Taşıma Yolcu Listesi</span>
+                            <span>Toplam {vehicleStudents.length} Öğrenci Kayıtlıdır</span>
+                        </div>
+                    </div>
+
+                    {/* INTERACTIVE SCREEN MODAL */}
+                    <div className="bg-white rounded-2xl w-full max-w-4xl max-h-[90vh] shadow-2xl flex flex-col animate-in fade-in zoom-in duration-200 overflow-hidden vehicle-student-modal-content no-print">
                         {/* Modal Header */}
                         <div className="p-5 border-b border-slate-100 flex flex-wrap justify-between items-center bg-slate-50/80 gap-3">
                             <div>
@@ -604,20 +684,20 @@ const Vehicles: React.FC = () => {
                                                 .map((s, index) => (
                                                     <tr key={s.id} className="hover:bg-slate-50/80 transition-colors">
                                                         <td className="p-3 text-slate-400 font-medium">{index + 1}</td>
-                                                        <td className="p-3 font-bold text-slate-800">{s.full_name}</td>
+                                                        <td className="p-3 font-bold text-slate-800 break-words">{s.full_name}</td>
                                                         <td className="p-3">
                                                             <div className="font-semibold text-slate-700 flex items-center gap-1">
-                                                                <School size={13} className="text-slate-400" />
-                                                                <span>{s.schools?.name || s.school_level || 'Okul Belirtilmedi'}</span>
+                                                                <School size={13} className="text-slate-400 shrink-0" />
+                                                                <span className="break-words">{s.schools?.name || s.school_level || 'Okul Belirtilmedi'}</span>
                                                             </div>
                                                             {s.grade && <span className="text-[11px] text-slate-400 font-medium">{s.grade}</span>}
                                                         </td>
                                                         <td className="p-3">
-                                                            <div className="font-medium text-slate-700">{s.parent_name || 'Belirtilmedi'}</div>
+                                                            <div className="font-medium text-slate-700 break-words">{s.parent_name || 'Belirtilmedi'}</div>
                                                             <div className="text-[11px] text-slate-400">{s.parent_phone || ''}</div>
                                                         </td>
-                                                        <td className="p-3 max-w-[200px] truncate text-slate-600">
-                                                            {s.neighborhood && <span className="inline-block bg-slate-100 text-slate-700 px-2 py-0.5 rounded text-[11px] font-semibold mr-1">{s.neighborhood}</span>}
+                                                        <td className="p-3 text-slate-600 break-words">
+                                                            {s.neighborhood && <span className="inline-block bg-slate-100 text-slate-700 px-2 py-0.5 rounded text-[11px] font-semibold mr-1 mb-1">{s.neighborhood}</span>}
                                                             <span className="text-slate-500">{s.address}</span>
                                                         </td>
                                                         <td className="p-3 text-right no-print">
