@@ -1,5 +1,5 @@
 import React from 'react';
-import { Edit, Trash2, MapPin } from 'lucide-react';
+import { Edit, Trash2, MapPin, Users } from 'lucide-react';
 
 export interface Vehicle {
     id: string;
@@ -11,6 +11,7 @@ export interface Vehicle {
     current_latitude?: number;
     current_longitude?: number;
     driver_id?: string;
+    student_count?: number;
 }
 
 interface VehicleListProps {
@@ -18,9 +19,10 @@ interface VehicleListProps {
     onEdit: (vehicle: Vehicle) => void;
     onDelete: (id: string) => void;
     onShowLocation: (vehicle: Vehicle) => void;
+    onShowStudents?: (vehicle: Vehicle) => void;
 }
 
-const VehicleList: React.FC<VehicleListProps> = ({ vehicles, onEdit, onDelete, onShowLocation }) => {
+const VehicleList: React.FC<VehicleListProps> = ({ vehicles, onEdit, onDelete, onShowLocation, onShowStudents }) => {
     const getStatusColor = (status: Vehicle['status']) => {
         switch (status) {
             case 'active': return 'bg-emerald-100 text-emerald-700';
@@ -59,6 +61,7 @@ const VehicleList: React.FC<VehicleListProps> = ({ vehicles, onEdit, onDelete, o
                         <tr className="bg-slate-50 border-b border-slate-100">
                             <th className="p-4 font-semibold text-slate-600 text-sm">Plaka</th>
                             <th className="p-4 font-semibold text-slate-600 text-sm">Sürücü</th>
+                            <th className="p-4 font-semibold text-slate-600 text-sm">Öğrenci Sayısı</th>
                             <th className="p-4 font-semibold text-slate-600 text-sm">Kapasite</th>
                             <th className="p-4 font-semibold text-slate-600 text-sm">Konum</th>
                             <th className="p-4 font-semibold text-slate-600 text-sm">Durum</th>
@@ -68,11 +71,21 @@ const VehicleList: React.FC<VehicleListProps> = ({ vehicles, onEdit, onDelete, o
                     <tbody className="divide-y divide-slate-100">
                         {vehicles.map((vehicle) => (
                             <tr key={vehicle.id} className="hover:bg-slate-50/50 transition-colors group">
-                                <td className="p-4 text-slate-800 font-medium">{vehicle.plate}</td>
+                                <td className="p-4 text-slate-800 font-bold">{vehicle.plate}</td>
                                 <td className="p-4 text-slate-600">
                                     {vehicle.driver ? vehicle.driver : <span className="text-slate-400 italic text-xs font-normal bg-slate-50 px-2 py-1 rounded-md border border-slate-200/60">Sürücü Atanmadı</span>}
                                 </td>
-                                <td className="p-4 text-slate-600">{vehicle.capacity} Kişilik</td>
+                                <td className="p-4">
+                                    <button 
+                                        onClick={() => onShowStudents && onShowStudents(vehicle)}
+                                        className="flex items-center gap-1.5 px-3 py-1.5 bg-blue-50 hover:bg-blue-100 text-blue-700 font-bold text-xs rounded-xl transition-all border border-blue-200/60 active:scale-95 shadow-sm"
+                                        title="Taşınan Öğrenci Listesini Gör"
+                                    >
+                                        <Users size={14} />
+                                        <span>{vehicle.student_count || 0} Öğrenci</span>
+                                    </button>
+                                </td>
+                                <td className="p-4 text-slate-600 text-sm font-medium">{vehicle.capacity} Kişilik</td>
                                 <td className="p-4 text-slate-600">
                                     <div className="flex items-center gap-1.5 text-xs text-slate-500">
                                         <MapPin size={14} />
@@ -86,7 +99,14 @@ const VehicleList: React.FC<VehicleListProps> = ({ vehicles, onEdit, onDelete, o
                                     </span>
                                 </td>
                                 <td className="p-4 text-right">
-                                    <div className="flex items-center justify-end gap-2 opacity-0 group-hover:opacity-100 transition-opacity">
+                                    <div className="flex items-center justify-end gap-1.5 opacity-0 group-hover:opacity-100 transition-opacity">
+                                        <button
+                                            onClick={() => onShowStudents && onShowStudents(vehicle)}
+                                            className="p-2 hover:bg-indigo-50 rounded-lg text-slate-400 hover:text-indigo-600 transition-colors"
+                                            title="Öğrenci Listesi"
+                                        >
+                                            <Users size={16} />
+                                        </button>
                                         <button
                                             onClick={() => onShowLocation(vehicle)}
                                             className="p-2 hover:bg-blue-50 rounded-lg text-slate-400 hover:text-blue-600 transition-colors"

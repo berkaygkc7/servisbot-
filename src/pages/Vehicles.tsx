@@ -1,5 +1,5 @@
 import React, { useState } from 'react';
-import { Plus, Search, Filter, X } from 'lucide-react';
+import { Plus, Search, Filter, X, Users, Printer, Phone, MessageSquare, School, MapPin } from 'lucide-react';
 import VehicleList, { type Vehicle } from '../components/dashboard/VehicleList';
 import { supabase } from '../lib/supabase';
 import { useAuth } from '../contexts/AuthContext';
@@ -20,6 +20,13 @@ const Vehicles: React.FC = () => {
     const [isLocationModalOpen, setIsLocationModalOpen] = useState(false);
     const [selectedVehicleForLocation, setSelectedVehicleForLocation] = useState<Vehicle | null>(null);
 
+    // Student List Modal State
+    const [isStudentsModalOpen, setIsStudentsModalOpen] = useState(false);
+    const [selectedVehicleForStudents, setSelectedVehicleForStudents] = useState<Vehicle | null>(null);
+    const [vehicleStudents, setVehicleStudents] = useState<any[]>([]);
+    const [loadingVehicleStudents, setLoadingVehicleStudents] = useState(false);
+    const [studentSearchTerm, setStudentSearchTerm] = useState('');
+
     // Form State
     const [formData, setFormData] = useState<Partial<Vehicle>>({});
 
@@ -36,6 +43,21 @@ const Vehicles: React.FC = () => {
     const fetchVehicles = async () => {
         setLoading(true);
         const { data, error } = await supabase.from('vehicles').select('*').order('plate_number');
+
+        // Fetch student count per vehicle
+        const { data: studentCounts } = await supabase
+            .from('students')
+            .select('vehicle_id')
+            .not('vehicle_id', 'is', null)
+            .neq('status', 'pending');
+
+        const countMap: Record<string, number> = {};
+        studentCounts?.forEach(s => {
+            if (s.vehicle_id) {
+                countMap[s.vehicle_id] = (countMap[s.vehicle_id] || 0) + 1;
+            }
+        });
+
         if (data) {
             setVehicles(data.map((v: any) => ({
                 id: v.id,
@@ -44,6 +66,7 @@ const Vehicles: React.FC = () => {
                 driver_id: v.driver_id,
                 capacity: v.capacity || 16,
                 status: v.status || 'active',
+                student_count: countMap[v.id] || 0,
                 location: v.current_latitude && v.current_longitude ? `${v.current_latitude.toFixed(4)}, ${v.current_longitude.toFixed(4)}` : 'Konum Yok',
                 current_latitude: v.current_latitude,
                 current_longitude: v.current_longitude
@@ -51,6 +74,29 @@ const Vehicles: React.FC = () => {
         }
         if (error) console.error('Error fetching vehicles:', error);
         setLoading(false);
+    };
+
+    const handleShowStudents = async (vehicle: Vehicle) => {
+        setSelectedVehicleForStudents(vehicle);
+        setIsStudentsModalOpen(true);
+        setLoadingVehicleStudents(true);
+        setStudentSearchTerm('');
+
+        try {
+            const { data, error } = await supabase
+                .from('students')
+                .select('id, full_name, parent_name, parent_phone, school_level, grade, neighborhood, address, schools(name)')
+                .eq('vehicle_id', vehicle.id)
+                .neq('status', 'pending')
+                .order('full_name');
+
+            if (error) throw error;
+            setVehicleStudents(data || []);
+        } catch (err) {
+            console.error('Error fetching vehicle students:', err);
+        } finally {
+            setLoadingVehicleStudents(false);
+        }
     };
 
     // Real-time subscription
@@ -227,6 +273,7 @@ const Vehicles: React.FC = () => {
                     onEdit={handleEditClick}
                     onDelete={handleDeleteClick}
                     onShowLocation={handleShowLocation}
+                    onShowStudents={handleShowStudents}
                 />
             )}
 
@@ -349,6 +396,150 @@ const Vehicles: React.FC = () => {
                                     type: 'vehicle' as const
                                 }]}
                             />
+                        </div>
+                    </div>
+                </div>
+            )}
+            {/* Student List Modal */}
+            {isStudentsModalOpen && selectedVehicleForStudents && (
+                <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/50 backdrop-blur-sm">
+                    <div className="bg-white rounded-2xl w-full max-w-4xl max-h-[90vh] shadow-2xl flex flex-col animate-in fade-in zoom-in duration-200 overflow-hidden">
+                        {/* Modal Header */}
+                        <div className="p-5 border-b border-slate-100 flex flex-wrap justify-between items-center bg-slate-50/80 gap-3">
+                            <div>
+                                <div className="flex items-center gap-2">
+                                    <span className="bg-blue-600 text-white font-black px-3 py-1 rounded-xl text-base tracking-wide shadow-sm">
+                                        {selectedVehicleForStudents.plate}
+                                    </span>
+                                    <h3 className="text-lg font-bold text-slate-800">Taşınan Yolcu / Öğrenci Listesi</h3>
+                                </div>
+                                <p className="text-slate-500 text-xs mt-1 font-medium flex items-center gap-2">
+                                    <span>Sürücü: <strong>{selectedVehicleForStudents.driver || 'Atanmadı'}</strong></span>
+                                    <span>•</span>
+                                    <span>Kapasite: <strong>{selectedVehicleForStudents.capacity} Kişilik</strong></span>
+                                </p>
+                            </div>
+                            <div className="flex items-center gap-2">
+                                <button
+                                    onClick={() => window.print()}
+                                    className="flex items-center gap-1.5 px-3 py-2 bg-white border border-slate-200 text-slate-700 rounded-xl hover:bg-slate-50 transition-colors text-xs font-bold shadow-sm"
+                                    title="Listeyi Yazdır"
+                                >
+                                    <Printer size={15} />
+                                    <span>Yazdır</span>
+                                </button>
+                                <button
+                                    onClick={() => setIsStudentsModalOpen(false)}
+                                    className="p-2 hover:bg-slate-200 rounded-full text-slate-400 hover:text-slate-600 transition-colors"
+                                >
+                                    <X size={20} />
+                                </button>
+                            </div>
+                        </div>
+
+                        {/* Search & Stats Bar */}
+                        <div className="p-4 border-b border-slate-100 bg-white flex flex-col sm:flex-row justify-between items-center gap-3">
+                            <div className="relative w-full sm:w-72">
+                                <Search className="absolute left-3 top-1/2 -translate-y-1/2 text-slate-400" size={16} />
+                                <input
+                                    type="text"
+                                    placeholder="Öğrenci, veli veya okul ara..."
+                                    value={studentSearchTerm}
+                                    onChange={(e) => setStudentSearchTerm(e.target.value)}
+                                    className="w-full pl-9 pr-3 py-2 bg-slate-50 border border-slate-200 rounded-xl text-xs focus:outline-none focus:ring-2 focus:ring-blue-500/20 focus:border-blue-500 transition-all"
+                                />
+                            </div>
+                            <div className="flex items-center gap-2 text-xs">
+                                <span className="px-3 py-1.5 bg-blue-50 text-blue-700 font-bold rounded-xl border border-blue-100">
+                                    Toplam: {vehicleStudents.length} Öğrenci
+                                </span>
+                                <span className="px-3 py-1.5 bg-emerald-50 text-emerald-700 font-bold rounded-xl border border-emerald-100">
+                                    Doluluk: %{Math.min(100, Math.round((vehicleStudents.length / (selectedVehicleForStudents.capacity || 1)) * 100))}
+                                </span>
+                            </div>
+                        </div>
+
+                        {/* Student List Content */}
+                        <div className="flex-1 overflow-y-auto p-4">
+                            {loadingVehicleStudents ? (
+                                <div className="text-center py-12 text-slate-500 font-medium">Öğrenciler yükleniyor...</div>
+                            ) : vehicleStudents.length === 0 ? (
+                                <div className="text-center py-12 bg-slate-50 rounded-2xl border border-dashed border-slate-200">
+                                    <Users className="mx-auto text-slate-300 mb-2" size={40} />
+                                    <p className="text-slate-600 font-bold">Bu araca henüz öğrenci atanmamış.</p>
+                                    <p className="text-slate-400 text-xs mt-1">Öğrenciler sayfasından öğrencilere bu aracı tanımlayabilirsiniz.</p>
+                                </div>
+                            ) : (
+                                <div className="overflow-x-auto">
+                                    <table className="w-full text-left border-collapse">
+                                        <thead>
+                                            <tr className="bg-slate-50 border-b border-slate-100 text-slate-500 text-xs font-semibold uppercase tracking-wider">
+                                                <th className="p-3">#</th>
+                                                <th className="p-3">Öğrenci Adı Soyadı</th>
+                                                <th className="p-3">Okul / Sınıf</th>
+                                                <th className="p-3">Veli Bilgisi</th>
+                                                <th className="p-3">Mahalle / Adres</th>
+                                                <th className="p-3 text-right">İletişim</th>
+                                            </tr>
+                                        </thead>
+                                        <tbody className="divide-y divide-slate-100 text-xs">
+                                            {vehicleStudents
+                                                .filter(s => {
+                                                    const term = studentSearchTerm.toLowerCase();
+                                                    return (
+                                                        (s.full_name || '').toLowerCase().includes(term) ||
+                                                        (s.parent_name || '').toLowerCase().includes(term) ||
+                                                        (s.neighborhood || '').toLowerCase().includes(term) ||
+                                                        (s.schools?.name || '').toLowerCase().includes(term)
+                                                    );
+                                                })
+                                                .map((s, index) => (
+                                                    <tr key={s.id} className="hover:bg-slate-50/80 transition-colors">
+                                                        <td className="p-3 text-slate-400 font-medium">{index + 1}</td>
+                                                        <td className="p-3 font-bold text-slate-800">{s.full_name}</td>
+                                                        <td className="p-3">
+                                                            <div className="font-semibold text-slate-700 flex items-center gap-1">
+                                                                <School size={13} className="text-slate-400" />
+                                                                <span>{s.schools?.name || s.school_level || 'Okul Belirtilmedi'}</span>
+                                                            </div>
+                                                            {s.grade && <span className="text-[11px] text-slate-400 font-medium">{s.grade}</span>}
+                                                        </td>
+                                                        <td className="p-3">
+                                                            <div className="font-medium text-slate-700">{s.parent_name || 'Belirtilmedi'}</div>
+                                                            <div className="text-[11px] text-slate-400">{s.parent_phone || ''}</div>
+                                                        </td>
+                                                        <td className="p-3 max-w-[200px] truncate text-slate-600">
+                                                            {s.neighborhood && <span className="inline-block bg-slate-100 text-slate-700 px-2 py-0.5 rounded text-[11px] font-semibold mr-1">{s.neighborhood}</span>}
+                                                            <span className="text-slate-500">{s.address}</span>
+                                                        </td>
+                                                        <td className="p-3 text-right">
+                                                            {s.parent_phone && (
+                                                                <div className="flex items-center justify-end gap-1">
+                                                                    <a
+                                                                        href={`tel:${s.parent_phone}`}
+                                                                        className="p-1.5 bg-blue-50 hover:bg-blue-100 text-blue-600 rounded-lg transition-colors"
+                                                                        title="Ara"
+                                                                    >
+                                                                        <Phone size={14} />
+                                                                    </a>
+                                                                    <a
+                                                                        href={`https://wa.me/90${s.parent_phone.replace(/\D/g, '')}`}
+                                                                        target="_blank"
+                                                                        rel="noopener noreferrer"
+                                                                        className="p-1.5 bg-emerald-50 hover:bg-emerald-100 text-emerald-600 rounded-lg transition-colors"
+                                                                        title="WhatsApp Mesaj Gönder"
+                                                                    >
+                                                                        <MessageSquare size={14} />
+                                                                    </a>
+                                                                </div>
+                                                            )}
+                                                        </td>
+                                                    </tr>
+                                                ))}
+                                        </tbody>
+                                    </table>
+                                </div>
+                            )}
                         </div>
                     </div>
                 </div>
