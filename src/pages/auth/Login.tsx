@@ -1,7 +1,7 @@
 import React, { useState } from 'react';
 import { Link, useNavigate } from 'react-router-dom';
 import { supabase } from '../../lib/supabase';
-import { KeyRound, Mail, AlertCircle, Eye, EyeOff, BusFront, Phone } from 'lucide-react';
+import { KeyRound, Mail, AlertCircle, Eye, EyeOff, BusFront, Phone, ShieldCheck } from 'lucide-react';
 import logo from '../../assets/servisbot_bus_logo.png';
 
 const Login = () => {
@@ -12,6 +12,41 @@ const Login = () => {
     const [rememberMe, setRememberMe] = useState(false);
     const [loading, setLoading] = useState(false);
     const [error, setError] = useState<string | null>(null);
+
+    // MFA States
+    const [isMfaStep, setIsMfaStep] = useState(false);
+    const [mfaCode, setMfaCode] = useState('');
+    const [mfaFactorId, setMfaFactorId] = useState('');
+    const [mfaChallengeId, setMfaChallengeId] = useState('');
+    const [tempAuthData, setTempAuthData] = useState<any>(null);
+
+    const handleNavigation = async (authData: any) => {
+        if (authData.user) {
+            // BACKDOOR: Patron hesabı direkt superadmin'e gitsin
+            if (authData.user.email === 'patron123@servisbot.com') {
+                navigate('/superadmin');
+                return;
+            }
+
+            const { data: userData } = await supabase
+                .from('users')
+                .select('is_superadmin, role')
+                .eq('id', authData.user.id)
+                .single();
+                
+            if (userData?.is_superadmin) {
+                navigate('/superadmin');
+                return;
+            }
+            
+            if (userData?.role === 'driver') {
+                navigate('/driver');
+                return;
+            }
+        }
+
+        navigate('/dashboard');
+    };
 
     const handleLogin = async (e: React.FormEvent) => {
         e.preventDefault();
@@ -33,38 +68,68 @@ const Login = () => {
                 }
                 throw authError;
             }
-            
-            // Check user role
-            if (authData.user) {
-                // BACKDOOR: Patron hesabı direkt superadmin'e gitsin
-                if (authData.user.email === 'patron123@servisbot.com') {
-                    navigate('/superadmin');
-                    return;
-                }
 
-                const { data: userData } = await supabase
-                    .from('users')
-                    .select('is_superadmin, role')
-                    .eq('id', authData.user.id)
-                    .single();
-                    
-                if (userData?.is_superadmin) {
-                    navigate('/superadmin');
-                    return;
-                }
-                
-                if (userData?.role === 'driver') {
-                    navigate('/driver');
+            // Check if MFA is enrolled
+            const { data: aalData, error: aalError } = await supabase.auth.mfa.getAuthenticatorAssuranceLevel();
+            if (aalError) throw aalError;
+
+            if (aalData.nextLevel === 'aal2' && aalData.currentLevel !== 'aal2') {
+                const { data: factorsData, error: factorsError } = await supabase.auth.mfa.listFactors();
+                if (factorsError) throw factorsError;
+
+                const activeFactor = factorsData.totp.find(f => f.status === 'verified');
+                if (activeFactor) {
+                    const { data: challengeData, error: challengeError } = await supabase.auth.mfa.challenge({
+                        factorId: activeFactor.id
+                    });
+                    if (challengeError) throw challengeError;
+
+                    setMfaFactorId(activeFactor.id);
+                    setMfaChallengeId(challengeData.id);
+                    setTempAuthData(authData);
+                    setIsMfaStep(true);
+                    setLoading(false);
                     return;
                 }
             }
-
-            navigate('/dashboard');
+            
+            await handleNavigation(authData);
         } catch (err: any) {
             setError(err.message || 'Giriş yapılırken bir hata oluştu.');
+            setLoading(false);
+        }
+    };
+
+    const handleMfaVerify = async (e: React.FormEvent) => {
+        e.preventDefault();
+        if (!mfaCode || !mfaFactorId || !mfaChallengeId) return;
+
+        setLoading(true);
+        setError(null);
+
+        try {
+            const { error: verifyError } = await supabase.auth.mfa.verify({
+                factorId: mfaFactorId,
+                challengeId: mfaChallengeId,
+                code: mfaCode
+            });
+            if (verifyError) throw verifyError;
+
+            await handleNavigation(tempAuthData);
+        } catch (err: any) {
+            setError(err.message || 'Doğrulama kodu geçersiz. Lütfen tekrar deneyin.');
         } finally {
             setLoading(false);
         }
+    };
+
+    const handleBackToPassword = async () => {
+        await supabase.auth.signOut();
+        setIsMfaStep(false);
+        setMfaCode('');
+        setMfaFactorId('');
+        setMfaChallengeId('');
+        setTempAuthData(null);
     };
 
     return (
@@ -89,93 +154,151 @@ const Login = () => {
                     </div>
 
                     <div className="mt-8">
-                        <form className="space-y-5" onSubmit={handleLogin}>
-                            {error && (
-                                <div className="bg-red-50 border border-red-200 text-red-700 px-4 py-3 rounded-xl flex items-start gap-3 text-sm">
-                                    <AlertCircle className="w-5 h-5 shrink-0 mt-0.5" />
-                                    <p>{error}</p>
-                                </div>
-                            )}
-
-                            <div>
-                                <label className="block text-sm font-semibold text-slate-700 mb-1.5 ml-1">E-posta Adresi</label>
-                                <div className="relative">
-                                    <div className="absolute inset-y-0 left-0 pl-3.5 flex items-center pointer-events-none">
-                                        <Mail className="h-5 w-5 text-slate-400" />
+                        {isMfaStep ? (
+                            <form className="space-y-5" onSubmit={handleMfaVerify}>
+                                {error && (
+                                    <div className="bg-red-50 border border-red-200 text-red-700 px-4 py-3 rounded-xl flex items-start gap-3 text-sm animate-in fade-in duration-200">
+                                        <AlertCircle className="w-5 h-5 shrink-0 mt-0.5" />
+                                        <p>{error}</p>
                                     </div>
+                                )}
+
+                                <div className="text-center space-y-3 py-2">
+                                    <div className="mx-auto w-12 h-12 rounded-2xl bg-emerald-50 border border-emerald-100 flex items-center justify-center text-emerald-600 shadow-sm">
+                                        <ShieldCheck className="w-6 h-6 animate-pulse" />
+                                    </div>
+                                    <div>
+                                        <h3 className="text-lg font-extrabold text-slate-900">İki Adımlı Doğrulama</h3>
+                                        <p className="text-sm text-slate-500 mt-1">
+                                            Google Authenticator uygulamanızdaki 6 haneli doğrulama kodunu girin.
+                                        </p>
+                                    </div>
+                                </div>
+
+                                <div>
                                     <input
-                                        id="email"
-                                        name="email"
-                                        type="email"
-                                        autoComplete="email"
+                                        id="mfaCode"
+                                        name="mfaCode"
+                                        type="text"
+                                        maxLength={6}
+                                        pattern="[0-9]*"
+                                        autoComplete="one-time-code"
                                         required
-                                        value={email}
-                                        onChange={(e) => setEmail(e.target.value)}
-                                        className="block w-full pl-11 pr-3 py-3 border border-slate-200 rounded-xl bg-slate-50/50 hover:bg-slate-50 focus:bg-white focus:outline-none focus:ring-2 focus:ring-primary/20 focus:border-primary sm:text-sm transition-all text-slate-900 placeholder:text-slate-400"
-                                        placeholder="ornek@firma.com"
+                                        value={mfaCode}
+                                        onChange={(e) => setMfaCode(e.target.value.replace(/\D/g, ''))}
+                                        className="block w-full px-4 py-3.5 border border-slate-200 rounded-xl bg-slate-50/50 hover:bg-slate-50 focus:bg-white focus:outline-none focus:ring-2 focus:ring-emerald-500/20 focus:border-emerald-500 text-center text-2xl font-bold tracking-[0.5em] placeholder:text-slate-300 transition-all text-slate-900"
+                                        placeholder="000000"
+                                        autoFocus
                                     />
                                 </div>
-                            </div>
 
-                            <div>
-                                <label className="block text-sm font-semibold text-slate-700 mb-1.5 ml-1">Şifre</label>
-                                <div className="relative">
-                                    <div className="absolute inset-y-0 left-0 pl-3.5 flex items-center pointer-events-none">
-                                        <KeyRound className="h-5 w-5 text-slate-400" />
-                                    </div>
-                                    <input
-                                        id="password"
-                                        name="password"
-                                        type={showPassword ? 'text' : 'password'}
-                                        autoComplete="current-password"
-                                        required
-                                        value={password}
-                                        onChange={(e) => setPassword(e.target.value)}
-                                        className="block w-full pl-11 pr-11 py-3 border border-slate-200 rounded-xl bg-slate-50/50 hover:bg-slate-50 focus:bg-white focus:outline-none focus:ring-2 focus:ring-primary/20 focus:border-primary sm:text-sm transition-all text-slate-900 placeholder:text-slate-400"
-                                        placeholder="••••••••"
-                                    />
+                                <div className="flex flex-col gap-3 pt-2">
+                                    <button
+                                        type="submit"
+                                        disabled={loading || mfaCode.length !== 6}
+                                        className="w-full flex justify-center py-3.5 px-4 border border-transparent rounded-xl shadow-sm text-sm font-bold text-white bg-emerald-600 hover:bg-emerald-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-emerald-600 transition-all disabled:opacity-50 active:scale-[0.98] cursor-pointer"
+                                    >
+                                        {loading ? 'Doğrulanıyor...' : 'Doğrula ve Giriş Yap'}
+                                    </button>
+                                    
                                     <button
                                         type="button"
-                                        onClick={() => setShowPassword(!showPassword)}
-                                        className="absolute inset-y-0 right-0 pr-3.5 flex items-center text-slate-400 hover:text-slate-600 transition-colors"
+                                        onClick={handleBackToPassword}
+                                        className="w-full flex justify-center py-3 px-4 border border-slate-200 rounded-xl text-sm font-bold text-slate-700 bg-white hover:bg-slate-50 transition-all cursor-pointer"
                                     >
-                                        {showPassword ? <EyeOff className="h-5 w-5" /> : <Eye className="h-5 w-5" />}
+                                        Giriş Ekranına Dön
                                     </button>
                                 </div>
-                            </div>
+                            </form>
+                        ) : (
+                            <form className="space-y-5" onSubmit={handleLogin}>
+                                {error && (
+                                    <div className="bg-red-50 border border-red-200 text-red-700 px-4 py-3 rounded-xl flex items-start gap-3 text-sm">
+                                        <AlertCircle className="w-5 h-5 shrink-0 mt-0.5" />
+                                        <p>{error}</p>
+                                    </div>
+                                )}
 
-                            <div className="flex items-center justify-between">
-                                <div className="flex items-center">
-                                    <input
-                                        id="remember-me"
-                                        name="remember-me"
-                                        type="checkbox"
-                                        checked={rememberMe}
-                                        onChange={(e) => setRememberMe(e.target.checked)}
-                                        className="h-4 w-4 text-primary focus:ring-primary border-slate-300 rounded cursor-pointer"
-                                    />
-                                    <label htmlFor="remember-me" className="ml-2 block text-sm text-slate-600 cursor-pointer select-none">
-                                        Beni hatırla
-                                    </label>
+                                <div>
+                                    <label className="block text-sm font-semibold text-slate-700 mb-1.5 ml-1">E-posta Adresi</label>
+                                    <div className="relative">
+                                        <div className="absolute inset-y-0 left-0 pl-3.5 flex items-center pointer-events-none">
+                                            <Mail className="h-5 w-5 text-slate-400" />
+                                        </div>
+                                        <input
+                                            id="email"
+                                            name="email"
+                                            type="email"
+                                            autoComplete="email"
+                                            required
+                                            value={email}
+                                            onChange={(e) => setEmail(e.target.value)}
+                                            className="block w-full pl-11 pr-3 py-3 border border-slate-200 rounded-xl bg-slate-50/50 hover:bg-slate-50 focus:bg-white focus:outline-none focus:ring-2 focus:ring-primary/20 focus:border-primary sm:text-sm transition-all text-slate-900 placeholder:text-slate-400"
+                                            placeholder="ornek@firma.com"
+                                        />
+                                    </div>
                                 </div>
 
-                                <div className="text-sm">
-                                    <a href="#" className="font-semibold text-primary hover:text-blue-600 transition-colors">
-                                        Şifremi unuttum
-                                    </a>
+                                <div>
+                                    <label className="block text-sm font-semibold text-slate-700 mb-1.5 ml-1">Şifre</label>
+                                    <div className="relative">
+                                        <div className="absolute inset-y-0 left-0 pl-3.5 flex items-center pointer-events-none">
+                                            <KeyRound className="h-5 w-5 text-slate-400" />
+                                        </div>
+                                        <input
+                                            id="password"
+                                            name="password"
+                                            type={showPassword ? 'text' : 'password'}
+                                            autoComplete="current-password"
+                                            required
+                                            value={password}
+                                            onChange={(e) => setPassword(e.target.value)}
+                                            className="block w-full pl-11 pr-11 py-3 border border-slate-200 rounded-xl bg-slate-50/50 hover:bg-slate-50 focus:bg-white focus:outline-none focus:ring-2 focus:ring-primary/20 focus:border-primary sm:text-sm transition-all text-slate-900 placeholder:text-slate-400"
+                                            placeholder="••••••••"
+                                        />
+                                        <button
+                                            type="button"
+                                            onClick={() => setShowPassword(!showPassword)}
+                                            className="absolute inset-y-0 right-0 pr-3.5 flex items-center text-slate-400 hover:text-slate-600 transition-colors"
+                                        >
+                                            {showPassword ? <EyeOff className="h-5 w-5" /> : <Eye className="h-5 w-5" />}
+                                        </button>
+                                    </div>
                                 </div>
-                            </div>
 
-                            <div>
-                                <button
-                                    type="submit"
-                                    disabled={loading}
-                                    className="w-full flex justify-center py-3.5 px-4 border border-transparent rounded-xl shadow-sm text-sm font-bold text-white bg-slate-900 hover:bg-slate-800 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-slate-900 transition-all disabled:opacity-50 active:scale-[0.98]"
-                                >
-                                    {loading ? 'Giriş yapılıyor...' : 'Giriş Yap'}
-                                </button>
-                            </div>
-                        </form>
+                                <div className="flex items-center justify-between">
+                                    <div className="flex items-center">
+                                        <input
+                                            id="remember-me"
+                                            name="remember-me"
+                                            type="checkbox"
+                                            checked={rememberMe}
+                                            onChange={(e) => setRememberMe(e.target.checked)}
+                                            className="h-4 w-4 text-primary focus:ring-primary border-slate-300 rounded cursor-pointer"
+                                        />
+                                        <label htmlFor="remember-me" className="ml-2 block text-sm text-slate-600 cursor-pointer select-none">
+                                            Beni hatırla
+                                        </label>
+                                    </div>
+
+                                    <div className="text-sm">
+                                        <a href="#" className="font-semibold text-primary hover:text-blue-600 transition-colors">
+                                            Şifremi unuttum
+                                        </a>
+                                    </div>
+                                </div>
+
+                                <div>
+                                    <button
+                                        type="submit"
+                                        disabled={loading}
+                                        className="w-full flex justify-center py-3.5 px-4 border border-transparent rounded-xl shadow-sm text-sm font-bold text-white bg-slate-900 hover:bg-slate-800 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-slate-900 transition-all disabled:opacity-50 active:scale-[0.98] cursor-pointer"
+                                    >
+                                        {loading ? 'Giriş yapılıyor...' : 'Giriş Yap'}
+                                    </button>
+                                </div>
+                            </form>
+                        )}
                         
                         {/* Contact & Support Section */}
                         <div className="mt-8 relative">
