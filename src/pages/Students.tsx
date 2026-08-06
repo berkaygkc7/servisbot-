@@ -398,11 +398,28 @@ const Students: React.FC = () => {
                 if (!billAmount) {
                     const { data: pricingRules } = await supabase
                         .from('pricing_rules')
-                        .select('school_level, amount')
+                        .select('id, school_id, school_level, amount')
                         .eq('company_id', profile.company_id);
                         
-                    const rule = pricingRules?.find(pr => pr.school_level?.toLocaleLowerCase('tr-TR')?.trim() === student.neighborhood?.toLocaleLowerCase('tr-TR')?.trim());
-                    billAmount = rule?.amount || 0;
+                    const normNeighborhood = student.neighborhood?.toLocaleLowerCase('tr-TR')?.trim();
+                    let rule = pricingRules?.find(pr => 
+                        pr.school_id === student.school_id &&
+                        pr.school_level?.toLocaleLowerCase('tr-TR')?.trim() === normNeighborhood
+                    );
+                    if (!rule) {
+                        rule = pricingRules?.find(pr => 
+                            !pr.school_id &&
+                            pr.school_level?.toLocaleLowerCase('tr-TR')?.trim() === normNeighborhood
+                        );
+                    }
+
+                    if (rule && rule.amount) {
+                        billAmount = rule.amount;
+                    } else if (student.total_debt && student.total_debt > 0) {
+                        billAmount = student.total_debt;
+                    } else {
+                        billAmount = 0;
+                    }
                 }
 
                 const payload = {

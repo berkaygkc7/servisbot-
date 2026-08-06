@@ -210,7 +210,7 @@ const Payments = () => {
             // 1. Fetch active students and global pricing rules
             const { data: students, error: studentError } = await supabase
                 .from('students')
-                .select('id, school_level, neighborhood, custom_price')
+                .select('id, school_id, school_level, neighborhood, custom_price, total_debt')
                 .eq('status', 'active')
                 .eq('company_id', profile.company_id)
                 .limit(5000);
@@ -219,7 +219,7 @@ const Payments = () => {
 
             const { data: pricingRules, error: pricingError } = await supabase
                 .from('pricing_rules')
-                .select('school_level, amount')
+                .select('id, school_id, school_level, amount')
                 .eq('company_id', profile.company_id);
 
             if (pricingError) throw pricingError;
@@ -246,8 +246,27 @@ const Payments = () => {
                 // Determine price
                 let billAmount = s.custom_price;
                 if (!billAmount) {
-                    const rule = pricingRules?.find(pr => pr.school_level?.toLocaleLowerCase('tr-TR')?.trim() === s.neighborhood?.toLocaleLowerCase('tr-TR')?.trim());
-                    billAmount = rule?.amount || 0;
+                    const normNeighborhood = s.neighborhood?.toLocaleLowerCase('tr-TR')?.trim();
+                    // 1. Try school-specific pricing rule
+                    let rule = pricingRules?.find(pr => 
+                        pr.school_id === s.school_id &&
+                        pr.school_level?.toLocaleLowerCase('tr-TR')?.trim() === normNeighborhood
+                    );
+                    // 2. Fallback to general pricing rule (where school_id is null)
+                    if (!rule) {
+                        rule = pricingRules?.find(pr => 
+                            !pr.school_id &&
+                            pr.school_level?.toLocaleLowerCase('tr-TR')?.trim() === normNeighborhood
+                        );
+                    }
+
+                    if (rule && rule.amount) {
+                        billAmount = rule.amount;
+                    } else if (s.total_debt && s.total_debt > 0) {
+                        billAmount = s.total_debt;
+                    } else {
+                        billAmount = 0;
+                    }
                 }
 
                 if (billAmount === 0 || billAmount === null || billAmount === undefined) {
