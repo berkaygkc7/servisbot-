@@ -274,7 +274,8 @@ const Students: React.FC = () => {
                 registration_number: s.registration_number,
                 status: s.status,
                 tags: s.tags || [],
-                custom_price: s.custom_price || null,
+                custom_price: s.custom_price || (s.total_debt && Number(s.total_debt) > 0 ? Number(s.total_debt) : null),
+                total_debt: s.total_debt,
                 parent_tc: s.parent_tc,
                 login_token: s.login_token,
                 payment_status_this_month: paymentMap.get(s.id) || 'unpaid'
@@ -335,9 +336,14 @@ const Students: React.FC = () => {
 
     const handleApprove = async (student: Student) => {
         try {
+            const updatePayload: any = { status: 'active' };
+            const effectivePrice = student.custom_price || student.total_debt;
+            if (effectivePrice && Number(effectivePrice) > 0) {
+                updatePayload.custom_price = Number(effectivePrice);
+            }
             const { error } = await supabase
                 .from('students')
-                .update({ status: 'active' })
+                .update(updatePayload)
                 .eq('id', student.id);
             if (error) throw error;
             alert(`${student.full_name} başarıyla onaylandı.`);
