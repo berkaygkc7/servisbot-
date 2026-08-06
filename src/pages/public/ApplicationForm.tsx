@@ -4,6 +4,64 @@ import { Send, CheckCircle2, User, Phone, MapPin, AlertCircle, Loader2, Graduati
 import { supabase } from '../../lib/supabase';
 import { Map, AdvancedMarker, useMapsLibrary } from '@vis.gl/react-google-maps';
 
+function safeRender(val: any): string {
+    if (val === null || val === undefined) return '';
+    if (typeof val === 'object') {
+        return String(val.name || val.title || val.label || val.school_level || val.id || '');
+    }
+    return String(val);
+}
+
+interface ErrorBoundaryProps {
+    children: React.ReactNode;
+}
+
+interface ErrorBoundaryState {
+    hasError: boolean;
+    errorMsg?: string;
+}
+
+class ApplicationFormErrorBoundary extends React.Component<ErrorBoundaryProps, ErrorBoundaryState> {
+    constructor(props: ErrorBoundaryProps) {
+        super(props);
+        this.state = { hasError: false };
+    }
+
+    static getDerivedStateFromError(error: any): ErrorBoundaryState {
+        return { hasError: true, errorMsg: error?.toString() || 'Bilinmeyen hata' };
+    }
+
+    componentDidCatch(error: any, errorInfo: any) {
+        console.error("ApplicationForm Error Boundary caught an error:", error, errorInfo);
+    }
+
+    render() {
+        if (this.state.hasError) {
+            return (
+                <div className="min-h-screen bg-slate-50 flex items-center justify-center p-4">
+                    <div className="bg-white rounded-2xl p-8 shadow-xl max-w-md w-full text-center border border-slate-100">
+                        <div className="w-16 h-16 bg-red-100 text-red-500 rounded-full flex items-center justify-center mx-auto mb-4">
+                            <AlertCircle size={32} />
+                        </div>
+                        <h2 className="text-2xl font-bold text-slate-800 mb-2">Başvuru Formu Yüklenemedi</h2>
+                        <p className="text-slate-500 mb-6 text-sm">
+                            Kayıt formunda beklenmedik bir durum oluştu. Lütfen sayfayı yenileyiniz.
+                        </p>
+                        <button
+                            onClick={() => window.location.reload()}
+                            className="px-6 py-3 bg-blue-600 text-white font-bold rounded-xl hover:bg-blue-700 transition-colors shadow-md shadow-blue-500/20"
+                        >
+                            Sayfayı Yenile
+                        </button>
+                    </div>
+                </div>
+            );
+        }
+
+        return this.props.children;
+    }
+}
+
 const ApplicationForm: React.FC = () => {
     const { token } = useParams<{ token: string }>();
     const navigate = useNavigate();
@@ -372,9 +430,11 @@ const ApplicationForm: React.FC = () => {
                                         disabled={submitting}
                                     >
                                         <option value="">Seçiniz...</option>
-                                        {schools.map(school => (
-                                            <option key={school.id} value={school.id}>{school.name}</option>
-                                        ))}
+                                        {schools.map((school, i) => {
+                                            const id = typeof school === 'object' ? (school.id || String(i)) : String(school);
+                                            const name = safeRender(school);
+                                            return <option key={id} value={id}>{name}</option>;
+                                        })}
                                     </select>
                                 </div>
 
@@ -392,8 +452,8 @@ const ApplicationForm: React.FC = () => {
                                     >
                                         <option value="">Lütfen Mahalle Seçin</option>
                                         {neighborhoods.map((n, i) => {
-                                            const name = typeof n === 'object' ? n.name : n;
-                                            return <option key={i} value={name}>{name}</option>
+                                            const name = safeRender(n);
+                                            return <option key={i} value={name}>{name}</option>;
                                         })}
                                         <option value="Diğer">Diğer (Listede Yok)</option>
                                     </select>
@@ -637,4 +697,10 @@ const ApplicationForm: React.FC = () => {
     );
 };
 
-export default ApplicationForm;
+const ApplicationFormWrapped: React.FC = (props) => (
+    <ApplicationFormErrorBoundary>
+        <ApplicationForm {...props} />
+    </ApplicationFormErrorBoundary>
+);
+
+export default ApplicationFormWrapped;
