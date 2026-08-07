@@ -416,6 +416,10 @@ const Students: React.FC = () => {
                 .eq('company_id', profile.company_id)
                 .single();
 
+            const compName = profile?.companies?.company_name || '';
+            const isHalegul = compName.toLowerCase().includes('halegül') || compName.toLowerCase().includes('halegul');
+            const multiplier = isHalegul ? 9 : 10;
+
             let paidAmount = 0;
 
             if (existing) {
@@ -431,8 +435,8 @@ const Students: React.FC = () => {
                 paidAmount = Number(existing.amount) || 0;
             } else {
                 // We need to create an invoice and mark it as paid immediately
-                let billAmount = student.custom_price;
-                if (!billAmount) {
+                let monthlyPrice = student.custom_price;
+                if (!monthlyPrice) {
                     const { data: pricingRules } = await supabase
                         .from('pricing_rules')
                         .select('id, school_id, school_level, amount')
@@ -451,22 +455,22 @@ const Students: React.FC = () => {
                     }
 
                     if (rule && rule.amount) {
-                        billAmount = rule.amount;
-                    } else if (student.total_debt && student.total_debt > 0) {
-                        billAmount = student.total_debt;
+                        monthlyPrice = Number(rule.amount);
+                    } else if (student.total_debt && Number(student.total_debt) > 0) {
+                        monthlyPrice = Math.round(Number(student.total_debt) / multiplier);
                     } else {
-                        billAmount = 0;
+                        monthlyPrice = 0;
                     }
                 }
 
-                paidAmount = Number(billAmount) || 0;
+                paidAmount = Number(monthlyPrice) || 0;
 
                 const payload = {
                     company_id: profile.company_id,
                     student_id: student.id,
                     invoice_no: `INV-${Date.now().toString(36)}-${Math.floor(Math.random()*1000)}`,
                     month: currentMonth,
-                    amount: billAmount,
+                    amount: monthlyPrice,
                     due_date: new Date().toISOString().split('T')[0],
                     status: 'Ödendi',
                     payment_method: 'Nakit/Elden'
@@ -478,11 +482,20 @@ const Students: React.FC = () => {
 
             // Deduct paid amount from student's total_debt
             if (student.id && paidAmount > 0) {
-                const { data: st } = await supabase.from('students').select('total_debt').eq('id', student.id).single();
-                if (st && st.total_debt !== null && st.total_debt !== undefined) {
-                    const newDebt = Math.max(0, Number(st.total_debt) - Number(paidAmount));
-                    await supabase.from('students').update({ total_debt: newDebt }).eq('id', student.id);
+                const { data: st } = await supabase.from('students').select('total_debt, custom_price').eq('id', student.id).single();
+                let currentDebt = st?.total_debt;
+                
+                // If total_debt is null/0, set initial total_debt = paidAmount * multiplier
+                if (currentDebt === null || currentDebt === undefined || Number(currentDebt) === 0) {
+                    currentDebt = paidAmount * multiplier;
                 }
+
+                const newDebt = Math.max(0, Number(currentDebt) - paidAmount);
+
+                await supabase.from('students').update({ 
+                    total_debt: newDebt,
+                    custom_price: st?.custom_price || paidAmount
+                }).eq('id', student.id);
             }
 
             alert(`${student.name} için ödeme işlemi başarıyla kaydedildi!`);
