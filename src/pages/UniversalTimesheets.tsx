@@ -1,4 +1,5 @@
 import React, { useState, useEffect, useMemo } from 'react';
+import * as XLSX from 'xlsx';
 import { 
     Plus, 
     Trash2, 
@@ -15,7 +16,8 @@ import {
     AlertCircle,
     Sliders,
     Calendar,
-    Share2
+    Share2,
+    FileSpreadsheet
 } from 'lucide-react';
 import { supabase } from '../lib/supabase';
 import { useAuth } from '../contexts/AuthContext';
@@ -416,6 +418,107 @@ const UniversalTimesheets: React.FC = () => {
         
         const whatsappUrl = `https://wa.me/?text=${encodeURIComponent(summary)}`;
         window.open(whatsappUrl, '_blank');
+    };
+
+    const handleExportExcel = () => {
+        if (rows.length === 0) {
+            alert('İndirilecek puantaj verisi bulunamadı.');
+            return;
+        }
+
+        const monthNames = [
+            "Ocak", "Şubat", "Mart", "Nisan", "Mayıs", "Haziran",
+            "Temmuz", "Ağustos", "Eylül", "Ekim", "Kasım", "Aralık"
+        ];
+        const monthName = monthNames[parseInt(selectedMonth) - 1] || selectedMonth;
+        const titleText = timesheet?.title || 'Evrensel Puantaj ve Hakediş Tablosu';
+
+        const primaryCol = timesheet?.primary_label || 'İsim / Plaka';
+        const categoryCol = timesheet?.category_label || 'Kategori / Görev';
+        const keyCol = timesheet?.unique_key_label || 'Kod / No';
+
+        const headerRow = [
+            '#',
+            primaryCol,
+            categoryCol,
+            keyCol,
+            'Birim Fiyat (₺)',
+            'Ek Ödeme (₺)',
+            'Kesinti (₺)',
+            ...daysInMonth.map(d => `${d}. Gün`),
+            'Toplam Sefer / Gün',
+            'Net Tutar (₺)',
+            'Açıklama / Not'
+        ];
+
+        const dataRows = rows.map((row, index) => {
+            const { totalAdet, totalAmount } = rowCalculations(row);
+            const dayValues = daysInMonth.map(d => {
+                const cellRaw = row.days_data?.[d.toString()];
+                if (typeof cellRaw === 'object' && cellRaw !== null) {
+                    return cellRaw.value !== undefined && cellRaw.value !== null ? cellRaw.value : '';
+                }
+                return cellRaw !== undefined && cellRaw !== null ? String(cellRaw) : '';
+            });
+
+            return [
+                index + 1,
+                row.primary_name || '',
+                row.category || '',
+                row.unique_identifier || '',
+                Number(row.unit_price || 0),
+                Number(row.extra_payment || 0),
+                Number(row.deduction || 0),
+                ...dayValues,
+                totalAdet,
+                totalAmount,
+                row.description || ''
+            ];
+        });
+
+        const totalDayCounts = daysInMonth.map(d => {
+            return aggregatedTotals.daySums[d] || 0;
+        });
+
+        const summaryRow = [
+            '',
+            'GENEL TOPLAM',
+            '',
+            '',
+            '',
+            aggregatedTotals.grandTotalExtras,
+            aggregatedTotals.grandTotalDeductions,
+            ...totalDayCounts,
+            aggregatedTotals.grandTotalAdet,
+            financeSummary.netTutar,
+            ''
+        ];
+
+        const fullData = [
+            [`${titleText} - ${monthName} ${selectedYear}`],
+            [`Oluşturulma Tarihi: ${new Date().toLocaleDateString('tr-TR')}`],
+            [],
+            headerRow,
+            ...dataRows,
+            [],
+            summaryRow
+        ];
+
+        const ws = XLSX.utils.aoa_to_sheet(fullData);
+
+        const colWidths = headerRow.map((_, i) => {
+            if (i === 1 || i === 2) return { wch: 25 };
+            if (i === 3 || i === 4) return { wch: 15 };
+            if (i >= headerRow.length - 3) return { wch: 18 };
+            return { wch: 9 };
+        });
+        ws['!cols'] = colWidths;
+
+        const wb = XLSX.utils.book_new();
+        XLSX.utils.book_append_sheet(wb, ws, "Evrensel Puantaj");
+
+        const fileName = `Evrensel_Puantaj_${selectedMonth}_${selectedYear}.xlsx`;
+        XLSX.writeFile(wb, fileName);
     };
 
     // Calculate days of the selected month
@@ -833,8 +936,16 @@ const UniversalTimesheets: React.FC = () => {
                         )}
                     </button>
                     <button
+                        onClick={handleExportExcel}
+                        className="flex items-center gap-1.5 px-4 py-2 bg-emerald-600 hover:bg-emerald-700 text-white text-xs font-bold rounded-xl transition-all shadow-md shadow-emerald-600/10 active:scale-95"
+                        title="Excel İndir (.xlsx)"
+                    >
+                        <FileSpreadsheet size={15} />
+                        <span>Excel'e Aktar</span>
+                    </button>
+                    <button
                         onClick={handleShare}
-                        className="flex items-center gap-1.5 px-4 py-2 bg-emerald-500 hover:bg-emerald-600 text-white text-xs font-bold rounded-xl transition-all shadow-md shadow-emerald-500/10"
+                        className="flex items-center gap-1.5 px-4 py-2 bg-blue-500 hover:bg-blue-600 text-white text-xs font-bold rounded-xl transition-all shadow-md shadow-blue-500/10"
                     >
                         <Share2 size={14} />
                         <span className="hidden sm:inline">Paylaş</span>
