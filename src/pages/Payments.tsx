@@ -1,5 +1,5 @@
 import { useState, useEffect, useMemo, useRef, useCallback } from 'react';
-import { Plus, Search, Filter, Loader2, TrendingUp, AlertTriangle, FileText, Download, CheckSquare, CheckCircle, Archive, Trash2 } from 'lucide-react';
+import { Plus, Search, Filter, Loader2, TrendingUp, AlertTriangle, FileText, Download, CheckSquare, CheckCircle, Archive, Trash2, RotateCcw } from 'lucide-react';
 import { supabase } from '../lib/supabase';
 import { useAuth } from '../contexts/AuthContext';
 import PaymentList, { type Payment } from '../components/dashboard/PaymentList';
@@ -129,6 +129,8 @@ const Payments = () => {
 
             if (!showArchived) {
                 query = query.eq('is_archived', false);
+            } else {
+                query = query.eq('is_archived', true);
             }
 
             if (searchQuery) {
@@ -492,10 +494,11 @@ const Payments = () => {
 
     const handleBatchArchive = async () => {
         if (selectedIds.length === 0) return;
-        if (!confirm(`Seçili ${selectedIds.length} faturayı arşivlemek istediğinize emin misiniz?`)) return;
+        const actionText = showArchived ? 'arşivden çıkarmak' : 'arşivlemek';
+        if (!confirm(`Seçili ${selectedIds.length} faturayı ${actionText} istediğinize emin misiniz?`)) return;
 
         try {
-            const { error } = await supabase.from('payments').update({ is_archived: true }).in('id', selectedIds);
+            const { error } = await supabase.from('payments').update({ is_archived: !showArchived }).in('id', selectedIds);
             if (error) throw error;
             setSelectedIds([]);
             setPayments([]);
@@ -799,6 +802,16 @@ const Payments = () => {
                 </div>
             ) : (
                 <div className="bg-white rounded-2xl border border-slate-100 shadow-sm overflow-hidden w-full">
+                    {/* Archive Mode Banner */}
+                    {showArchived && (
+                        <div className="bg-amber-50 border-b border-amber-200 p-3 px-6 flex items-center justify-between text-amber-900 text-sm font-semibold">
+                            <div className="flex items-center gap-2">
+                                <Archive size={18} className="text-amber-600" />
+                                <span>📁 Arşivlenmiş Faturalar Gösteriliyor. Arşivdeki faturaları yeniden aktife almak için "Arşivden Çıkar" butonunu kullanabilirsiniz.</span>
+                            </div>
+                        </div>
+                    )}
+
                     {/* Batch Actions Bar */}
                     {selectedIds.length > 0 && (
                         <div className="bg-blue-50 border-b border-blue-100 p-3 px-6 flex items-center justify-between animate-in slide-in-from-top-2">
@@ -807,19 +820,21 @@ const Payments = () => {
                                 <span className="font-bold text-blue-800">{selectedIds.length} fatura seçildi</span>
                             </div>
                             <div className="flex items-center gap-2">
-                                <button
-                                    onClick={handleBatchMarkAsPaid}
-                                    className="px-4 py-2 bg-white text-blue-600 font-bold border border-blue-200 rounded-lg shadow-sm hover:bg-blue-600 hover:text-white transition-colors flex items-center gap-1.5 text-sm"
-                                >
-                                    <CheckCircle size={16} />
-                                    Toplu Ödendi İşaretle
-                                </button>
+                                {!showArchived && (
+                                    <button
+                                        onClick={handleBatchMarkAsPaid}
+                                        className="px-4 py-2 bg-white text-blue-600 font-bold border border-blue-200 rounded-lg shadow-sm hover:bg-blue-600 hover:text-white transition-colors flex items-center gap-1.5 text-sm"
+                                    >
+                                        <CheckCircle size={16} />
+                                        Toplu Ödendi İşaretle
+                                    </button>
+                                )}
                                 <button
                                     onClick={handleBatchArchive}
-                                    className="px-4 py-2 bg-white text-slate-600 font-bold border border-slate-200 rounded-lg shadow-sm hover:bg-slate-600 hover:text-white transition-colors flex items-center gap-1.5 text-sm"
+                                    className="px-4 py-2 bg-white text-slate-700 font-bold border border-slate-300 rounded-lg shadow-sm hover:bg-slate-700 hover:text-white transition-colors flex items-center gap-1.5 text-sm"
                                 >
-                                    <Archive size={16} />
-                                    Toplu Arşivle
+                                    {showArchived ? <RotateCcw size={16} /> : <Archive size={16} />}
+                                    {showArchived ? 'Toplu Arşivden Çıkar' : 'Toplu Arşivle'}
                                 </button>
                             </div>
                         </div>

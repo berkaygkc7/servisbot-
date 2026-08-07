@@ -172,10 +172,21 @@ const PaymentList: React.FC<PaymentListProps> = ({ payments, selectedIds, onTogg
                                                 {/* Archive / Unarchive */}
                                                 <button
                                                     onClick={() => onDelete(payment)}
-                                                    className={`p-2 transition-colors rounded-lg ${payment.is_archived ? 'text-blue-500 hover:bg-blue-50' : 'text-slate-400 hover:text-red-600 hover:bg-red-50'}`}
-                                                    title={payment.is_archived ? "Arşivden Çıkar" : "Arşivle"}
+                                                    className={`p-2 transition-all rounded-lg flex items-center gap-1 font-bold text-xs ${
+                                                        payment.is_archived 
+                                                            ? 'bg-blue-50 text-blue-700 hover:bg-blue-100 border border-blue-200 shadow-xs' 
+                                                            : 'text-slate-400 hover:text-amber-700 hover:bg-amber-50'
+                                                    }`}
+                                                    title={payment.is_archived ? "Arşivden Çıkar ve Aktif Yap" : "Arşive Kaldır"}
                                                 >
-                                                    {payment.is_archived ? <RotateCcw size={16} /> : <Archive size={16} />}
+                                                    {payment.is_archived ? (
+                                                        <>
+                                                            <RotateCcw size={14} />
+                                                            <span>Arşivden Çıkar</span>
+                                                        </>
+                                                    ) : (
+                                                        <Archive size={16} />
+                                                    )}
                                                 </button>
                                             </div>
                                         </td>
