@@ -294,7 +294,7 @@ const Students: React.FC = () => {
                 registration_number: s.registration_number,
                 status: s.status,
                 tags: s.tags || [],
-                custom_price: s.custom_price || (s.total_debt && Number(s.total_debt) > 0 ? Number(s.total_debt) : null),
+                custom_price: s.custom_price,
                 total_debt: s.total_debt,
                 parent_tc: s.parent_tc,
                 login_token: s.login_token,
@@ -657,6 +657,13 @@ const Students: React.FC = () => {
 
             if (pricingError) throw pricingError;
 
+            // Fetch already paid payments for active students to subtract from annual debt
+            const { data: paidPayments } = await supabase
+                .from('payments')
+                .select('student_id, amount')
+                .eq('company_id', profile.company_id)
+                .eq('status', 'Ödendi');
+
             let updatedCount = 0;
 
             for (const student of activeStudents) {
@@ -681,10 +688,16 @@ const Students: React.FC = () => {
                 if (monthlyPrice && monthlyPrice > 0) {
                     const annualDebt = monthlyPrice * multiplier;
 
+                    const paidTotal = paidPayments
+                        ?.filter(p => p.student_id === student.id)
+                        ?.reduce((acc, curr) => acc + (Number(curr.amount) || 0), 0) || 0;
+
+                    const remainingDebt = Math.max(0, annualDebt - paidTotal);
+
                     const { error: updateError } = await supabase
                         .from('students')
                         .update({
-                            total_debt: annualDebt,
+                            total_debt: remainingDebt,
                             custom_price: monthlyPrice
                         })
                         .eq('id', student.id);
