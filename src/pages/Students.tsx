@@ -680,22 +680,34 @@ const Students: React.FC = () => {
             let updatedCount = 0;
 
             for (const student of activeStudents) {
-                let monthlyPrice = student.custom_price;
-                if (!monthlyPrice) {
-                    const normNbr = (student.neighborhood || '').toLocaleLowerCase('tr-TR').trim();
-                    let rule = rules?.find(pr => 
-                        pr.school_id === student.school_id && 
+                let monthlyPrice = 0;
+
+                // 1. Check neighborhood pricing rules first
+                const normNbr = (student.neighborhood || '').toLocaleLowerCase('tr-TR').trim();
+                let rule = rules?.find(pr => 
+                    pr.school_id === student.school_id && 
+                    (pr.school_level || '').toLocaleLowerCase('tr-TR').trim() === normNbr
+                );
+                if (!rule) {
+                    rule = rules?.find(pr => 
+                        !pr.school_id && 
                         (pr.school_level || '').toLocaleLowerCase('tr-TR').trim() === normNbr
                     );
-                    if (!rule) {
-                        rule = rules?.find(pr => 
-                            !pr.school_id && 
-                            (pr.school_level || '').toLocaleLowerCase('tr-TR').trim() === normNbr
-                        );
+                }
+
+                if (rule && rule.amount && Number(rule.amount) > 0) {
+                    monthlyPrice = Number(rule.amount);
+                } else if (student.custom_price && Number(student.custom_price) > 0) {
+                    let cp = Number(student.custom_price);
+                    // If custom_price is > 12.000 TL, it was stored as annual debt by mistake
+                    if (cp > 12000) {
+                        monthlyPrice = Math.round(cp / multiplier);
+                    } else {
+                        monthlyPrice = cp;
                     }
-                    if (rule && rule.amount) {
-                        monthlyPrice = Number(rule.amount);
-                    }
+                } else if (student.total_debt && Number(student.total_debt) > 0) {
+                    let td = Number(student.total_debt);
+                    monthlyPrice = Math.round(td / multiplier);
                 }
 
                 if (monthlyPrice && monthlyPrice > 0) {
