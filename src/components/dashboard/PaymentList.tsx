@@ -115,18 +115,23 @@ const PaymentList: React.FC<PaymentListProps> = ({ payments, selectedIds, onTogg
                                             <div className="text-xs text-slate-500 flex items-center gap-1 mt-0.5">
                                                 {payment.student?.parent_name || 'Veli Yok'}
                                             </div>
-                                            {(() => {
-                                                const debtVal = payment.student?.total_debt && Number(payment.student.total_debt) > 0
-                                                    ? Number(payment.student.total_debt)
-                                                    : (payment.student?.custom_price && Number(payment.student.custom_price) > 0
-                                                        ? Number(payment.student.custom_price) * (payment.status === 'Ödendi' ? 9 : 10)
-                                                        : null);
-                                                return debtVal !== null ? (
-                                                    <div className="mt-1 text-[11px] font-semibold text-slate-600 bg-slate-100/90 px-2.5 py-0.5 rounded-md border border-slate-200 w-fit">
-                                                        Kalan Borç: <span className="font-bold text-slate-900">{debtVal.toLocaleString('tr-TR')} ₺</span>
-                                                    </div>
-                                                ) : null;
-                                            })()}
+                                             {(() => {
+                                                 let rawDebt = payment.student?.total_debt && Number(payment.student.total_debt) > 0
+                                                     ? Number(payment.student.total_debt)
+                                                     : (payment.student?.custom_price && Number(payment.student.custom_price) > 0
+                                                         ? Number(payment.student.custom_price) * (payment.status === 'Ödendi' ? 9 : 10)
+                                                         : null);
+                                                 if (!rawDebt) return null;
+                                                 let debtVal = rawDebt;
+                                                 while (debtVal > 100000) {
+                                                     debtVal = Math.round(debtVal / 10);
+                                                 }
+                                                 return (
+                                                     <div className="mt-1 text-[11px] font-semibold text-slate-600 bg-slate-100/90 px-2.5 py-0.5 rounded-md border border-slate-200 w-fit">
+                                                         Kalan Borç: <span className="font-bold text-slate-900">{debtVal.toLocaleString('tr-TR')} ₺</span>
+                                                     </div>
+                                                 );
+                                             })()}
                                         </td>
                                         <td className="px-6 py-4">
                                             <div className="font-bold text-slate-900 text-base">{payment.amount.toLocaleString('tr-TR')} ₺</div>
