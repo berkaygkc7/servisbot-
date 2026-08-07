@@ -2,6 +2,8 @@ import React, { useState, useEffect } from 'react';
 import { useLocation, useNavigate } from 'react-router-dom';
 import { Plus, Search, Filter, X, Download, Trash2, Loader2, MapPin, Tag as TagIcon, Check, Smartphone } from 'lucide-react';
 import * as XLSX from 'xlsx';
+import { format } from 'date-fns';
+import { tr } from 'date-fns/locale';
 import StudentList, { type Student } from '../components/dashboard/StudentList';
 import QrCodeModal from '../components/shared/QrCodeModal';
 import { supabase } from '../lib/supabase';
@@ -400,21 +402,23 @@ const Students: React.FC = () => {
     const handleQuickPay = async (student: Student) => {
         if (!profile?.company_id) return;
         
-        const currentMonth = new Date().toISOString().substring(0, 7); // e.g. "2026-07"
+        const rawMonth = format(new Date(), 'MMMM yyyy', { locale: tr });
+        const currentMonth = rawMonth.charAt(0).toUpperCase() + rawMonth.slice(1);
         
         if (!window.confirm(`${student.name} isimli öğrencinin ${currentMonth} ayı ödemesini "Ödendi (Nakit)" olarak işaretlemek istiyor musunuz?`)) {
             return;
         }
 
         try {
-            // First check if an invoice already exists for this month
-            const { data: existing } = await supabase
+            // Check if an invoice already exists for this month (supports "Ağustos 2026" or "2026-08")
+            const { data: existingList } = await supabase
                 .from('payments')
                 .select('*')
                 .eq('student_id', student.id)
-                .eq('month', currentMonth)
                 .eq('company_id', profile.company_id)
-                .single();
+                .in('month', [currentMonth, new Date().toISOString().substring(0, 7)]);
+
+            const existing = existingList && existingList.length > 0 ? existingList[0] : null;
 
             const compName = profile?.companies?.company_name || '';
             const isHalegul = compName.toLowerCase().includes('halegül') || compName.toLowerCase().includes('halegul');
@@ -423,12 +427,13 @@ const Students: React.FC = () => {
             let paidAmount = 0;
 
             if (existing) {
-                // Just mark it as paid
+                // Just mark it as paid and update month name to formatted Turkish month
                 const { error } = await supabase
                     .from('payments')
                     .update({ 
                         status: 'Ödendi', 
-                        payment_method: 'Nakit/Elden'
+                        payment_method: 'Nakit/Elden',
+                        month: currentMonth
                     })
                     .eq('id', existing.id);
                 if (error) throw error;
