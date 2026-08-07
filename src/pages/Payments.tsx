@@ -124,7 +124,7 @@ const Payments = () => {
                 .from('payments')
                 .select(`
                     id, invoice_no, student_id, month, amount, due_date, status, payment_method, is_archived,
-                    student:students(full_name, parent_name, parent_phone, school_level, neighborhood)
+                    student:students(full_name, parent_name, parent_phone, school_level, neighborhood, total_debt, custom_price)
                 `);
 
             if (!showArchived) {
