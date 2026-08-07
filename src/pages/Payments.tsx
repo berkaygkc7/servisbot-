@@ -20,7 +20,7 @@ const Payments = () => {
     const [availableSchoolLevels, setAvailableSchoolLevels] = useState<string[]>([]);
     const [selectedIds, setSelectedIds] = useState<string[]>([]);
     const [showArchived, setShowArchived] = useState(false);
-    const [stats, setStats] = useState({ receivable: 0, collected: 0, overdue: 0 });
+    const [stats, setStats] = useState({ receivable: 0, collected: 0, overdue: 0, annualRemaining: 0 });
 
     // Pagination refs
     const PAGE_SIZE = 50;
@@ -96,11 +96,11 @@ const Payments = () => {
             }
 
             const { data: statsData } = await statsQuery;
-            if (statsData) {
-                let totalReceivable = 0;
-                let totalCollected = 0;
-                let totalOverdue = 0;
+            let totalReceivable = 0;
+            let totalCollected = 0;
+            let totalOverdue = 0;
 
+            if (statsData) {
                 statsData.forEach((p: any) => {
                     if (p.status === 'Ödendi') {
                         totalCollected += p.amount;
@@ -111,13 +111,32 @@ const Payments = () => {
                         }
                     }
                 });
+            }
 
-                setStats({
-                    receivable: totalReceivable,
-                    collected: totalCollected,
-                    overdue: totalOverdue
+            // Calculate total annual remaining debt across all active students
+            let totalAnnualRemaining = 0;
+            const { data: studentDebts } = await supabase
+                .from('students')
+                .select('total_debt, custom_price')
+                .eq('company_id', profile.company_id)
+                .neq('status', 'pending');
+
+            if (studentDebts) {
+                studentDebts.forEach((s: any) => {
+                    let d = s.total_debt && Number(s.total_debt) > 0
+                        ? Number(s.total_debt)
+                        : (s.custom_price && Number(s.custom_price) > 0 ? Number(s.custom_price) * 10 : 0);
+                    while (d > 100000) d = Math.round(d / 10);
+                    totalAnnualRemaining += d;
                 });
             }
+
+            setStats({
+                receivable: totalReceivable,
+                collected: totalCollected,
+                overdue: totalOverdue,
+                annualRemaining: totalAnnualRemaining
+            });
             // -------------------------------------------------------------
 
             let query = supabase
@@ -370,8 +389,7 @@ const Payments = () => {
                 }
             }
 
-            // update locally
-            setPayments(prev => prev.map(p => p.id === payment.id ? { ...p, status: 'Bekliyor' } : p));
+            fetchPayments(true); // Reset and refetch all payments
         } catch (error) {
             console.error(error);
             alert('Hata: Durum geri alınamadı.');
@@ -706,50 +724,61 @@ const Payments = () => {
                 </div>
             </div>
 
-            {/* Financial Highlights (Stats) - Fixed Top */}
-            <div className="grid grid-cols-1 md:grid-cols-3 gap-6 shrink-0">
+            {/* Financial Highlights (Stats) - 4 Cards Grid */}
+            <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4 md:gap-6 shrink-0">
                 {/* Collected */}
                 <div 
                     onClick={() => setStatusFilter('Ödendi')}
-                    className="cursor-pointer bg-white p-6 md:p-8 rounded-3xl shadow-sm border border-slate-100 flex items-center justify-between transition-transform hover:scale-[1.02]"
+                    className="cursor-pointer bg-white p-5 md:p-6 rounded-3xl shadow-sm border border-slate-100 flex items-center justify-between transition-transform hover:scale-[1.02]"
                 >
                     <div>
-                        <p className="text-slate-500 font-bold uppercase tracking-wider text-xs md:text-sm mb-2">Tahsil Edilen (Kasa)</p>
-                        <h3 className="text-4xl lg:text-5xl font-black text-emerald-600">{stats.collected.toLocaleString('tr-TR')} ₺</h3>
+                        <p className="text-slate-500 font-bold uppercase tracking-wider text-xs mb-1">Tahsil Edilen (Kasa)</p>
+                        <h3 className="text-2xl lg:text-3xl font-black text-emerald-600">{stats.collected.toLocaleString('tr-TR')} ₺</h3>
                     </div>
-                    <div className="w-16 h-16 lg:w-20 lg:h-20 bg-emerald-50 text-emerald-600 rounded-full flex items-center justify-center">
-                        <TrendingUp size={36} className="lg:w-10 lg:h-10" />
+                    <div className="w-12 h-12 bg-emerald-50 text-emerald-600 rounded-2xl flex items-center justify-center shrink-0">
+                        <TrendingUp size={24} />
                     </div>
                 </div>
 
                 {/* Total Receivables */}
                 <div 
                     onClick={() => setStatusFilter('Bekliyor')}
-                    className="cursor-pointer bg-white p-6 md:p-8 rounded-3xl shadow-sm border border-slate-100 flex items-center justify-between transition-transform hover:scale-[1.02]"
+                    className="cursor-pointer bg-white p-5 md:p-6 rounded-3xl shadow-sm border border-slate-100 flex items-center justify-between transition-transform hover:scale-[1.02]"
                 >
                     <div>
-                        <p className="text-slate-500 font-bold uppercase tracking-wider text-xs md:text-sm mb-2">Bekleyen Alacak (Tümü)</p>
-                        <h3 className="text-4xl lg:text-5xl font-black text-blue-600">{stats.receivable.toLocaleString('tr-TR')} ₺</h3>
+                        <p className="text-slate-500 font-bold uppercase tracking-wider text-xs mb-1">Bu Ay Bekleyen Alacak</p>
+                        <h3 className="text-2xl lg:text-3xl font-black text-blue-600">{stats.receivable.toLocaleString('tr-TR')} ₺</h3>
                     </div>
-                    <div className="w-16 h-16 lg:w-20 lg:h-20 bg-blue-50 text-blue-600 rounded-full flex items-center justify-center">
-                        <FileText size={36} className="lg:w-10 lg:h-10" />
+                    <div className="w-12 h-12 bg-blue-50 text-blue-600 rounded-2xl flex items-center justify-center shrink-0">
+                        <FileText size={24} />
                     </div>
                 </div>
 
                 {/* Overdue */}
                 <div 
                     onClick={() => setStatusFilter('gecikti')}
-                    className="cursor-pointer bg-red-50 p-6 md:p-8 rounded-3xl shadow-sm border border-red-100 flex items-center justify-between relative overflow-hidden transition-transform hover:scale-[1.02]"
+                    className="cursor-pointer bg-red-50 p-5 md:p-6 rounded-3xl shadow-sm border border-red-100 flex items-center justify-between relative overflow-hidden transition-transform hover:scale-[1.02]"
                 >
                     <div className="z-10 relative">
-                        <p className="text-red-600/80 font-bold uppercase tracking-wider text-xs md:text-sm mb-2">Gecikmiş (Riskli) Alacak</p>
-                        <h3 className="text-4xl lg:text-5xl font-black text-red-700">{stats.overdue.toLocaleString('tr-TR')} ₺</h3>
+                        <p className="text-red-600/80 font-bold uppercase tracking-wider text-xs mb-1">Gecikmiş (Riskli) Alacak</p>
+                        <h3 className="text-2xl lg:text-3xl font-black text-red-700">{stats.overdue.toLocaleString('tr-TR')} ₺</h3>
                     </div>
-                    <div className="w-16 h-16 lg:w-20 lg:h-20 bg-red-100 text-red-600 rounded-full flex items-center justify-center z-10 relative">
-                        <AlertTriangle size={36} className="lg:w-10 lg:h-10" />
+                    <div className="w-12 h-12 bg-red-100 text-red-600 rounded-2xl flex items-center justify-center z-10 relative shrink-0">
+                        <AlertTriangle size={24} />
                     </div>
-                    {/* Danger glow */}
-                    <div className="absolute top-1/2 right-0 -translate-y-1/2 w-40 h-40 bg-red-200/50 blur-3xl rounded-full" />
+                </div>
+
+                {/* Total Annual Remaining Debt */}
+                <div 
+                    className="bg-gradient-to-br from-indigo-900 to-slate-900 p-5 md:p-6 rounded-3xl shadow-md border border-indigo-800/50 text-white flex items-center justify-between transition-transform hover:scale-[1.02] relative overflow-hidden"
+                >
+                    <div className="z-10 relative">
+                        <p className="text-indigo-200/90 font-bold uppercase tracking-wider text-xs mb-1">Toplam Yıllık Kalan Alacak</p>
+                        <h3 className="text-2xl lg:text-3xl font-black text-indigo-300">{(stats.annualRemaining || 0).toLocaleString('tr-TR')} ₺</h3>
+                    </div>
+                    <div className="w-12 h-12 bg-white/10 text-indigo-300 rounded-2xl flex items-center justify-center z-10 relative shrink-0 backdrop-blur-sm">
+                        <span className="text-xl">💰</span>
+                    </div>
                 </div>
             </div>
 
