@@ -128,11 +128,16 @@ const StudentList: React.FC<StudentListProps> = ({
                                                 <CheckCircle size={20} className="fill-emerald-100" />
                                                 <span className="text-xs font-bold">Bu Ay Ödendi</span>
                                             </div>
-                                            {student.total_debt !== undefined && student.total_debt !== null && (
-                                                <div className="text-[11px] font-semibold text-slate-600 bg-slate-100/90 px-2 py-0.5 rounded-md border border-slate-200 w-fit">
-                                                    Kalan Borç: <span className="font-bold text-slate-900">{Number(student.total_debt).toLocaleString('tr-TR')} ₺</span>
-                                                </div>
-                                            )}
+                                            {(() => {
+                                                const debtVal = student.total_debt && Number(student.total_debt) > 0
+                                                    ? Number(student.total_debt)
+                                                    : (student.custom_price && Number(student.custom_price) > 0 ? Number(student.custom_price) * 9 : null);
+                                                return debtVal !== null ? (
+                                                    <div className="text-[11px] font-semibold text-slate-600 bg-slate-100/90 px-2 py-0.5 rounded-md border border-slate-200 w-fit">
+                                                        Kalan Borç: <span className="font-bold text-slate-900">{debtVal.toLocaleString('tr-TR')} ₺</span>
+                                                    </div>
+                                                ) : null;
+                                            })()}
                                         </div>
                                     ) : (
                                         <div className="flex flex-col gap-1">
@@ -144,11 +149,16 @@ const StudentList: React.FC<StudentListProps> = ({
                                                 <Circle size={20} className="group-hover:fill-emerald-50 text-slate-400" />
                                                 <span className="text-xs font-medium">Taksit Bekliyor</span>
                                             </button>
-                                            {student.total_debt !== undefined && student.total_debt !== null && (
-                                                <div className="text-[11px] font-semibold text-slate-600 bg-slate-100/90 px-2 py-0.5 rounded-md border border-slate-200 w-fit">
-                                                    Kalan Borç: <span className="font-bold text-slate-900">{Number(student.total_debt).toLocaleString('tr-TR')} ₺</span>
-                                                </div>
-                                            )}
+                                            {(() => {
+                                                const debtVal = student.total_debt && Number(student.total_debt) > 0
+                                                    ? Number(student.total_debt)
+                                                    : (student.custom_price && Number(student.custom_price) > 0 ? Number(student.custom_price) * 10 : null);
+                                                return debtVal !== null ? (
+                                                    <div className="text-[11px] font-semibold text-slate-600 bg-slate-100/90 px-2 py-0.5 rounded-md border border-slate-200 w-fit">
+                                                        Kalan Borç: <span className="font-bold text-slate-900">{debtVal.toLocaleString('tr-TR')} ₺</span>
+                                                    </div>
+                                                ) : null;
+                                            })()}
                                         </div>
                                     )}
                                 </td>

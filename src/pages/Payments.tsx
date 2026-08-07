@@ -333,11 +333,19 @@ const Payments = () => {
 
             // Deduct paid amount from student's total_debt
             if (payment.student_id && payment.amount > 0) {
+                const { data: comp } = await supabase.from('companies').select('name').eq('id', profile?.company_id).single();
+                const isHalegul = (comp?.name || '').toLowerCase().includes('halegül') || (comp?.name || '').toLowerCase().includes('halegul');
+                const multiplier = isHalegul ? 9 : 10;
+
                 const { data: st } = await supabase.from('students').select('total_debt').eq('id', payment.student_id).single();
-                if (st && st.total_debt !== null && st.total_debt !== undefined) {
-                    const newDebt = Math.max(0, Number(st.total_debt) - Number(payment.amount));
-                    await supabase.from('students').update({ total_debt: newDebt }).eq('id', payment.student_id);
+                let currentDebt = st?.total_debt;
+
+                if (!currentDebt || Number(currentDebt) <= Number(payment.amount)) {
+                    currentDebt = Number(payment.amount) * multiplier;
                 }
+
+                const newDebt = Math.max(0, Number(currentDebt) - Number(payment.amount));
+                await supabase.from('students').update({ total_debt: newDebt }).eq('id', payment.student_id);
             }
 
             fetchPayments(true); // Reset and refetch all payments
@@ -506,13 +514,21 @@ const Payments = () => {
 
             if (error) throw error;
 
+            const { data: comp } = await supabase.from('companies').select('name').eq('id', profile?.company_id).single();
+            const isHalegul = (comp?.name || '').toLowerCase().includes('halegül') || (comp?.name || '').toLowerCase().includes('halegul');
+            const multiplier = isHalegul ? 9 : 10;
+
             for (const p of selectedPayments) {
                 if (p.student_id && p.amount > 0) {
                     const { data: st } = await supabase.from('students').select('total_debt').eq('id', p.student_id).single();
-                    if (st && st.total_debt !== null && st.total_debt !== undefined) {
-                        const newDebt = Math.max(0, Number(st.total_debt) - Number(p.amount));
-                        await supabase.from('students').update({ total_debt: newDebt }).eq('id', p.student_id);
+                    let currentDebt = st?.total_debt;
+
+                    if (!currentDebt || Number(currentDebt) <= Number(p.amount)) {
+                        currentDebt = Number(p.amount) * multiplier;
                     }
+
+                    const newDebt = Math.max(0, Number(currentDebt) - Number(p.amount));
+                    await supabase.from('students').update({ total_debt: newDebt }).eq('id', p.student_id);
                 }
             }
 
