@@ -416,6 +416,8 @@ const Students: React.FC = () => {
                 .eq('company_id', profile.company_id)
                 .single();
 
+            let paidAmount = 0;
+
             if (existing) {
                 // Just mark it as paid
                 const { error } = await supabase
@@ -426,6 +428,7 @@ const Students: React.FC = () => {
                     })
                     .eq('id', existing.id);
                 if (error) throw error;
+                paidAmount = Number(existing.amount) || 0;
             } else {
                 // We need to create an invoice and mark it as paid immediately
                 let billAmount = student.custom_price;
@@ -456,6 +459,8 @@ const Students: React.FC = () => {
                     }
                 }
 
+                paidAmount = Number(billAmount) || 0;
+
                 const payload = {
                     company_id: profile.company_id,
                     student_id: student.id,
@@ -470,6 +475,16 @@ const Students: React.FC = () => {
                 const { error } = await supabase.from('payments').insert([payload]);
                 if (error) throw error;
             }
+
+            // Deduct paid amount from student's total_debt
+            if (student.id && paidAmount > 0) {
+                const { data: st } = await supabase.from('students').select('total_debt').eq('id', student.id).single();
+                if (st && st.total_debt !== null && st.total_debt !== undefined) {
+                    const newDebt = Math.max(0, Number(st.total_debt) - Number(paidAmount));
+                    await supabase.from('students').update({ total_debt: newDebt }).eq('id', student.id);
+                }
+            }
+
             alert(`${student.name} için ödeme işlemi başarıyla kaydedildi!`);
             fetchStudents(); // Refresh to update the UI payment status
         } catch (error: any) {

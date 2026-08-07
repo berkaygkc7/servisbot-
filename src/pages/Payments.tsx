@@ -330,6 +330,16 @@ const Payments = () => {
                 .eq('id', payment.id);
 
             if (error) throw error;
+
+            // Deduct paid amount from student's total_debt
+            if (payment.student_id && payment.amount > 0) {
+                const { data: st } = await supabase.from('students').select('total_debt').eq('id', payment.student_id).single();
+                if (st && st.total_debt !== null && st.total_debt !== undefined) {
+                    const newDebt = Math.max(0, Number(st.total_debt) - Number(payment.amount));
+                    await supabase.from('students').update({ total_debt: newDebt }).eq('id', payment.student_id);
+                }
+            }
+
             fetchPayments(true); // Reset and refetch all payments
         } catch (error) {
             console.error('Error marking as paid:', error);
@@ -342,7 +352,16 @@ const Payments = () => {
         try {
             const { error } = await supabase.from('payments').update({ status: 'Bekliyor' }).eq('id', payment.id);
             if (error) throw error;
-            
+
+            // Refund paid amount back to student's total_debt
+            if (payment.student_id && payment.amount > 0) {
+                const { data: st } = await supabase.from('students').select('total_debt').eq('id', payment.student_id).single();
+                if (st && st.total_debt !== null && st.total_debt !== undefined) {
+                    const newDebt = Number(st.total_debt) + Number(payment.amount);
+                    await supabase.from('students').update({ total_debt: newDebt }).eq('id', payment.student_id);
+                }
+            }
+
             // update locally
             setPayments(prev => prev.map(p => p.id === payment.id ? { ...p, status: 'Bekliyor' } : p));
         } catch (error) {
@@ -478,12 +497,25 @@ const Payments = () => {
         if (!confirm(`Seçili ${selectedIds.length} faturayı "Ödendi" olarak işaretlemek istediğinize emin misiniz?`)) return;
 
         try {
+            const selectedPayments = payments.filter(p => selectedIds.includes(p.id) && p.status !== 'Ödendi');
+
             const { error } = await supabase
                 .from('payments')
                 .update({ status: 'Ödendi', payment_method: 'Toplu İşlem' })
                 .in('id', selectedIds);
 
             if (error) throw error;
+
+            for (const p of selectedPayments) {
+                if (p.student_id && p.amount > 0) {
+                    const { data: st } = await supabase.from('students').select('total_debt').eq('id', p.student_id).single();
+                    if (st && st.total_debt !== null && st.total_debt !== undefined) {
+                        const newDebt = Math.max(0, Number(st.total_debt) - Number(p.amount));
+                        await supabase.from('students').update({ total_debt: newDebt }).eq('id', p.student_id);
+                    }
+                }
+            }
+
             setSelectedIds([]);
             fetchPayments(true); // Reset and refetch all payments
         } catch (error) {
