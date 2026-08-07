@@ -206,7 +206,8 @@ const Students: React.FC = () => {
         if (!profile?.company_id) return;
         try {
             setLoading(true);
-            const currentMonth = new Date().toISOString().substring(0, 7);
+            const rawMonth = format(new Date(), 'MMMM yyyy', { locale: tr });
+            const currentMonth = rawMonth.charAt(0).toUpperCase() + rawMonth.slice(1);
             
             let query = supabase
                 .from('students')
@@ -258,11 +259,13 @@ const Students: React.FC = () => {
                 const { data: paymentsData } = await supabase
                     .from('payments')
                     .select('student_id, status')
-                    .eq('month', currentMonth)
+                    .in('month', [currentMonth, new Date().toISOString().substring(0, 7)])
                     .eq('company_id', profile.company_id);
                     
                 paymentsData?.forEach(p => {
-                    paymentMap.set(p.student_id, p.status);
+                    if (p.status === 'Ödendi' || !paymentMap.has(p.student_id)) {
+                        paymentMap.set(p.student_id, p.status);
+                    }
                 });
             }
 
@@ -502,6 +505,12 @@ const Students: React.FC = () => {
                     custom_price: st?.custom_price || paidAmount
                 }).eq('id', student.id);
             }
+
+            setStudents(prev => prev.map(s => s.id === student.id ? { 
+                ...s, 
+                payment_status_this_month: 'Ödendi',
+                total_debt: Math.max(0, (s.total_debt ? Number(s.total_debt) : paidAmount * multiplier) - paidAmount)
+            } : s));
 
             alert(`${student.name} için ödeme işlemi başarıyla kaydedildi!`);
             fetchStudents(); // Refresh to update the UI payment status
