@@ -113,26 +113,71 @@ const Payments = () => {
                 });
             }
 
-            // Calculate total annual remaining debt across all active students
+            // Calculate total expected monthly revenue and total annual remaining debt across all active students
+            let totalExpectedMonthlyRevenue = 0;
             let totalAnnualRemaining = 0;
-            const { data: studentDebts } = await supabase
+
+            const { data: activeStudents } = await supabase
                 .from('students')
-                .select('total_debt, custom_price')
+                .select('id, custom_price, total_debt, school_id, neighborhood')
                 .eq('company_id', profile.company_id)
                 .neq('status', 'pending');
 
-            if (studentDebts) {
-                studentDebts.forEach((s: any) => {
+            const { data: pricingRules } = await supabase
+                .from('pricing_rules')
+                .select('id, school_id, school_level, amount')
+                .eq('company_id', profile.company_id);
+
+            const { data: comp } = await supabase.from('companies').select('name').eq('id', profile?.company_id).single();
+            const isHalegul = (comp?.name || '').toLowerCase().includes('halegül') || (comp?.name || '').toLowerCase().includes('halegul');
+            const multiplier = isHalegul ? 9 : 10;
+
+            if (activeStudents) {
+                activeStudents.forEach((s: any) => {
+                    let monthlyPrice = s.custom_price;
+                    if (!monthlyPrice) {
+                        const normNeighborhood = s.neighborhood?.toLocaleLowerCase('tr-TR')?.trim();
+                        let rule = pricingRules?.find((pr: any) => 
+                            pr.school_id === s.school_id &&
+                            pr.school_level?.toLocaleLowerCase('tr-TR')?.trim() === normNeighborhood
+                        );
+                        if (!rule) {
+                            rule = pricingRules?.find((pr: any) => 
+                                !pr.school_id &&
+                                pr.school_level?.toLocaleLowerCase('tr-TR')?.trim() === normNeighborhood
+                            );
+                        }
+                        if (rule && rule.amount) {
+                            monthlyPrice = Number(rule.amount);
+                        } else if (s.total_debt && Number(s.total_debt) > 0) {
+                            let d = Number(s.total_debt);
+                            while (d > 100000) d = Math.round(d / 10);
+                            monthlyPrice = Math.round(d / multiplier);
+                        } else {
+                            monthlyPrice = 0;
+                        }
+                    }
+                    
+                    let mPrice = Number(monthlyPrice) || 0;
+                    while (mPrice > 20000) {
+                        mPrice = Math.round(mPrice / 10);
+                    }
+                    totalExpectedMonthlyRevenue += mPrice;
+
+                    // Annual debt computation
                     let d = s.total_debt && Number(s.total_debt) > 0
                         ? Number(s.total_debt)
-                        : (s.custom_price && Number(s.custom_price) > 0 ? Number(s.custom_price) * 10 : 0);
+                        : mPrice * multiplier;
                     while (d > 100000) d = Math.round(d / 10);
                     totalAnnualRemaining += d;
                 });
             }
 
+            const calculatedReceivable = Math.max(0, totalExpectedMonthlyRevenue - totalCollected);
+            const finalReceivable = Math.max(totalReceivable, calculatedReceivable);
+
             setStats({
-                receivable: totalReceivable,
+                receivable: finalReceivable,
                 collected: totalCollected,
                 overdue: totalOverdue,
                 annualRemaining: totalAnnualRemaining
