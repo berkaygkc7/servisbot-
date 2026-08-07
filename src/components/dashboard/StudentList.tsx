@@ -123,19 +123,33 @@ const StudentList: React.FC<StudentListProps> = ({
                                             </span>
                                         </div>
                                     ) : student.payment_status_this_month === 'Ödendi' ? (
-                                        <div className="flex items-center gap-1.5 text-emerald-600 cursor-default" title="Ödendi">
-                                            <CheckCircle size={22} className="fill-emerald-100" />
-                                            <span className="text-xs font-bold">Ödendi</span>
+                                        <div className="flex flex-col gap-1">
+                                            <div className="flex items-center gap-1.5 text-emerald-600 cursor-default" title="Bu Ayın Taksiti Ödendi">
+                                                <CheckCircle size={20} className="fill-emerald-100" />
+                                                <span className="text-xs font-bold">Bu Ay Ödendi</span>
+                                            </div>
+                                            {student.total_debt !== undefined && student.total_debt !== null && (
+                                                <div className="text-[11px] font-semibold text-slate-600 bg-slate-100/90 px-2 py-0.5 rounded-md border border-slate-200 w-fit">
+                                                    Kalan Borç: <span className="font-bold text-slate-900">{Number(student.total_debt).toLocaleString('tr-TR')} ₺</span>
+                                                </div>
+                                            )}
                                         </div>
                                     ) : (
-                                        <button
-                                            onClick={() => onQuickPay && onQuickPay(student)}
-                                            className="flex items-center gap-1.5 text-slate-400 hover:text-emerald-500 transition-colors group"
-                                            title="Ödendi Olarak İşaretle"
-                                        >
-                                            <Circle size={22} className="group-hover:fill-emerald-50" />
-                                            <span className="text-xs font-medium">Bekliyor</span>
-                                        </button>
+                                        <div className="flex flex-col gap-1">
+                                            <button
+                                                onClick={() => onQuickPay && onQuickPay(student)}
+                                                className="flex items-center gap-1.5 text-slate-500 hover:text-emerald-600 transition-colors group"
+                                                title="Ödendi Olarak İşaretle"
+                                            >
+                                                <Circle size={20} className="group-hover:fill-emerald-50 text-slate-400" />
+                                                <span className="text-xs font-medium">Taksit Bekliyor</span>
+                                            </button>
+                                            {student.total_debt !== undefined && student.total_debt !== null && (
+                                                <div className="text-[11px] font-semibold text-slate-600 bg-slate-100/90 px-2 py-0.5 rounded-md border border-slate-200 w-fit">
+                                                    Kalan Borç: <span className="font-bold text-slate-900">{Number(student.total_debt).toLocaleString('tr-TR')} ₺</span>
+                                                </div>
+                                            )}
+                                        </div>
                                     )}
                                 </td>
                                 <td className="p-4">

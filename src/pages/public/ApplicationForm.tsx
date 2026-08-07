@@ -236,7 +236,8 @@ const ApplicationForm: React.FC = () => {
                 p_school_level: formData.schoolLevel || null,
                 p_grade: formData.grade || null,
                 p_neighborhood: formData.neighborhood || null,
-                p_total_debt: calculatedTotalDebt
+                p_total_debt: calculatedTotalDebt,
+                p_custom_price: monthlyPrice
             });
 
             if (error) throw error;
