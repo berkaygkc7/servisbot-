@@ -236,13 +236,18 @@ const ApplicationForm: React.FC = () => {
                 p_school_level: formData.schoolLevel || null,
                 p_grade: formData.grade || null,
                 p_neighborhood: formData.neighborhood || null,
-                p_total_debt: calculatedTotalDebt,
-                p_custom_price: monthlyPrice
+                p_total_debt: calculatedTotalDebt
             });
 
             if (error) throw error;
 
             if (data && data.success) {
+                if (data.student_id && monthlyPrice > 0) {
+                    await supabase
+                        .from('students')
+                        .update({ custom_price: monthlyPrice })
+                        .eq('id', data.student_id);
+                }
                 setSubmitted(true);
             } else {
                 console.error("RPC returned error:", data?.error);
