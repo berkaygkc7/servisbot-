@@ -1,11 +1,21 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { Link, useNavigate } from 'react-router-dom';
 import { supabase } from '../../lib/supabase';
-import { KeyRound, Mail, AlertCircle, Eye, EyeOff, BusFront, Phone, ShieldCheck } from 'lucide-react';
+import { KeyRound, Mail, AlertCircle, Eye, EyeOff, BusFront, Phone, ShieldCheck, Monitor } from 'lucide-react';
 import logo from '../../assets/servisbot_bus_logo.png';
 
 const Login = () => {
     const navigate = useNavigate();
+    const [isMobile, setIsMobile] = useState<boolean>(() => window.innerWidth < 768);
+
+    useEffect(() => {
+        const handleResize = () => {
+            setIsMobile(window.innerWidth < 768);
+        };
+        window.addEventListener('resize', handleResize);
+        return () => window.removeEventListener('resize', handleResize);
+    }, []);
+
     const [email, setEmail] = useState('');
     const [password, setPassword] = useState('');
     const [showPassword, setShowPassword] = useState(false);
@@ -131,6 +141,46 @@ const Login = () => {
         setMfaChallengeId('');
         setTempAuthData(null);
     };
+
+    if (isMobile) {
+        return (
+            <div className="min-h-screen bg-gradient-to-br from-slate-950 via-slate-900 to-blue-950 flex flex-col items-center justify-center p-6 text-center font-sans relative overflow-hidden">
+                {/* Background Glows */}
+                <div className="absolute top-1/4 left-1/2 -translate-x-1/2 -translate-y-1/2 w-96 h-96 bg-blue-600/15 rounded-full blur-3xl pointer-events-none"></div>
+                <div className="absolute bottom-10 right-10 w-72 h-72 bg-indigo-600/10 rounded-full blur-3xl pointer-events-none"></div>
+
+                <div className="max-w-md bg-white/10 backdrop-blur-xl border border-white/20 rounded-3xl p-8 shadow-2xl animate-in zoom-in-95 duration-300 relative z-10 flex flex-col items-center">
+                    <div className="w-20 h-20 rounded-2xl bg-gradient-to-tr from-blue-600 to-indigo-600 text-white flex items-center justify-center shadow-lg shadow-blue-500/30 mb-6">
+                        <Monitor size={40} className="animate-pulse" />
+                    </div>
+
+                    <h2 className="text-2xl font-black text-white tracking-tight mb-3">
+                        Masaüstü Erişimi Gereklidir 💻
+                    </h2>
+
+                    <p className="text-slate-300 text-sm leading-relaxed mb-6 font-medium">
+                        ServisBot Yönetim Paneli ve Giriş Ekranı; harita optimizasyonu, puantaj ve detaylı finansal tablolar için <strong>bilgisayar ekranlarında</strong> kullanılmak üzere tasarlanmıştır.
+                    </p>
+
+                    <div className="w-full bg-blue-950/60 border border-blue-500/30 rounded-2xl p-4 mb-6 text-left text-xs text-blue-200 space-y-2">
+                        <div className="font-bold text-blue-400 flex items-center gap-1.5 text-sm">
+                            <span>ℹ️ Bilgilendirme</span>
+                        </div>
+                        <p>
+                            • Velileriniz mobil cihazlarından QR kod okutarak <strong>Öğrenci Kayıt Formu</strong>'nu sorunsuz doldurabilir.
+                        </p>
+                        <p>
+                            • Sisteme giriş yapmak için lütfen bir <strong>bilgisayar (masaüstü / dizüstü)</strong> kullanınız.
+                        </p>
+                    </div>
+
+                    <div className="text-xs text-slate-400 font-bold uppercase tracking-widest">
+                        ServisBot Taşımacılık & Operasyon Sistemi
+                    </div>
+                </div>
+            </div>
+        );
+    }
 
     return (
         <div className="min-h-screen flex bg-white">
