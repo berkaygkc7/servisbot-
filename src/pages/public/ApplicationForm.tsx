@@ -217,7 +217,10 @@ const ApplicationForm: React.FC = () => {
 
         // Calculate debt from selected neighborhood
         const selectedRule = availableNeighborhoods.find((n: any) => safeRender(n) === formData.neighborhood);
-        const calculatedTotalDebt = selectedRule && typeof selectedRule === 'object' && selectedRule.amount ? parseFloat(selectedRule.amount) : 0;
+        const monthlyPrice = selectedRule && typeof selectedRule === 'object' && selectedRule.amount ? parseFloat(selectedRule.amount) : 0;
+        const isHalegul = (companyName || '').toLowerCase().includes('halegül') || (companyName || '').toLowerCase().includes('halegul');
+        const installmentMultiplier = isHalegul ? 9 : 10;
+        const calculatedTotalDebt = monthlyPrice * installmentMultiplier;
 
         try {
             const { data, error } = await supabase.rpc('submit_student_application', {
@@ -684,18 +687,26 @@ const ApplicationForm: React.FC = () => {
                                 <li>Öğrencinin servisteki hal ve hareketleri bir öğrenciye yakışır, diğer öğrenciler ve servis şoförünü rahatsız etmeyecek şekilde olmalıdır. Araçta alkol, sigara vb. bağımlılık yaratıcı ve kullanımı yasak olan maddelerin kullanımı kesinlikle yasaktır. Bu kurallara aykırılık tespit edilmesi halinde yetkili makamlara bildirilmekle birlikte öğrencinin servisle ilişkisi kesilir. Kalan borç miktarı muaccel olur.</li>
                                 <li>Servis araçlarımızın ulaşım hattı belediye güzergahına göre düzenlenir, tüm öğrencilerin ikamet adresleri düşünülerek servis şirketi tarafından belirlenir. Şirket tarafından belirlenen güzergaha uygun olduğu ölçüde öğrenci ikametinin önünde ya da ikametine yakın bir noktada indirilir.</li>
                                 <li>
-                                    <p>Servis ücretlerinin ödemesi okuldaki servis yetkilisine yapılır. Başka birine yapılan ödemeler geçerli değildir. İlk taksit en geç okulların açıldığı gün peşin olarak alınmak suretiyle, taksit ödemeleri her ayın 1'i ile 10'u arasında yapılır. Servis ücretleri belirlenip 10 (on) taksit halinde ödenmesi kararlaştırıldığı için toplam sene üzerinden hesaplanmakta olup, ara tatiller, resmi ve milli tatiller ile eğitim öğretime ara verildiği dönemler belirlenen fiyata dahil değildir.</p>
                                     {(() => {
+                                        const isHalegul = (companyName || '').toLowerCase().includes('halegül') || (companyName || '').toLowerCase().includes('halegul');
+                                        const installmentMultiplier = isHalegul ? 9 : 10;
+                                        const installmentText = isHalegul ? '9 (dokuz)' : '10 (on)';
+                                        
                                         const selectedRule = availableNeighborhoods.find((n: any) => safeRender(n) === formData.neighborhood);
-                                        const selectedPriceAmount = selectedRule && typeof selectedRule === 'object' && selectedRule.amount ? parseFloat(selectedRule.amount) : 0;
+                                        const monthlyPrice = selectedRule && typeof selectedRule === 'object' && selectedRule.amount ? parseFloat(selectedRule.amount) : 0;
+                                        const annualPrice = monthlyPrice * installmentMultiplier;
+
                                         return (
-                                            <p className="font-bold text-blue-900 bg-blue-50/80 border border-blue-200 p-3 rounded-xl mt-2 text-sm">
-                                                {selectedPriceAmount > 0 ? (
-                                                    <>Yıllık servis ücreti <span className="text-emerald-700 underline font-black text-base ml-1 mr-1">{Number(selectedPriceAmount).toLocaleString('tr-TR')} TL + KDV</span>'dir.</>
-                                                ) : (
-                                                    <>Yıllık servis ücreti <span className="italic text-slate-500 font-normal mr-1">(Seçilen mahalleye göre otomatik belirlenecektir)</span> TL+KDV'dir.</>
-                                                )}
-                                            </p>
+                                            <>
+                                                <p>Servis ücretlerinin ödemesi okuldaki servis yetkilisine yapılır. Başka birine yapılan ödemeler geçerli değildir. İlk taksit en geç okulların açıldığı gün peşin olarak alınmak suretiyle, taksit ödemeleri her ayın 1'i ile 10'u arasında yapılır. Servis ücretleri belirlenip {installmentText} taksit halinde ödenmesi kararlaştırıldığı için toplam sene üzerinden hesaplanmakta olup, ara tatiller, resmi ve milli tatiller ile eğitim öğretime ara verildiği dönemler belirlenen fiyata dahil değildir.</p>
+                                                <p className="font-bold text-blue-900 bg-blue-50/80 border border-blue-200 p-3 rounded-xl mt-2 text-sm">
+                                                    {annualPrice > 0 ? (
+                                                        <>Yıllık servis ücreti <span className="text-emerald-700 underline font-black text-base ml-1 mr-1">{Number(annualPrice).toLocaleString('tr-TR')} TL + KDV</span>'dir. <span className="text-xs text-slate-500 font-medium block mt-1">(Aylık {Number(monthlyPrice).toLocaleString('tr-TR')} TL x {installmentMultiplier} Taksit)</span></>
+                                                    ) : (
+                                                        <>Yıllık servis ücreti <span className="italic text-slate-500 font-normal mr-1">(Seçilen mahalleye göre otomatik belirlenecektir)</span> TL+KDV'dir.</>
+                                                    )}
+                                                </p>
+                                            </>
                                         );
                                     })()}
                                     <p className="mt-2">Ödeme günü üzerinden 15 gün geçmiş olmasına rağmen ödeme yapılmadığı takdirde, tüm alacak miktarı muacceliyet kazanmış olacaktır.</p>
