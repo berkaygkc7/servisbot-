@@ -1,13 +1,23 @@
 import React, { useState, useRef, useEffect } from 'react';
 import { Outlet, useNavigate } from 'react-router-dom';
 import Sidebar from '../components/layout/Sidebar';
-import { Bell, Search, User, Settings, LogOut, CheckCircle, Car, Map, UserSquare, X, Mail, Building, ShieldCheck, Settings2 } from 'lucide-react';
+import { Bell, Search, User, Settings, LogOut, CheckCircle, Car, Map, UserSquare, X, Mail, Building, ShieldCheck, Settings2, Monitor } from 'lucide-react';
 import { useAuth } from '../contexts/AuthContext';
 import { supabase } from '../lib/supabase';
 
 const DashboardLayout: React.FC = () => {
     const { profile, signOut } = useAuth();
     const navigate = useNavigate();
+
+    const [isMobile, setIsMobile] = useState<boolean>(() => window.innerWidth < 768);
+
+    useEffect(() => {
+        const handleResize = () => {
+            setIsMobile(window.innerWidth < 768);
+        };
+        window.addEventListener('resize', handleResize);
+        return () => window.removeEventListener('resize', handleResize);
+    }, []);
 
     const [isProfileOpen, setIsProfileOpen] = useState(false);
     const [isNotifOpen, setIsNotifOpen] = useState(false);
@@ -132,6 +142,53 @@ const DashboardLayout: React.FC = () => {
     };
 
     const unreadCount = notifications.filter(n => !n.read).length;
+
+    if (isMobile) {
+        return (
+            <div className="min-h-screen bg-gradient-to-br from-slate-950 via-slate-900 to-blue-950 flex flex-col items-center justify-center p-6 text-center font-sans relative overflow-hidden">
+                {/* Subtle Background Glows */}
+                <div className="absolute top-1/4 left-1/2 -translate-x-1/2 -translate-y-1/2 w-96 h-96 bg-blue-600/15 rounded-full blur-3xl pointer-events-none"></div>
+                <div className="absolute bottom-10 right-10 w-72 h-72 bg-indigo-600/10 rounded-full blur-3xl pointer-events-none"></div>
+
+                <div className="max-w-md bg-white/10 backdrop-blur-xl border border-white/20 rounded-3xl p-8 shadow-2xl animate-in zoom-in-95 duration-300 relative z-10 flex flex-col items-center">
+                    <div className="w-20 h-20 rounded-2xl bg-gradient-to-tr from-blue-600 to-indigo-600 text-white flex items-center justify-center shadow-lg shadow-blue-500/30 mb-6">
+                        <Monitor size={40} className="animate-pulse" />
+                    </div>
+
+                    <h2 className="text-2xl font-black text-white tracking-tight mb-3">
+                        Masaüstü Erişimi Gereklidir 💻
+                    </h2>
+
+                    <p className="text-slate-300 text-sm leading-relaxed mb-6 font-medium">
+                        ServisBot Yönetim Paneli; harita optimizasyonu, puantaj ve detaylı finansal tablolar için <strong>bilgisayar ekranlarında</strong> kullanılmak üzere tasarlanmıştır.
+                    </p>
+
+                    <div className="w-full bg-blue-950/60 border border-blue-500/30 rounded-2xl p-4 mb-6 text-left text-xs text-blue-200 space-y-2">
+                        <div className="font-bold text-blue-400 flex items-center gap-1.5 text-sm">
+                            <span>ℹ️ Bilgilendirme</span>
+                        </div>
+                        <p>
+                            • Velileriniz mobil cihazlarından QR kod okutarak <strong>Öğrenci Kayıt Formu</strong>'nu sorunsuz doldurabilir.
+                        </p>
+                        <p>
+                            • Yönetim paneline erişmek için lütfen bir <strong>bilgisayar (masaüstü / dizüstü)</strong> kullanınız.
+                        </p>
+                    </div>
+
+                    <button
+                        onClick={async () => {
+                            await signOut();
+                            navigate('/login');
+                        }}
+                        className="w-full py-3.5 bg-gradient-to-r from-blue-600 to-indigo-600 hover:from-blue-500 hover:to-indigo-500 text-white font-bold rounded-xl transition-all shadow-lg shadow-blue-600/30 text-sm flex items-center justify-center gap-2"
+                    >
+                        <LogOut size={18} />
+                        Çıkış Yap / Ana Sayfaya Dön
+                    </button>
+                </div>
+            </div>
+        );
+    }
 
     return (
         <div className="flex h-screen bg-background">
