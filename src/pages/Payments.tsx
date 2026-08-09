@@ -1,5 +1,5 @@
 import { useState, useEffect, useMemo, useRef, useCallback } from 'react';
-import { Plus, Search, Filter, Loader2, TrendingUp, AlertTriangle, FileText, Download, CheckSquare, CheckCircle, Archive, Trash2, RotateCcw } from 'lucide-react';
+import { Plus, Search, Filter, Loader2, TrendingUp, AlertTriangle, FileText, Download, CheckSquare, CheckCircle, Archive, Trash2, RotateCcw, Layers } from 'lucide-react';
 import { supabase } from '../lib/supabase';
 import { useAuth } from '../contexts/AuthContext';
 import PaymentList, { type Payment } from '../components/dashboard/PaymentList';
@@ -708,62 +708,97 @@ const Payments = () => {
                 </div>
             </div>
 
-            {/* Financial Highlights (Stats) - 4 Cards Grid */}
-            <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4 md:gap-5 shrink-0">
+            {/* Financial Highlights (Stats) - 5 Cards Grid */}
+            <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-5 gap-3 md:gap-4 shrink-0">
+                {/* Show All */}
+                <div 
+                    onClick={() => {
+                        setStatusFilter('all');
+                        setMonthFilter('all');
+                        setSchoolLevelFilter('all');
+                        setSearchQuery('');
+                    }}
+                    className={`cursor-pointer bg-white p-3.5 md:p-4 rounded-2xl shadow-[0_2px_10px_-3px_rgba(6,81,237,0.1)] border transition-all hover:shadow-md hover:-translate-y-0.5 group flex items-center justify-between ${
+                        statusFilter === 'all' && monthFilter === 'all' && schoolLevelFilter === 'all' && !searchQuery
+                            ? 'border-indigo-500 ring-2 ring-indigo-500/20 bg-indigo-50/20' 
+                            : 'border-slate-100 hover:border-indigo-200'
+                    }`}
+                >
+                    <div>
+                        <p className="text-slate-500 font-bold uppercase tracking-wider text-[10px] md:text-[11px] mb-0.5">Tüm Kayıtlar</p>
+                        <h3 className="text-lg lg:text-xl font-black text-indigo-600 transition-colors group-hover:text-indigo-700">Tümünü Gör</h3>
+                    </div>
+                    <div className="w-9 h-9 bg-indigo-50 text-indigo-600 rounded-xl flex items-center justify-center shrink-0 transition-transform group-hover:scale-110">
+                        <Layers size={18} />
+                    </div>
+                </div>
+
                 {/* Collected */}
                 <div 
                     onClick={() => setStatusFilter('Ödendi')}
-                    className="cursor-pointer bg-white p-4 md:p-5 rounded-2xl shadow-[0_2px_10px_-3px_rgba(6,81,237,0.1)] border border-slate-100 flex items-center justify-between transition-all hover:shadow-md hover:-translate-y-1 group"
+                    className={`cursor-pointer bg-white p-3.5 md:p-4 rounded-2xl shadow-[0_2px_10px_-3px_rgba(6,81,237,0.1)] border transition-all hover:shadow-md hover:-translate-y-0.5 group flex items-center justify-between ${
+                        statusFilter === 'Ödendi' 
+                            ? 'border-emerald-500 ring-2 ring-emerald-500/20 bg-emerald-50/20' 
+                            : 'border-slate-100 hover:border-emerald-200'
+                    }`}
                 >
                     <div>
-                        <p className="text-slate-500 font-bold uppercase tracking-wider text-[11px] mb-1">Tahsil Edilen (Kasa)</p>
-                        <h3 className="text-xl lg:text-2xl font-black text-emerald-600 transition-colors group-hover:text-emerald-700">{stats.collected.toLocaleString('tr-TR')} ₺</h3>
+                        <p className="text-slate-500 font-bold uppercase tracking-wider text-[10px] md:text-[11px] mb-0.5">Tahsil Edilen (Kasa)</p>
+                        <h3 className="text-lg lg:text-xl font-black text-emerald-600 transition-colors group-hover:text-emerald-700">{stats.collected.toLocaleString('tr-TR')} ₺</h3>
                     </div>
-                    <div className="w-10 h-10 bg-emerald-50 text-emerald-600 rounded-xl flex items-center justify-center shrink-0 transition-transform group-hover:scale-110">
-                        <TrendingUp size={20} />
+                    <div className="w-9 h-9 bg-emerald-50 text-emerald-600 rounded-xl flex items-center justify-center shrink-0 transition-transform group-hover:scale-110">
+                        <TrendingUp size={18} />
                     </div>
                 </div>
 
                 {/* Pending */}
                 <div 
                     onClick={() => setStatusFilter('Bekliyor')}
-                    className="cursor-pointer bg-white p-4 md:p-5 rounded-2xl shadow-[0_2px_10px_-3px_rgba(6,81,237,0.1)] border border-slate-100 flex items-center justify-between transition-all hover:shadow-md hover:-translate-y-1 group"
+                    className={`cursor-pointer bg-white p-3.5 md:p-4 rounded-2xl shadow-[0_2px_10px_-3px_rgba(6,81,237,0.1)] border transition-all hover:shadow-md hover:-translate-y-0.5 group flex items-center justify-between ${
+                        statusFilter === 'Bekliyor' 
+                            ? 'border-blue-500 ring-2 ring-blue-500/20 bg-blue-50/20' 
+                            : 'border-slate-100 hover:border-blue-200'
+                    }`}
                 >
                     <div>
-                        <p className="text-slate-500 font-bold uppercase tracking-wider text-[11px] mb-1">Bekleyen Alacak</p>
-                        <h3 className="text-xl lg:text-2xl font-black text-blue-600 transition-colors group-hover:text-blue-700">{stats.receivable.toLocaleString('tr-TR')} ₺</h3>
+                        <p className="text-slate-500 font-bold uppercase tracking-wider text-[10px] md:text-[11px] mb-0.5">Bekleyen Alacak</p>
+                        <h3 className="text-lg lg:text-xl font-black text-blue-600 transition-colors group-hover:text-blue-700">{stats.receivable.toLocaleString('tr-TR')} ₺</h3>
                     </div>
-                    <div className="w-10 h-10 bg-blue-50 text-blue-600 rounded-xl flex items-center justify-center shrink-0 transition-transform group-hover:scale-110">
-                        <FileText size={20} />
+                    <div className="w-9 h-9 bg-blue-50 text-blue-600 rounded-xl flex items-center justify-center shrink-0 transition-transform group-hover:scale-110">
+                        <FileText size={18} />
                     </div>
                 </div>
 
                 {/* Overdue */}
                 <div 
                     onClick={() => setStatusFilter('gecikti')}
-                    className="cursor-pointer bg-white p-4 md:p-5 rounded-2xl shadow-[0_2px_10px_-3px_rgba(6,81,237,0.1)] border border-red-100 flex items-center justify-between transition-all hover:shadow-md hover:-translate-y-1 relative overflow-hidden group"
+                    className={`cursor-pointer bg-white p-3.5 md:p-4 rounded-2xl shadow-[0_2px_10px_-3px_rgba(6,81,237,0.1)] border transition-all hover:shadow-md hover:-translate-y-0.5 relative overflow-hidden group flex items-center justify-between ${
+                        statusFilter === 'gecikti' 
+                            ? 'border-red-500 ring-2 ring-red-500/20 bg-red-50/20' 
+                            : 'border-red-100 hover:border-red-200'
+                    }`}
                 >
                     <div className="absolute inset-0 bg-gradient-to-br from-red-50/50 to-transparent opacity-0 group-hover:opacity-100 transition-opacity" />
                     <div className="z-10 relative">
-                        <p className="text-red-600/80 font-bold uppercase tracking-wider text-[11px] mb-1">Gecikmiş (Riskli) Alacak</p>
-                        <h3 className="text-xl lg:text-2xl font-black text-red-700">{stats.overdue.toLocaleString('tr-TR')} ₺</h3>
+                        <p className="text-red-600/80 font-bold uppercase tracking-wider text-[10px] md:text-[11px] mb-0.5">Gecikmiş Alacak</p>
+                        <h3 className="text-lg lg:text-xl font-black text-red-700">{stats.overdue.toLocaleString('tr-TR')} ₺</h3>
                     </div>
-                    <div className="w-10 h-10 bg-red-100 text-red-600 rounded-xl flex items-center justify-center z-10 relative shrink-0 transition-transform group-hover:scale-110">
-                        <AlertTriangle size={20} />
+                    <div className="w-9 h-9 bg-red-100 text-red-600 rounded-xl flex items-center justify-center z-10 relative shrink-0 transition-transform group-hover:scale-110">
+                        <AlertTriangle size={18} />
                     </div>
                 </div>
 
                 {/* Total Annual Remaining Debt */}
                 <div 
-                    className="bg-gradient-to-br from-slate-800 to-slate-900 p-4 md:p-5 rounded-2xl shadow-md border border-slate-700 text-white flex items-center justify-between transition-transform hover:-translate-y-1 relative overflow-hidden group"
+                    className="col-span-2 sm:col-span-1 bg-gradient-to-br from-slate-800 to-slate-900 p-3.5 md:p-4 rounded-2xl shadow-md border border-slate-700 text-white flex items-center justify-between transition-transform hover:-translate-y-0.5 relative overflow-hidden group"
                 >
                     <div className="absolute inset-0 bg-white/5 opacity-0 group-hover:opacity-100 transition-opacity" />
                     <div className="z-10 relative">
-                        <p className="text-slate-300 font-bold uppercase tracking-wider text-[11px] mb-1">Yıllık Kalan Alacak</p>
-                        <h3 className="text-xl lg:text-2xl font-black text-white">{(stats.annualRemaining || 0).toLocaleString('tr-TR')} ₺</h3>
+                        <p className="text-slate-300 font-bold uppercase tracking-wider text-[10px] md:text-[11px] mb-0.5">Yıllık Kalan</p>
+                        <h3 className="text-lg lg:text-xl font-black text-white">{(stats.annualRemaining || 0).toLocaleString('tr-TR')} ₺</h3>
                     </div>
-                    <div className="w-10 h-10 bg-white/10 text-white rounded-xl flex items-center justify-center z-10 relative shrink-0 backdrop-blur-sm transition-transform group-hover:scale-110">
-                        <span className="text-lg">💰</span>
+                    <div className="w-9 h-9 bg-white/10 text-white rounded-xl flex items-center justify-center z-10 relative shrink-0 backdrop-blur-sm transition-transform group-hover:scale-110">
+                        <span className="text-base">💰</span>
                     </div>
                 </div>
             </div>
