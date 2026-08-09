@@ -676,102 +676,6 @@ const Students: React.FC = () => {
         XLSX.writeFile(wb, students && students.length > 0 ? "ogrenci_listesi.xlsx" : "ogrenci_sablon.xlsx");
     };
 
-    const handleBatchCalculateDebt = async () => {
-        if (!profile?.company_id) return;
-        
-        const activeStudents = (students || []).filter(s => s.status === 'active' || !s.status);
-        if (activeStudents.length === 0) {
-            alert('Yıllık borçlandırma yapılacak aktif öğrenci bulunamadı.');
-            return;
-        }
-
-        try {
-            setLoading(true);
-
-            // Fetch company name for multiplier determination
-            const { data: comp } = await supabase.from('companies').select('name').eq('id', profile.company_id).single();
-            const compName = comp?.name || '';
-            const isHalegul = compName.toLowerCase().includes('halegül') || compName.toLowerCase().includes('halegul');
-            const multiplier = isHalegul ? 9 : 10;
-
-            if (!window.confirm(`Aktif ${activeStudents.length} öğrencinin tamamı için mahalle tarifelerine göre YILLIK BORÇLANDIRMA (Aylık Fiyat x ${multiplier} Taksit) yapmak istediğinize emin misiniz?`)) {
-                setLoading(false);
-                return;
-            }
-
-            // Fetch pricing rules
-            const { data: rules, error: pricingError } = await supabase
-                .from('pricing_rules')
-                .select('*')
-                .eq('company_id', profile.company_id);
-
-            if (pricingError) throw pricingError;
-
-            // Fetch already paid payments for active students to subtract from annual debt
-            const { data: paidPayments } = await supabase
-                .from('payments')
-                .select('student_id, amount')
-                .eq('company_id', profile.company_id)
-                .eq('status', 'Ödendi');
-
-            let updatedCount = 0;
-
-            for (const student of activeStudents) {
-                let monthlyPrice = 0;
-
-                // 1. Check neighborhood pricing rules first
-                const normNbr = (student.neighborhood || '').toLocaleLowerCase('tr-TR').trim();
-                let rule = rules?.find(pr => 
-                    pr.school_id === student.school_id && 
-                    (pr.school_level || '').toLocaleLowerCase('tr-TR').trim() === normNbr
-                );
-                if (!rule) {
-                    rule = rules?.find(pr => 
-                        !pr.school_id && 
-                        (pr.school_level || '').toLocaleLowerCase('tr-TR').trim() === normNbr
-                    );
-                }
-
-                if (rule && rule.amount && Number(rule.amount) > 0) {
-                    monthlyPrice = Number(rule.amount);
-                } else if (student.custom_price && Number(student.custom_price) > 0) {
-                    monthlyPrice = Number(student.custom_price);
-                } else if (student.total_debt && Number(student.total_debt) > 0) {
-                    let td = Number(student.total_debt);
-                    monthlyPrice = Math.round(td / multiplier);
-                }
-
-                if (monthlyPrice && monthlyPrice > 0) {
-                    const annualDebt = monthlyPrice * multiplier;
-
-                    const paidTotal = paidPayments
-                        ?.filter(p => p.student_id === student.id)
-                        ?.reduce((acc, curr) => acc + (Number(curr.amount) || 0), 0) || 0;
-
-                    const remainingDebt = Math.max(0, annualDebt - paidTotal);
-
-                    const { error: updateError } = await supabase
-                        .from('students')
-                        .update({
-                            total_debt: remainingDebt,
-                            custom_price: monthlyPrice
-                        })
-                        .eq('id', student.id);
-
-                    if (!updateError) updatedCount++;
-                }
-            }
-
-            alert(`${updatedCount} adet öğrenci için Yıllık Borçlandırma (Aylık Ücret x ${multiplier} Ay) başarıyla tanımlandı!`);
-            setRefreshKey(prev => prev + 1);
-        } catch (error: any) {
-            console.error('Batch debt error:', error);
-            alert('Toplu borçlandırma sırasında bir hata oluştu.');
-        } finally {
-            setLoading(false);
-        }
-    };
-
     return (
         <div className="space-y-6">
             {/* Page Header */}
@@ -781,15 +685,6 @@ const Students: React.FC = () => {
                     <p className="text-slate-500">Tüm öğrenci ve personel kayıtlarını yönetin.</p>
                 </div>
                 <div className="flex gap-3 flex-wrap">
-                    <button
-                        onClick={handleBatchCalculateDebt}
-                        className="flex items-center gap-2 px-4 py-2.5 bg-emerald-600 text-white rounded-xl hover:bg-emerald-700 transition-colors font-bold shadow-sm hover:shadow-md"
-                        title="Öğrencilerin mahalle tarifelerine göre yıllık borçlarını (9/10 taksit) toplu hesaplar"
-                    >
-                        <span className="text-lg">💰</span>
-                        Toplu Yıllık Borçlandır
-                    </button>
-
                     <button
                         onClick={handleDownloadTemplate}
                         className="flex items-center gap-2 px-4 py-2.5 bg-white border border-slate-200 text-slate-600 rounded-xl hover:bg-slate-50 transition-colors font-medium"
