@@ -718,18 +718,24 @@ const Payments = () => {
                 }
             }
 
-            // 2. Fix corrupted Students custom_price
+            // 2. Fix corrupted Students custom_price and total_debt
             const { data: badStudents } = await supabase
                 .from('students')
-                .select('id, custom_price')
+                .select('id, custom_price, total_debt')
                 .eq('company_id', profile?.company_id)
-                .gt('custom_price', 20000);
+                .or('custom_price.gt.20000,total_debt.gt.100000');
 
             let fixedStudents = 0;
             if (badStudents && badStudents.length > 0) {
                 for (const bs of badStudents) {
-                    const fixedAmount = Math.round(Number(bs.custom_price) / multiplier);
-                    await supabase.from('students').update({ custom_price: fixedAmount }).eq('id', bs.id);
+                    const updates: any = {};
+                    if (Number(bs.custom_price) > 20000) {
+                        updates.custom_price = Math.round(Number(bs.custom_price) / multiplier);
+                    }
+                    if (Number(bs.total_debt) > 100000) {
+                        updates.total_debt = Math.round(Number(bs.total_debt) / multiplier);
+                    }
+                    await supabase.from('students').update(updates).eq('id', bs.id);
                     fixedStudents++;
                 }
             }
