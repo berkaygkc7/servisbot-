@@ -423,7 +423,9 @@ const Students: React.FC = () => {
 
             const existing = existingList && existingList.length > 0 ? existingList[0] : null;
 
-            const compName = profile?.companies?.company_name || '';
+            // Query company name from DB for accurate multiplier
+            const { data: compData } = await supabase.from('companies').select('name').eq('id', profile.company_id).single();
+            const compName = compData?.name || '';
             const isHalegul = compName.toLowerCase().includes('halegül') || compName.toLowerCase().includes('halegul');
             const multiplier = isHalegul ? 9 : 10;
 
@@ -491,10 +493,10 @@ const Students: React.FC = () => {
             // Deduct paid amount from student's total_debt
             if (student.id && paidAmount > 0) {
                 const { data: st } = await supabase.from('students').select('total_debt, custom_price').eq('id', student.id).single();
-                let currentDebt = st?.total_debt;
+                let currentDebt = Number(st?.total_debt) || 0;
                 
-                // If total_debt is null/0, set initial total_debt = paidAmount * multiplier
-                if (currentDebt === null || currentDebt === undefined || Number(currentDebt) === 0) {
+                // Only initialize debt if it was never set (null/undefined), NOT if it's 0
+                if (st?.total_debt === null || st?.total_debt === undefined) {
                     currentDebt = paidAmount * multiplier;
                 }
 

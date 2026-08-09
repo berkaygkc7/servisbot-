@@ -116,16 +116,9 @@ const PaymentList: React.FC<PaymentListProps> = ({ payments, selectedIds, onTogg
                                                 {payment.student?.parent_name || 'Veli Yok'}
                                             </div>
                                              {(() => {
-                                                 let rawDebt = payment.student?.total_debt && Number(payment.student.total_debt) > 0
-                                                     ? Number(payment.student.total_debt)
-                                                     : (payment.student?.custom_price && Number(payment.student.custom_price) > 0
-                                                         ? Number(payment.student.custom_price) * (payment.status === 'Ödendi' ? 9 : 10)
-                                                         : null);
-                                                 if (!rawDebt) return null;
-                                                 let debtVal = rawDebt;
-                                                 while (debtVal > 100000) {
-                                                     debtVal = Math.round(debtVal / 10);
-                                                 }
+                                                 const rawDebt = payment.student?.total_debt;
+                                                 if (rawDebt === null || rawDebt === undefined || Number(rawDebt) <= 0) return null;
+                                                 const debtVal = Number(rawDebt);
                                                  return (
                                                      <div className="mt-1 text-[11px] font-semibold text-slate-600 bg-slate-100/90 px-2.5 py-0.5 rounded-md border border-slate-200 w-fit">
                                                          Kalan Borç: <span className="font-bold text-slate-900">{debtVal.toLocaleString('tr-TR')} ₺</span>

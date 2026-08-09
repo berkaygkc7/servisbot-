@@ -129,14 +129,9 @@ const StudentList: React.FC<StudentListProps> = ({
                                                 <span className="text-xs font-bold">Bu Ay Ödendi</span>
                                             </div>
                                             {(() => {
-                                                let rawDebt = student.total_debt && Number(student.total_debt) > 0
-                                                    ? Number(student.total_debt)
-                                                    : (student.custom_price && Number(student.custom_price) > 0 ? Number(student.custom_price) * 9 : null);
-                                                if (!rawDebt) return null;
-                                                let debtVal = rawDebt;
-                                                while (debtVal > 100000) {
-                                                    debtVal = Math.round(debtVal / 10);
-                                                }
+                                                const rawDebt = student.total_debt;
+                                                if (rawDebt === null || rawDebt === undefined || Number(rawDebt) <= 0) return null;
+                                                const debtVal = Number(rawDebt);
                                                 return (
                                                     <div className="text-[11px] font-semibold text-slate-600 bg-slate-100/90 px-2 py-0.5 rounded-md border border-slate-200 w-fit">
                                                         Kalan Borç: <span className="font-bold text-slate-900">{debtVal.toLocaleString('tr-TR')} ₺</span>
@@ -155,14 +150,9 @@ const StudentList: React.FC<StudentListProps> = ({
                                                 <span className="text-xs font-medium">Taksit Bekliyor</span>
                                             </button>
                                             {(() => {
-                                                let rawDebt = student.total_debt && Number(student.total_debt) > 0
-                                                    ? Number(student.total_debt)
-                                                    : (student.custom_price && Number(student.custom_price) > 0 ? Number(student.custom_price) * 10 : null);
-                                                if (!rawDebt) return null;
-                                                let debtVal = rawDebt;
-                                                while (debtVal > 100000) {
-                                                    debtVal = Math.round(debtVal / 10);
-                                                }
+                                                const rawDebt = student.total_debt;
+                                                if (rawDebt === null || rawDebt === undefined || Number(rawDebt) <= 0) return null;
+                                                const debtVal = Number(rawDebt);
                                                 return (
                                                     <div className="text-[11px] font-semibold text-slate-600 bg-slate-100/90 px-2 py-0.5 rounded-md border border-slate-200 w-fit">
                                                         Kalan Borç: <span className="font-bold text-slate-900">{debtVal.toLocaleString('tr-TR')} ₺</span>

@@ -100,84 +100,41 @@ const Payments = () => {
             let totalCollected = 0;
             let totalOverdue = 0;
 
+            const today = new Date().toISOString().split('T')[0];
+
             if (statsData) {
                 statsData.forEach((p: any) => {
                     if (p.status === 'Ödendi') {
                         totalCollected += p.amount;
                     } else if (p.status === 'Bekliyor') {
                         totalReceivable += p.amount;
-                        if (new Date(p.due_date) < new Date()) {
+                        if (p.due_date < today) {
                             totalOverdue += p.amount;
                         }
                     }
                 });
             }
 
-            // Calculate total expected monthly revenue and total annual remaining debt across all active students
-            let totalExpectedMonthlyRevenue = 0;
+            // Calculate total annual remaining debt from student records
             let totalAnnualRemaining = 0;
 
             const { data: activeStudents } = await supabase
                 .from('students')
-                .select('id, custom_price, total_debt, school_id, neighborhood')
+                .select('id, total_debt')
                 .eq('company_id', profile.company_id)
                 .neq('status', 'pending');
 
-            const { data: pricingRules } = await supabase
-                .from('pricing_rules')
-                .select('id, school_id, school_level, amount')
-                .eq('company_id', profile.company_id);
-
-            const { data: comp } = await supabase.from('companies').select('name').eq('id', profile?.company_id).single();
-            const isHalegul = (comp?.name || '').toLowerCase().includes('halegül') || (comp?.name || '').toLowerCase().includes('halegul');
-            const multiplier = isHalegul ? 9 : 10;
-
             if (activeStudents) {
                 activeStudents.forEach((s: any) => {
-                    let monthlyPrice = s.custom_price;
-                    if (!monthlyPrice) {
-                        const normNeighborhood = s.neighborhood?.toLocaleLowerCase('tr-TR')?.trim();
-                        let rule = pricingRules?.find((pr: any) => 
-                            pr.school_id === s.school_id &&
-                            pr.school_level?.toLocaleLowerCase('tr-TR')?.trim() === normNeighborhood
-                        );
-                        if (!rule) {
-                            rule = pricingRules?.find((pr: any) => 
-                                !pr.school_id &&
-                                pr.school_level?.toLocaleLowerCase('tr-TR')?.trim() === normNeighborhood
-                            );
-                        }
-                        if (rule && rule.amount) {
-                            monthlyPrice = Number(rule.amount);
-                        } else if (s.total_debt && Number(s.total_debt) > 0) {
-                            let d = Number(s.total_debt);
-                            while (d > 100000) d = Math.round(d / 10);
-                            monthlyPrice = Math.round(d / multiplier);
-                        } else {
-                            monthlyPrice = 0;
-                        }
+                    const debt = Number(s.total_debt) || 0;
+                    if (debt > 0) {
+                        totalAnnualRemaining += debt;
                     }
-                    
-                    let mPrice = Number(monthlyPrice) || 0;
-                    while (mPrice > 20000) {
-                        mPrice = Math.round(mPrice / 10);
-                    }
-                    totalExpectedMonthlyRevenue += mPrice;
-
-                    // Annual debt computation
-                    let d = s.total_debt && Number(s.total_debt) > 0
-                        ? Number(s.total_debt)
-                        : mPrice * multiplier;
-                    while (d > 100000) d = Math.round(d / 10);
-                    totalAnnualRemaining += d;
                 });
             }
 
-            const calculatedReceivable = Math.max(0, totalExpectedMonthlyRevenue - totalCollected);
-            const finalReceivable = Math.max(totalReceivable, calculatedReceivable);
-
             setStats({
-                receivable: finalReceivable,
+                receivable: totalReceivable,
                 collected: totalCollected,
                 overdue: totalOverdue,
                 annualRemaining: totalAnnualRemaining
@@ -329,7 +286,10 @@ const Payments = () => {
                     if (rule && rule.amount) {
                         billAmount = rule.amount;
                     } else if (s.total_debt && s.total_debt > 0) {
-                        billAmount = s.total_debt;
+                        // Divide annual debt by multiplier to get monthly bill amount
+                        const { data: comp2 } = await supabase.from('companies').select('name').eq('id', profile?.company_id).single();
+                        const isH = (comp2?.name || '').toLowerCase().includes('halegül') || (comp2?.name || '').toLowerCase().includes('halegul');
+                        billAmount = Math.round(s.total_debt / (isH ? 9 : 10));
                     } else {
                         billAmount = 0;
                     }
@@ -397,18 +357,18 @@ const Payments = () => {
 
             // Deduct paid amount from student's total_debt
             if (payment.student_id && payment.amount > 0) {
-                const { data: comp } = await supabase.from('companies').select('name').eq('id', profile?.company_id).single();
-                const isHalegul = (comp?.name || '').toLowerCase().includes('halegül') || (comp?.name || '').toLowerCase().includes('halegul');
-                const multiplier = isHalegul ? 9 : 10;
+                const { data: st } = await supabase.from('students').select('total_debt, custom_price').eq('id', payment.student_id).single();
+                let currentDebt = Number(st?.total_debt) || 0;
 
-                const { data: st } = await supabase.from('students').select('total_debt').eq('id', payment.student_id).single();
-                let currentDebt = st?.total_debt;
-
-                if (!currentDebt || Number(currentDebt) <= Number(payment.amount)) {
+                // Only initialize debt if it was never set (null/undefined), NOT if it's 0
+                if (st?.total_debt === null || st?.total_debt === undefined) {
+                    const { data: comp } = await supabase.from('companies').select('name').eq('id', profile?.company_id).single();
+                    const isHalegul = (comp?.name || '').toLowerCase().includes('halegül') || (comp?.name || '').toLowerCase().includes('halegul');
+                    const multiplier = isHalegul ? 9 : 10;
                     currentDebt = Number(payment.amount) * multiplier;
                 }
 
-                const newDebt = Math.max(0, Number(currentDebt) - Number(payment.amount));
+                const newDebt = Math.max(0, currentDebt - Number(payment.amount));
                 await supabase.from('students').update({ total_debt: newDebt }).eq('id', payment.student_id);
             }
 
@@ -425,13 +385,12 @@ const Payments = () => {
             const { error } = await supabase.from('payments').update({ status: 'Bekliyor' }).eq('id', payment.id);
             if (error) throw error;
 
-            // Refund paid amount back to student's total_debt
+            // Refund paid amount back to student's total_debt (unconditional)
             if (payment.student_id && payment.amount > 0) {
                 const { data: st } = await supabase.from('students').select('total_debt').eq('id', payment.student_id).single();
-                if (st && st.total_debt !== null && st.total_debt !== undefined) {
-                    const newDebt = Number(st.total_debt) + Number(payment.amount);
-                    await supabase.from('students').update({ total_debt: newDebt }).eq('id', payment.student_id);
-                }
+                const currentDebt = Number(st?.total_debt) || 0;
+                const newDebt = currentDebt + Number(payment.amount);
+                await supabase.from('students').update({ total_debt: newDebt }).eq('id', payment.student_id);
             }
 
             fetchPayments(true); // Reset and refetch all payments
@@ -581,18 +540,26 @@ const Payments = () => {
             const isHalegul = (comp?.name || '').toLowerCase().includes('halegül') || (comp?.name || '').toLowerCase().includes('halegul');
             const multiplier = isHalegul ? 9 : 10;
 
+            // Group payments by student to handle multiple payments per student correctly
+            const studentPaymentMap = new Map<string, number>();
             for (const p of selectedPayments) {
                 if (p.student_id && p.amount > 0) {
-                    const { data: st } = await supabase.from('students').select('total_debt').eq('id', p.student_id).single();
-                    let currentDebt = st?.total_debt;
-
-                    if (!currentDebt || Number(currentDebt) <= Number(p.amount)) {
-                        currentDebt = Number(p.amount) * multiplier;
-                    }
-
-                    const newDebt = Math.max(0, Number(currentDebt) - Number(p.amount));
-                    await supabase.from('students').update({ total_debt: newDebt }).eq('id', p.student_id);
+                    studentPaymentMap.set(p.student_id, (studentPaymentMap.get(p.student_id) || 0) + Number(p.amount));
                 }
+            }
+
+            // Deduct total per-student amount in a single update
+            for (const [studentId, totalAmount] of studentPaymentMap) {
+                const { data: st } = await supabase.from('students').select('total_debt').eq('id', studentId).single();
+                let currentDebt = Number(st?.total_debt) || 0;
+
+                // Only initialize debt if it was never set (null/undefined)
+                if (st?.total_debt === null || st?.total_debt === undefined) {
+                    currentDebt = totalAmount * multiplier;
+                }
+
+                const newDebt = Math.max(0, currentDebt - totalAmount);
+                await supabase.from('students').update({ total_debt: newDebt }).eq('id', studentId);
             }
 
             setSelectedIds([]);
@@ -725,6 +692,58 @@ const Payments = () => {
         if (node) observer.current.observe(node);
     }, [loadingRef.current, hasMoreRef.current]); // Dependencies for useCallback
 
+    // Database Repair Function
+    const handleRepairDB = async () => {
+        if (!confirm('DİKKAT: Bu işlem, geçmişteki hatalı 40.000 TL gibi yüksek meblağlı faturaları ve hatalı öğrenci özel fiyatlarını otomatik olarak 10\'a (veya 9\'a) bölerek düzeltecektir. Onaylıyor musunuz?')) return;
+        
+        try {
+            setLoading(true);
+            const { data: comp } = await supabase.from('companies').select('name').eq('id', profile?.company_id).single();
+            const isHalegul = (comp?.name || '').toLowerCase().includes('halegül') || (comp?.name || '').toLowerCase().includes('halegul');
+            const multiplier = isHalegul ? 9 : 10;
+
+            // 1. Fix corrupted Payments
+            const { data: badPayments } = await supabase
+                .from('payments')
+                .select('id, amount')
+                .eq('company_id', profile?.company_id)
+                .gt('amount', 20000); // Any monthly invoice > 20.000 TL is definitely corrupted
+
+            let fixedPayments = 0;
+            if (badPayments && badPayments.length > 0) {
+                for (const bp of badPayments) {
+                    const fixedAmount = Math.round(Number(bp.amount) / multiplier);
+                    await supabase.from('payments').update({ amount: fixedAmount }).eq('id', bp.id);
+                    fixedPayments++;
+                }
+            }
+
+            // 2. Fix corrupted Students custom_price
+            const { data: badStudents } = await supabase
+                .from('students')
+                .select('id, custom_price')
+                .eq('company_id', profile?.company_id)
+                .gt('custom_price', 20000);
+
+            let fixedStudents = 0;
+            if (badStudents && badStudents.length > 0) {
+                for (const bs of badStudents) {
+                    const fixedAmount = Math.round(Number(bs.custom_price) / multiplier);
+                    await supabase.from('students').update({ custom_price: fixedAmount }).eq('id', bs.id);
+                    fixedStudents++;
+                }
+            }
+
+            alert(`Onarım Tamamlandı!\n\nDüzeltilen Fatura Sayısı: ${fixedPayments}\nDüzeltilen Öğrenci Fiyatı Sayısı: ${fixedStudents}`);
+            fetchPayments(true);
+        } catch (error) {
+            console.error('Repair error:', error);
+            alert('Onarım sırasında bir hata oluştu.');
+        } finally {
+            setLoading(false);
+        }
+    };
+
     return (
         <div className="w-full px-4 md:px-8 py-8 mx-auto flex flex-col gap-8 min-h-screen">
             {/* Header */}
@@ -758,6 +777,14 @@ const Payments = () => {
                     >
                         <Plus size={20} />
                         <span>Toplu Borçlandır</span>
+                    </button>
+                    <button
+                        onClick={handleRepairDB}
+                        className="flex items-center justify-center gap-2 px-6 py-3 bg-amber-100 border border-amber-200 hover:bg-amber-200 text-amber-800 rounded-xl font-bold transition-all shadow-sm active:scale-95"
+                        title="Hatalı Yüksek Tutarlı Faturaları Düzelt"
+                    >
+                        <RotateCcw size={20} />
+                        <span className="hidden sm:inline">Veritabanı Onar</span>
                     </button>
                     <button
                         onClick={handleExportExcel}
