@@ -111,10 +111,10 @@ const StudentList: React.FC<StudentListProps> = ({
                                     {student.status === 'pending' ? (
                                         <div className="flex flex-col gap-1">
                                             <div className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-xl text-xs font-bold bg-emerald-50 text-emerald-800 border border-emerald-200/80 shadow-xs">
-                                                <span className="text-slate-500 font-medium">💰 Kayıt Ücreti:</span>
+                                                <span className="text-slate-500 font-medium">💰 Aylık Ücret:</span>
                                                 <span className="font-black text-sm text-emerald-700">
-                                                    {student.custom_price || student.total_debt 
-                                                        ? `${Number(student.custom_price || student.total_debt).toLocaleString('tr-TR')} ₺`
+                                                    {student.custom_price && Number(student.custom_price) > 0
+                                                        ? `${Number(student.custom_price).toLocaleString('tr-TR')} ₺`
                                                         : 'Belirtilmedi'}
                                                 </span>
                                             </div>

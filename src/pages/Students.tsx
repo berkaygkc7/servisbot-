@@ -360,26 +360,47 @@ const Students: React.FC = () => {
 
 
     const handleApprove = async (student: Student) => {
-        const effectivePrice = student.custom_price || student.total_debt;
-        const priceStr = (effectivePrice && Number(effectivePrice) > 0)
-            ? `${Number(effectivePrice).toLocaleString('tr-TR')} ₺`
+        // Determine monthly price: use custom_price if set, otherwise try to find from pricing rules
+        let monthlyPrice = student.custom_price ? Number(student.custom_price) : 0;
+        
+        if (!monthlyPrice && student.neighborhood) {
+            // Look up from pricing rules by neighborhood
+            const filteredRules = getFilteredNeighborhoodRules(student.school_id);
+            const normNbr = student.neighborhood?.toLocaleLowerCase('tr-TR')?.trim();
+            const rule = filteredRules.find(r => r.school_level?.toLocaleLowerCase('tr-TR')?.trim() === normNbr);
+            if (rule && rule.amount) {
+                monthlyPrice = Number(rule.amount);
+            }
+        }
+
+        // If still no monthly price but total_debt exists, derive monthly from total_debt / multiplier
+        if (!monthlyPrice && student.total_debt && Number(student.total_debt) > 0) {
+            const { data: compData } = await supabase.from('companies').select('name').eq('id', profile!.company_id).single();
+            const compName = compData?.name || '';
+            const isHalegul = compName.toLowerCase().includes('halegül') || compName.toLowerCase().includes('halegul');
+            const multiplier = isHalegul ? 9 : 10;
+            monthlyPrice = Math.round(Number(student.total_debt) / multiplier);
+        }
+
+        const priceStr = monthlyPrice > 0
+            ? `${monthlyPrice.toLocaleString('tr-TR')} ₺`
             : 'Fiyat Belirtilmedi';
 
-        if (!window.confirm(`${student.full_name || student.name} isimli öğrencinin başvurusunu onaylamak istiyor musunuz?\n\n💰 Form Kayıt Ücreti: ${priceStr}`)) {
+        if (!window.confirm(`${student.full_name || student.name} isimli öğrencinin başvurusunu onaylamak istiyor musunuz?\n\n💰 Aylık Servis Ücreti: ${priceStr}`)) {
             return;
         }
 
         try {
             const updatePayload: any = { status: 'active' };
-            if (effectivePrice && Number(effectivePrice) > 0) {
-                updatePayload.custom_price = Number(effectivePrice);
+            if (monthlyPrice > 0) {
+                updatePayload.custom_price = monthlyPrice;
             }
             const { error } = await supabase
                 .from('students')
                 .update(updatePayload)
                 .eq('id', student.id);
             if (error) throw error;
-            alert(`${student.full_name || student.name} (Anlaşılan Fiyat: ${priceStr}) başarıyla onaylandı.`);
+            alert(`${student.full_name || student.name} (Aylık Ücret: ${priceStr}) başarıyla onaylandı.`);
             fetchStudents();
         } catch (error) {
             console.error('Error approving student:', error);
@@ -714,13 +735,7 @@ const Students: React.FC = () => {
                 if (rule && rule.amount && Number(rule.amount) > 0) {
                     monthlyPrice = Number(rule.amount);
                 } else if (student.custom_price && Number(student.custom_price) > 0) {
-                    let cp = Number(student.custom_price);
-                    // If custom_price is > 12.000 TL, it was stored as annual debt by mistake
-                    if (cp > 12000) {
-                        monthlyPrice = Math.round(cp / multiplier);
-                    } else {
-                        monthlyPrice = cp;
-                    }
+                    monthlyPrice = Number(student.custom_price);
                 } else if (student.total_debt && Number(student.total_debt) > 0) {
                     let td = Number(student.total_debt);
                     monthlyPrice = Math.round(td / multiplier);
