@@ -1,7 +1,7 @@
 import React, { useState, useRef, useEffect } from 'react';
 import { Outlet, useNavigate } from 'react-router-dom';
 import Sidebar from '../components/layout/Sidebar';
-import { Bell, Search, User, Settings, LogOut, CheckCircle, Car, Map, UserSquare, X, Mail, Building, ShieldCheck, Settings2, Monitor } from 'lucide-react';
+import { Search, User, Settings, LogOut, Car, Map, UserSquare, X, Mail, Building, ShieldCheck, Settings2, Monitor } from 'lucide-react';
 import { useAuth } from '../contexts/AuthContext';
 import { supabase } from '../lib/supabase';
 
@@ -20,7 +20,6 @@ const DashboardLayout: React.FC = () => {
     }, []);
 
     const [isProfileOpen, setIsProfileOpen] = useState(false);
-    const [isNotifOpen, setIsNotifOpen] = useState(false);
     
     // Search states
     const [searchQuery, setSearchQuery] = useState('');
@@ -29,23 +28,14 @@ const DashboardLayout: React.FC = () => {
     const [showSearchResults, setShowSearchResults] = useState(false);
 
     const profileRef = useRef<HTMLDivElement>(null);
-    const notifRef = useRef<HTMLDivElement>(null);
     const searchRef = useRef<HTMLDivElement>(null);
 
     const [showAccountModal, setShowAccountModal] = useState(false);
-
-    // Mock Notifications with path
-    const [notifications, setNotifications] = useState([
-        { id: 1, title: 'Yeni Rota Oluşturuldu', desc: 'Ataşehir - Kadıköy rotası sisteme eklendi.', time: '5 dk önce', read: false, path: '/dashboard/routes' },
-        { id: 2, title: 'Ödeme Alındı', desc: 'Ahmet Yılmaz velisinden 1.500 TL tahsil edildi.', time: '1 saat önce', read: false, path: '/dashboard/expenses' },
-        { id: 3, title: 'Sistem Uyarısı', desc: 'Araç 34 ABC 123 sigorta süresi yaklaşıyor.', time: '3 saat önce', read: true, path: '/dashboard/vehicles' },
-    ]);
 
     // Outside click handlers
     useEffect(() => {
         const handleClickOutside = (event: MouseEvent) => {
             if (profileRef.current && !profileRef.current.contains(event.target as Node)) setIsProfileOpen(false);
-            if (notifRef.current && !notifRef.current.contains(event.target as Node)) setIsNotifOpen(false);
             if (searchRef.current && !searchRef.current.contains(event.target as Node)) setShowSearchResults(false);
         };
         document.addEventListener('mousedown', handleClickOutside);
@@ -116,10 +106,6 @@ const DashboardLayout: React.FC = () => {
         return () => clearTimeout(debounce);
     }, [searchQuery, profile?.company_id]);
 
-    const markAllRead = () => {
-        setNotifications(prev => prev.map(n => ({ ...n, read: true })));
-    };
-
     const handleSearchSelect = (res: any) => {
         setShowSearchResults(false);
         setSearchQuery('');
@@ -140,8 +126,6 @@ const DashboardLayout: React.FC = () => {
         else if (res.type === 'vehicle') navigate('/dashboard/vehicles');
         else if (res.type === 'route') navigate('/dashboard/routes');
     };
-
-    const unreadCount = notifications.filter(n => !n.read).length;
 
     if (isMobile) {
         return (
@@ -257,55 +241,8 @@ const DashboardLayout: React.FC = () => {
                     </div>
 
                     <div className="flex items-center gap-6 relative">
-                        
-                        {/* NOTIFICATIONS */}
-                        <div ref={notifRef}>
-                            <button 
-                                onClick={() => setIsNotifOpen(!isNotifOpen)}
-                                className={`relative p-2 transition-colors group rounded-xl ${isNotifOpen ? 'bg-blue-50 text-blue-600' : 'text-slate-500 hover:text-blue-600 hover:bg-slate-50'}`}
-                            >
-                                <Bell size={22} className={!isNotifOpen ? "group-hover:animate-bounce" : ""} />
-                                {unreadCount > 0 && (
-                                    <span className="absolute top-1.5 right-1.5 w-2.5 h-2.5 bg-red-500 rounded-full border-2 border-white animate-pulse"></span>
-                                )}
-                            </button>
-
-                            {/* NOTIF DROPDOWN */}
-                            {isNotifOpen && (
-                                <div className="absolute top-full right-0 md:right-16 mt-4 w-80 bg-white rounded-2xl shadow-xl border border-slate-100 overflow-hidden z-50 animate-fade-up">
-                                    <div className="p-4 border-b border-slate-100 flex items-center justify-between bg-slate-50/50">
-                                        <h3 className="font-bold text-slate-800">Bildirimler</h3>
-                                        {unreadCount > 0 && (
-                                            <button onClick={markAllRead} className="text-xs font-semibold text-blue-600 hover:text-blue-700 flex items-center gap-1">
-                                                <CheckCircle size={14} /> Okundu İşaretle
-                                            </button>
-                                        )}
-                                    </div>
-                                    <div className="max-h-[300px] overflow-y-auto">
-                                        {notifications.map(n => (
-                                            <div 
-                                                key={n.id} 
-                                                onClick={(e) => {
-                                                    e.stopPropagation();
-                                                    setIsNotifOpen(false);
-                                                    navigate(n.path);
-                                                }}
-                                                className={`p-4 border-b border-slate-50 hover:bg-slate-50 transition-colors cursor-pointer ${!n.read ? 'bg-blue-50/30' : ''}`}
-                                            >
-                                                <div className="flex justify-between items-start mb-1">
-                                                    <p className={`text-sm font-semibold ${!n.read ? 'text-slate-800' : 'text-slate-600'}`}>{n.title}</p>
-                                                    <span className="text-[10px] text-slate-400 font-medium whitespace-nowrap ml-2">{n.time}</span>
-                                                </div>
-                                                <p className="text-xs text-slate-500 line-clamp-2">{n.desc}</p>
-                                            </div>
-                                        ))}
-                                    </div>
-                                </div>
-                            )}
-                        </div>
-
                         {/* PROFILE */}
-                        <div className="relative border-l border-slate-200 pl-6" ref={profileRef}>
+                        <div className="relative" ref={profileRef}>
                             <button 
                                 onClick={() => setIsProfileOpen(!isProfileOpen)}
                                 className="flex items-center gap-3 text-left group"
