@@ -154,10 +154,32 @@ const Payments = () => {
                 query = query.eq('is_archived', true);
             }
 
-            if (searchQuery) {
-                // Keep search simple to the main table to avoid join issues for now
-                query = query.or(`invoice_no.ilike.%${searchQuery}%,month.ilike.%${searchQuery}%`);
+            let matchedStudentIds: string[] | null = null;
+            if (searchQuery || schoolLevelFilter !== 'all') {
+                let sq = supabase.from('students').select('id').eq('company_id', profile.company_id);
+                if (searchQuery) {
+                    sq = sq.or(`full_name.ilike.%${searchQuery}%,parent_name.ilike.%${searchQuery}%`);
+                }
+                if (schoolLevelFilter !== 'all') {
+                    sq = sq.eq('school_level', schoolLevelFilter);
+                }
+                const { data: stData } = await sq;
+                matchedStudentIds = stData ? stData.map(s => s.id) : [];
+                if (matchedStudentIds.length === 0) {
+                    matchedStudentIds = ['00000000-0000-0000-0000-000000000000'];
+                }
             }
+
+            if (searchQuery && schoolLevelFilter === 'all') {
+                query = query.or(`invoice_no.ilike.%${searchQuery}%,month.ilike.%${searchQuery}%${matchedStudentIds ? `,student_id.in.(${matchedStudentIds.join(',')})` : ''}`);
+            } else if (searchQuery && schoolLevelFilter !== 'all') {
+                // If there's a school filter, we only want payments from those students
+                query = query.in('student_id', matchedStudentIds || []);
+                query = query.or(`invoice_no.ilike.%${searchQuery}%,month.ilike.%${searchQuery}%,student_id.in.(${matchedStudentIds?.join(',') || ''})`);
+            } else if (!searchQuery && schoolLevelFilter !== 'all') {
+                query = query.in('student_id', matchedStudentIds || []);
+            }
+
             if (statusFilter !== 'all') {
                 if (statusFilter === 'gecikti') {
                     query = query.eq('status', 'Bekliyor').lt('due_date', new Date().toISOString().split('T')[0]);
@@ -168,8 +190,6 @@ const Payments = () => {
             if (monthFilter !== 'all') {
                 query = query.eq('month', monthFilter);
             }
-            // Note: schoolLevelFilter and searchQuery on joined tables are temporarily simplified 
-            // to find why the page is hanging. If this works, we will re-add them properly.
 
             const { data, error } = await query
                 .eq('company_id', profile.company_id)
