@@ -589,51 +589,7 @@ const Payments = () => {
         }
     };
 
-    const handleDeleteUnknowns = async () => {
-        if (!window.confirm('Öğrenci kaydı silinmiş veya geçersiz olan (Bilinmeyen) tüm faturaları/ödemeleri kalıcı olarak silmek istediğinize emin misiniz?')) return;
 
-        try {
-            setLoading(true);
-            
-            const { data: allPayments, error: fetchError } = await supabase
-                .from('payments')
-                .select('id, student:students(id, full_name)')
-                .eq('company_id', profile?.company_id);
-                
-            if (fetchError) throw fetchError;
-            
-            const orphanedIds = allPayments?.filter(p => {
-                if (!p.student) return true;
-                const s = Array.isArray(p.student) ? p.student[0] : p.student;
-                if (!s) return true;
-                
-                const name = (s.full_name || '').trim().toLowerCase();
-                return name === '' || name === 'bilinmiyor';
-            }).map(p => p.id) || [];
-            
-            if (orphanedIds.length > 0) {
-                const { error: deleteError } = await supabase
-                    .from('payments')
-                    .delete()
-                    .in('id', orphanedIds);
-                    
-                if (deleteError) throw deleteError;
-                alert(`${orphanedIds.length} adet geçersiz fatura başarıyla temizlendi.`);
-            } else {
-                alert('Silinecek geçersiz (Bilinmeyen) fatura bulunamadı.');
-            }
-
-            setPayments([]);
-            pageRef.current = 0;
-            hasMoreRef.current = true;
-            fetchPayments(true);
-        } catch (error) {
-            console.error('Error deleting unknown payments:', error);
-            alert('Silme işlemi sırasında hata oluştu.');
-        } finally {
-            setLoading(false);
-        }
-    };
 
     const handleDeleteAll = async () => {
         if (!window.confirm('DİKKAT: Tüm ödeme kayıtlarını (faturaları) kalıcı olarak silmek istediğinize emin misiniz? Bu işlem geri alınamaz!')) return;
@@ -692,63 +648,7 @@ const Payments = () => {
         if (node) observer.current.observe(node);
     }, [loadingRef.current, hasMoreRef.current]); // Dependencies for useCallback
 
-    // Database Repair Function
-    const handleRepairDB = async () => {
-        if (!confirm('DİKKAT: Bu işlem, geçmişteki hatalı 40.000 TL gibi yüksek meblağlı faturaları ve hatalı öğrenci özel fiyatlarını otomatik olarak 10\'a (veya 9\'a) bölerek düzeltecektir. Onaylıyor musunuz?')) return;
-        
-        try {
-            setLoading(true);
-            const { data: comp } = await supabase.from('companies').select('name').eq('id', profile?.company_id).single();
-            const isHalegul = (comp?.name || '').toLowerCase().includes('halegül') || (comp?.name || '').toLowerCase().includes('halegul');
-            const multiplier = isHalegul ? 9 : 10;
 
-            // 1. Fix corrupted Payments
-            const { data: badPayments } = await supabase
-                .from('payments')
-                .select('id, amount')
-                .eq('company_id', profile?.company_id)
-                .gt('amount', 20000); // Any monthly invoice > 20.000 TL is definitely corrupted
-
-            let fixedPayments = 0;
-            if (badPayments && badPayments.length > 0) {
-                for (const bp of badPayments) {
-                    const fixedAmount = Math.round(Number(bp.amount) / multiplier);
-                    await supabase.from('payments').update({ amount: fixedAmount }).eq('id', bp.id);
-                    fixedPayments++;
-                }
-            }
-
-            // 2. Fix corrupted Students custom_price and total_debt
-            const { data: badStudents } = await supabase
-                .from('students')
-                .select('id, custom_price, total_debt')
-                .eq('company_id', profile?.company_id)
-                .or('custom_price.gt.20000,total_debt.gt.100000');
-
-            let fixedStudents = 0;
-            if (badStudents && badStudents.length > 0) {
-                for (const bs of badStudents) {
-                    const updates: any = {};
-                    if (Number(bs.custom_price) > 20000) {
-                        updates.custom_price = Math.round(Number(bs.custom_price) / multiplier);
-                    }
-                    if (Number(bs.total_debt) > 100000) {
-                        updates.total_debt = Math.round(Number(bs.total_debt) / multiplier);
-                    }
-                    await supabase.from('students').update(updates).eq('id', bs.id);
-                    fixedStudents++;
-                }
-            }
-
-            alert(`Onarım Tamamlandı!\n\nDüzeltilen Fatura Sayısı: ${fixedPayments}\nDüzeltilen Öğrenci Fiyatı Sayısı: ${fixedStudents}`);
-            fetchPayments(true);
-        } catch (error) {
-            console.error('Repair error:', error);
-            alert('Onarım sırasında bir hata oluştu.');
-        } finally {
-            setLoading(false);
-        }
-    };
 
     return (
         <div className="w-full px-4 md:px-8 py-8 mx-auto flex flex-col gap-8 min-h-screen">
@@ -769,14 +669,7 @@ const Payments = () => {
                         <Trash2 size={20} />
                         <span className="hidden sm:inline">Tümünü Sil</span>
                     </button>
-                    <button
-                        onClick={handleDeleteUnknowns}
-                        className="flex-1 md:flex-none flex items-center justify-center gap-2 px-6 py-3 bg-red-50 hover:bg-red-100 text-red-600 rounded-xl font-bold transition-all shadow-sm active:scale-95 border border-red-200"
-                        title="Geçersiz (Öğrencisi olmayan) ödemeleri temizle"
-                    >
-                        <Trash2 size={20} />
-                        <span className="hidden sm:inline">Bilinmeyenleri Temizle</span>
-                    </button>
+
                     <button
                         onClick={() => setIsBulkBillingModalOpen(true)}
                         className="flex-1 md:flex-none flex items-center justify-center gap-2 px-6 py-3 bg-blue-600 hover:bg-blue-700 text-white rounded-xl font-bold transition-all shadow-md active:scale-95"
@@ -784,14 +677,7 @@ const Payments = () => {
                         <Plus size={20} />
                         <span>Toplu Borçlandır</span>
                     </button>
-                    <button
-                        onClick={handleRepairDB}
-                        className="flex items-center justify-center gap-2 px-6 py-3 bg-amber-100 border border-amber-200 hover:bg-amber-200 text-amber-800 rounded-xl font-bold transition-all shadow-sm active:scale-95"
-                        title="Hatalı Yüksek Tutarlı Faturaları Düzelt"
-                    >
-                        <RotateCcw size={20} />
-                        <span className="hidden sm:inline">Veritabanı Onar</span>
-                    </button>
+
                     <button
                         onClick={handleExportExcel}
                         className="flex items-center justify-center gap-2 px-6 py-3 bg-white border border-slate-200 hover:bg-slate-50 text-slate-700 rounded-xl font-bold transition-all shadow-sm active:scale-95"
