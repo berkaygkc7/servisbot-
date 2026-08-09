@@ -689,109 +689,101 @@ const Payments = () => {
             </div>
 
             {/* Financial Highlights (Stats) - 4 Cards Grid */}
-            <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4 md:gap-6 shrink-0">
+            <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4 md:gap-5 shrink-0">
                 {/* Collected */}
                 <div 
                     onClick={() => setStatusFilter('Ödendi')}
-                    className="cursor-pointer bg-white p-5 md:p-6 rounded-3xl shadow-sm border border-slate-100 flex items-center justify-between transition-transform hover:scale-[1.02]"
+                    className="cursor-pointer bg-white p-4 md:p-5 rounded-2xl shadow-[0_2px_10px_-3px_rgba(6,81,237,0.1)] border border-slate-100 flex items-center justify-between transition-all hover:shadow-md hover:-translate-y-1 group"
                 >
                     <div>
-                        <p className="text-slate-500 font-bold uppercase tracking-wider text-xs mb-1">Tahsil Edilen (Kasa)</p>
-                        <h3 className="text-2xl lg:text-3xl font-black text-emerald-600">{stats.collected.toLocaleString('tr-TR')} ₺</h3>
+                        <p className="text-slate-500 font-bold uppercase tracking-wider text-[11px] mb-1">Tahsil Edilen (Kasa)</p>
+                        <h3 className="text-xl lg:text-2xl font-black text-emerald-600 transition-colors group-hover:text-emerald-700">{stats.collected.toLocaleString('tr-TR')} ₺</h3>
                     </div>
-                    <div className="w-12 h-12 bg-emerald-50 text-emerald-600 rounded-2xl flex items-center justify-center shrink-0">
-                        <TrendingUp size={24} />
+                    <div className="w-10 h-10 bg-emerald-50 text-emerald-600 rounded-xl flex items-center justify-center shrink-0 transition-transform group-hover:scale-110">
+                        <TrendingUp size={20} />
                     </div>
                 </div>
 
-                {/* Total Receivables */}
+                {/* Pending */}
                 <div 
                     onClick={() => setStatusFilter('Bekliyor')}
-                    className="cursor-pointer bg-white p-5 md:p-6 rounded-3xl shadow-sm border border-slate-100 flex items-center justify-between transition-transform hover:scale-[1.02]"
+                    className="cursor-pointer bg-white p-4 md:p-5 rounded-2xl shadow-[0_2px_10px_-3px_rgba(6,81,237,0.1)] border border-slate-100 flex items-center justify-between transition-all hover:shadow-md hover:-translate-y-1 group"
                 >
                     <div>
-                        <p className="text-slate-500 font-bold uppercase tracking-wider text-xs mb-1">Bu Ay Bekleyen Alacak</p>
-                        <h3 className="text-2xl lg:text-3xl font-black text-blue-600">{stats.receivable.toLocaleString('tr-TR')} ₺</h3>
+                        <p className="text-slate-500 font-bold uppercase tracking-wider text-[11px] mb-1">Bekleyen Alacak</p>
+                        <h3 className="text-xl lg:text-2xl font-black text-blue-600 transition-colors group-hover:text-blue-700">{stats.receivable.toLocaleString('tr-TR')} ₺</h3>
                     </div>
-                    <div className="w-12 h-12 bg-blue-50 text-blue-600 rounded-2xl flex items-center justify-center shrink-0">
-                        <FileText size={24} />
+                    <div className="w-10 h-10 bg-blue-50 text-blue-600 rounded-xl flex items-center justify-center shrink-0 transition-transform group-hover:scale-110">
+                        <FileText size={20} />
                     </div>
                 </div>
 
                 {/* Overdue */}
                 <div 
                     onClick={() => setStatusFilter('gecikti')}
-                    className="cursor-pointer bg-red-50 p-5 md:p-6 rounded-3xl shadow-sm border border-red-100 flex items-center justify-between relative overflow-hidden transition-transform hover:scale-[1.02]"
+                    className="cursor-pointer bg-white p-4 md:p-5 rounded-2xl shadow-[0_2px_10px_-3px_rgba(6,81,237,0.1)] border border-red-100 flex items-center justify-between transition-all hover:shadow-md hover:-translate-y-1 relative overflow-hidden group"
                 >
+                    <div className="absolute inset-0 bg-gradient-to-br from-red-50/50 to-transparent opacity-0 group-hover:opacity-100 transition-opacity" />
                     <div className="z-10 relative">
-                        <p className="text-red-600/80 font-bold uppercase tracking-wider text-xs mb-1">Gecikmiş (Riskli) Alacak</p>
-                        <h3 className="text-2xl lg:text-3xl font-black text-red-700">{stats.overdue.toLocaleString('tr-TR')} ₺</h3>
+                        <p className="text-red-600/80 font-bold uppercase tracking-wider text-[11px] mb-1">Gecikmiş (Riskli) Alacak</p>
+                        <h3 className="text-xl lg:text-2xl font-black text-red-700">{stats.overdue.toLocaleString('tr-TR')} ₺</h3>
                     </div>
-                    <div className="w-12 h-12 bg-red-100 text-red-600 rounded-2xl flex items-center justify-center z-10 relative shrink-0">
-                        <AlertTriangle size={24} />
+                    <div className="w-10 h-10 bg-red-100 text-red-600 rounded-xl flex items-center justify-center z-10 relative shrink-0 transition-transform group-hover:scale-110">
+                        <AlertTriangle size={20} />
                     </div>
                 </div>
 
                 {/* Total Annual Remaining Debt */}
                 <div 
-                    className="bg-gradient-to-br from-indigo-900 to-slate-900 p-5 md:p-6 rounded-3xl shadow-md border border-indigo-800/50 text-white flex items-center justify-between transition-transform hover:scale-[1.02] relative overflow-hidden"
+                    className="bg-gradient-to-br from-slate-800 to-slate-900 p-4 md:p-5 rounded-2xl shadow-md border border-slate-700 text-white flex items-center justify-between transition-transform hover:-translate-y-1 relative overflow-hidden group"
                 >
+                    <div className="absolute inset-0 bg-white/5 opacity-0 group-hover:opacity-100 transition-opacity" />
                     <div className="z-10 relative">
-                        <p className="text-indigo-200/90 font-bold uppercase tracking-wider text-xs mb-1">Toplam Yıllık Kalan Alacak</p>
-                        <h3 className="text-2xl lg:text-3xl font-black text-indigo-300">{(stats.annualRemaining || 0).toLocaleString('tr-TR')} ₺</h3>
+                        <p className="text-slate-300 font-bold uppercase tracking-wider text-[11px] mb-1">Yıllık Kalan Alacak</p>
+                        <h3 className="text-xl lg:text-2xl font-black text-white">{(stats.annualRemaining || 0).toLocaleString('tr-TR')} ₺</h3>
                     </div>
-                    <div className="w-12 h-12 bg-white/10 text-indigo-300 rounded-2xl flex items-center justify-center z-10 relative shrink-0 backdrop-blur-sm">
-                        <span className="text-xl">💰</span>
+                    <div className="w-10 h-10 bg-white/10 text-white rounded-xl flex items-center justify-center z-10 relative shrink-0 backdrop-blur-sm transition-transform group-hover:scale-110">
+                        <span className="text-lg">💰</span>
                     </div>
                 </div>
             </div>
 
             {/* Filters and Search */}
-            <div className="bg-white p-4 rounded-t-2xl border border-b-0 border-slate-100 flex flex-col md:flex-row gap-4 items-center justify-between shadow-sm">
-                <div className="flex gap-2 w-full"> {/* Adjusted for search and checkbox */}
+            <div className="bg-white p-3 md:p-4 rounded-t-2xl border border-b-0 border-slate-100 flex flex-col xl:flex-row gap-3 items-center justify-between shadow-sm mt-2">
+                <div className="flex gap-2 w-full xl:w-2/5">
                     <div className="relative flex-1">
-                        <Search className="absolute left-3 top-1/2 -translate-y-1/2 text-slate-400" size={20} />
+                        <Search className="absolute left-3 top-1/2 -translate-y-1/2 text-slate-400" size={18} />
                         <input
                             type="text"
-                            placeholder="Öğrenci Adı, Veli Adı veya Fatura No ile arayın..."
+                            placeholder="İsim veya Fatura No..."
                             value={searchQuery}
                             onChange={(e) => setSearchQuery(e.target.value)}
-                            className="w-full pl-10 pr-4 py-2 border border-slate-200 rounded-xl focus:ring-2 focus:ring-blue-500 focus:border-blue-500 outline-none transition-all shadow-sm bg-white"
+                            className="w-full pl-9 pr-4 py-2 border border-slate-200 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500 outline-none transition-all shadow-sm bg-slate-50 hover:bg-white text-sm"
                         />
                     </div>
-
-                    <label className="flex items-center gap-2 cursor-pointer bg-white px-4 py-2 rounded-xl border border-slate-200 shadow-sm hover:bg-slate-50 transition-colors">
-                        <input
-                            type="checkbox"
-                            checked={showArchived}
-                            onChange={(e) => setShowArchived(e.target.checked)}
-                            className="w-5 h-5 rounded border-slate-300 text-slate-600 focus:ring-slate-500"
-                        />
-                        <span className="text-sm font-bold text-slate-700">Arşivi Göster</span>
-                    </label>
                 </div>
 
-                <div className="flex gap-2 w-full md:w-auto flex-wrap">
-                    <div className="relative">
-                        <Filter size={18} className="absolute left-3 top-1/2 -translate-y-1/2 text-slate-500 pointer-events-none" />
+                <div className="flex gap-2 w-full xl:w-auto flex-wrap md:flex-nowrap">
+                    <div className="relative flex-1 md:flex-none min-w-[140px]">
+                        <Filter size={16} className="absolute left-3 top-1/2 -translate-y-1/2 text-slate-500 pointer-events-none" />
                         <select
                             value={statusFilter}
                             onChange={(e) => setStatusFilter(e.target.value)}
-                            className="appearance-none pl-10 pr-10 py-3 bg-slate-50 border border-slate-200 rounded-xl focus:outline-none focus:ring-2 focus:ring-blue-500/20 focus:border-blue-500 transition-all text-sm font-bold text-slate-600 cursor-pointer"
+                            className="w-full appearance-none pl-9 pr-8 py-2 bg-slate-50 border border-slate-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500/20 focus:border-blue-500 transition-all text-sm font-semibold text-slate-700 cursor-pointer hover:bg-white"
                         >
                             <option value="all">Tüm Durumlar</option>
                             <option value="Bekliyor">Bekleyenler</option>
                             <option value="Ödendi">Ödenenler</option>
-                            <option value="gecikti">Sadece Gecikenler</option>
+                            <option value="gecikti">Gecikenler</option>
                         </select>
                     </div>
 
                     <select
                         value={schoolLevelFilter}
                         onChange={(e) => setSchoolLevelFilter(e.target.value)}
-                        className="py-3 px-4 bg-slate-50 border border-slate-200 rounded-xl focus:outline-none focus:ring-2 focus:ring-blue-500/20 focus:border-blue-500 transition-all text-sm font-bold text-slate-600 cursor-pointer"
+                        className="flex-1 md:flex-none min-w-[140px] py-2 px-3 bg-slate-50 border border-slate-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500/20 focus:border-blue-500 transition-all text-sm font-semibold text-slate-700 cursor-pointer hover:bg-white"
                     >
-                        <option value="all">Tüm Okul Kademeleri</option>
+                        <option value="all">Kademeler</option>
                         {availableSchoolLevels.map(sl => {
                             let displaySl = sl;
                             if (sl === 'primary') displaySl = 'İlkokul';
@@ -804,13 +796,23 @@ const Payments = () => {
                     <select
                         value={monthFilter}
                         onChange={(e) => setMonthFilter(e.target.value)}
-                        className="py-3 px-4 bg-slate-50 border border-slate-200 rounded-xl focus:outline-none focus:ring-2 focus:ring-blue-500/20 focus:border-blue-500 transition-all text-sm font-bold text-slate-600 cursor-pointer"
+                        className="flex-1 md:flex-none min-w-[120px] py-2 px-3 bg-slate-50 border border-slate-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500/20 focus:border-blue-500 transition-all text-sm font-semibold text-slate-700 cursor-pointer hover:bg-white"
                     >
                         <option value="all">Tüm Aylar</option>
                         {availableMonths.map(m => (
                             <option key={m} value={m}>{m}</option>
                         ))}
                     </select>
+                    
+                    <label className="flex flex-1 md:flex-none items-center justify-center gap-2 cursor-pointer bg-white px-3 py-2 rounded-lg border border-slate-200 shadow-sm hover:bg-slate-50 transition-colors">
+                        <input
+                            type="checkbox"
+                            checked={showArchived}
+                            onChange={(e) => setShowArchived(e.target.checked)}
+                            className="w-4 h-4 rounded border-slate-300 text-blue-600 focus:ring-blue-500"
+                        />
+                        <span className="text-sm font-semibold text-slate-700 whitespace-nowrap">Arşiv</span>
+                    </label>
                 </div>
             </div>
 

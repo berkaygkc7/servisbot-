@@ -111,9 +111,16 @@ const PaymentList: React.FC<PaymentListProps> = ({ payments, selectedIds, onTogg
                                             <div className="text-xs text-slate-500 font-mono mt-1">#{payment.invoice_no}</div>
                                         </td>
                                         <td className="px-6 py-4">
-                                            <div className="font-bold text-slate-800">{payment.student?.full_name || 'Bilinmiyor'}</div>
-                                            <div className="text-xs text-slate-500 flex items-center gap-1 mt-0.5">
-                                                {payment.student?.parent_name || 'Veli Yok'}
+                                            <div className="flex items-center gap-3">
+                                                <div className="w-8 h-8 rounded-full bg-gradient-to-br from-blue-100 to-indigo-100 flex items-center justify-center text-blue-700 font-bold text-xs shrink-0 shadow-sm border border-blue-200/50">
+                                                    {(payment.student?.full_name || 'B').charAt(0).toUpperCase()}
+                                                </div>
+                                                <div>
+                                                    <div className="font-bold text-slate-800">{payment.student?.full_name || 'Bilinmiyor'}</div>
+                                                    <div className="text-xs text-slate-500 flex items-center gap-1 mt-0.5">
+                                                        {payment.student?.parent_name || 'Veli Yok'}
+                                                    </div>
+                                                </div>
                                             </div>
                                              {(() => {
                                                  const rawDebt = payment.student?.total_debt;
@@ -138,8 +145,8 @@ const PaymentList: React.FC<PaymentListProps> = ({ payments, selectedIds, onTogg
                                             </div>
                                         </td>
                                         <td className="px-6 py-4">
-                                            <span className={`inline-flex items-center gap-1.5 px-3 py-1 rounded-full text-xs font-bold border ${config.bg} ${config.color} ${config.border}`}>
-                                                <StatusIcon size={14} />
+                                            <span className={`inline-flex items-center gap-1.5 px-3 py-1 rounded-full text-[11px] font-black uppercase tracking-wider border shadow-sm ${config.bg} ${config.color} ${config.border}`}>
+                                                <StatusIcon size={12} strokeWidth={3} />
                                                 {displayStatus}
                                             </span>
                                         </td>
