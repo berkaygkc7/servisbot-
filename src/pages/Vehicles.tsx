@@ -461,6 +461,7 @@ const Vehicles: React.FC = () => {
                                 size: A4 portrait;
                                 margin: 12mm;
                             }
+                            /* Hide everything first */
                             html, body, #root, main, div {
                                 height: auto !important;
                                 overflow: visible !important;
@@ -468,6 +469,28 @@ const Vehicles: React.FC = () => {
                                 background: white !important;
                                 box-shadow: none !important;
                                 border: none !important;
+                                margin: 0 !important;
+                                padding: 0 !important;
+                            }
+                            body {
+                                padding: 0 !important;
+                                margin: 0 !important;
+                            }
+                            /* Hide sidebar, header, and all navigation elements */
+                            .h-screen.w-64.fixed,
+                            aside,
+                            nav,
+                            header,
+                            .glass-panel-dark,
+                            .ml-64 > header,
+                            [class*="glass-panel-dark"] {
+                                display: none !important;
+                            }
+                            /* Remove main content left margin (sidebar offset) */
+                            .ml-64, main.ml-64, [class*="ml-64"] {
+                                margin-left: 0 !important;
+                                padding: 0 !important;
+                                width: 100% !important;
                             }
                             .no-print {
                                 display: none !important;
@@ -486,12 +509,15 @@ const Vehicles: React.FC = () => {
                                 background: white !important;
                                 color: black !important;
                                 z-index: 999999 !important;
+                                padding: 0 !important;
+                                margin: 0 !important;
                             }
                             .print-manifest-table {
                                 width: 100% !important;
                                 border-collapse: collapse !important;
                                 margin-top: 10px !important;
                                 font-size: 10pt !important;
+                                page-break-inside: auto !important;
                             }
                             .print-manifest-table th, .print-manifest-table td {
                                 border: 1px solid #475569 !important;
@@ -506,6 +532,8 @@ const Vehicles: React.FC = () => {
                                 background-color: #f1f5f9 !important;
                                 font-weight: bold !important;
                                 color: #0f172a !important;
+                                -webkit-print-color-adjust: exact !important;
+                                print-color-adjust: exact !important;
                             }
                             .print-manifest-table tr {
                                 page-break-inside: avoid !important;
@@ -513,6 +541,13 @@ const Vehicles: React.FC = () => {
                             }
                             .print-manifest-table thead {
                                 display: table-header-group !important;
+                            }
+                            .print-manifest-table tbody {
+                                page-break-inside: auto !important;
+                            }
+                            .print-manifest-table tbody tr {
+                                page-break-inside: avoid !important;
+                                break-inside: avoid !important;
                             }
                         }
                     `}</style>

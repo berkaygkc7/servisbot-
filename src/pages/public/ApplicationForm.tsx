@@ -451,7 +451,7 @@ const ApplicationForm: React.FC = () => {
                                     <select
                                         name="schoolId"
                                         value={formData.schoolId}
-                                        onChange={(e: any) => handleChange(e)}
+                                        onChange={(e: any) => { handleChange(e); setFormData(prev => ({ ...prev, schoolId: e.target.value, neighborhood: '' })); }}
                                         className="appearance-none block w-full pl-11 pr-10 py-3.5 border border-slate-200 rounded-xl focus:outline-none focus:ring-2 focus:ring-blue-500/20 focus:border-blue-500 font-medium text-slate-800 transition-colors bg-white select-arrow"
                                         disabled={submitting}
                                     >
@@ -474,16 +474,20 @@ const ApplicationForm: React.FC = () => {
                                         name="neighborhood"
                                         value={formData.neighborhood}
                                         onChange={handleChange as any}
-                                        className="w-full px-4 py-3 bg-white border border-slate-200 rounded-xl focus:outline-none focus:ring-2 focus:ring-blue-500/20 focus:border-blue-500 transition-all font-medium text-slate-700"
+                                        disabled={!formData.schoolId || submitting}
+                                        className={`w-full px-4 py-3 border rounded-xl focus:outline-none focus:ring-2 focus:ring-blue-500/20 focus:border-blue-500 transition-all font-medium ${!formData.schoolId ? 'bg-slate-100 border-slate-200 text-slate-400 cursor-not-allowed' : 'bg-white border-slate-200 text-slate-700'}`}
                                     >
-                                        <option value="">Lütfen Mahalle Seçin</option>
-                                        {availableNeighborhoods.map((n: any, i: number) => {
+                                        <option value="">{!formData.schoolId ? 'Önce okul seçiniz...' : 'Lütfen Mahalle Seçin'}</option>
+                                        {formData.schoolId && availableNeighborhoods.map((n: any, i: number) => {
                                             const name = safeRender(n);
                                             const amountStr = typeof n === 'object' && n.amount ? ` (${Number(n.amount).toLocaleString('tr-TR')} ₺)` : '';
                                             return <option key={i} value={name}>{name}{amountStr}</option>;
                                         })}
-                                        <option value="Diğer">Diğer (Listede Yok)</option>
+                                        {formData.schoolId && <option value="Diğer">Diğer (Listede Yok)</option>}
                                     </select>
+                                    {!formData.schoolId && (
+                                        <p className="text-xs text-amber-600 mt-1 ml-1 font-medium">⚠ Mahalle seçebilmek için önce okul seçmelisiniz.</p>
+                                    )}
                                 </div>
                             </div>
                         )}
