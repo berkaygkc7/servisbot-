@@ -456,25 +456,31 @@ const Vehicles: React.FC = () => {
             {isStudentsModalOpen && selectedVehicleForStudents && (
                 <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/50 backdrop-blur-sm vehicle-student-modal-container">
                     <style>{`
-                        @media print {
-                            @page {
-                                size: A4 portrait;
-                                margin: 12mm;
-                            }
-                            body * {
-                                visibility: hidden !important;
-                            }
-                            .print-only-manifest, .print-only-manifest * {
-                                visibility: visible !important;
-                            }
-                            .print-only-manifest {
-                                position: absolute !important;
-                                left: 0 !important;
-                                top: 0 !important;
-                                width: 100% !important;
-                                margin: 0 !important;
-                                padding: 0 !important;
-                            }
+                            @media print {
+                                @page {
+                                    size: A4 portrait;
+                                    margin: 12mm;
+                                }
+                                html, body, #root, main, div {
+                                    height: auto !important;
+                                    overflow: visible !important;
+                                    position: static !important;
+                                }
+                                body * {
+                                    visibility: hidden !important;
+                                }
+                                .print-only-manifest, .print-only-manifest * {
+                                    visibility: visible !important;
+                                }
+                                .print-only-manifest {
+                                    display: block !important;
+                                    position: absolute !important;
+                                    left: 0 !important;
+                                    top: 0 !important;
+                                    width: 100% !important;
+                                    margin: 0 !important;
+                                    padding: 0 !important;
+                                }
                             .print-manifest-table {
                                 width: 100% !important;
                                 border-collapse: collapse !important;
