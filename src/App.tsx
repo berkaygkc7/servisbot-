@@ -1,6 +1,7 @@
 import { BrowserRouter, Routes, Route, Navigate } from 'react-router-dom';
 import Navbar from './components/layout/Navbar';
 import Hero from './components/home/Hero';
+import LiveStatsSection from './components/home/LiveStatsSection';
 import FeatureSection from './components/home/FeatureSection';
 import MobileAppShowcase from './components/home/MobileAppShowcase';
 
@@ -63,6 +64,7 @@ const LandingPage = () => {
     <div className="min-h-screen bg-slate-50 relative">
       <Navbar />
       <Hero />
+      <LiveStatsSection />
       <FeatureSection />
       <MobileAppShowcase />
       <Footer />
