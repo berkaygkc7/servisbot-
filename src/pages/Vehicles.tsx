@@ -4,6 +4,7 @@ import VehicleList, { type Vehicle } from '../components/dashboard/VehicleList';
 import { supabase } from '../lib/supabase';
 import { useAuth } from '../contexts/AuthContext';
 import MapScene from '../components/map/MapScene';
+import VehicleProfileModal from '../components/VehicleProfileModal';
 
 
 
@@ -26,6 +27,10 @@ const Vehicles: React.FC = () => {
     const [vehicleStudents, setVehicleStudents] = useState<any[]>([]);
     const [loadingVehicleStudents, setLoadingVehicleStudents] = useState(false);
     const [studentSearchTerm, setStudentSearchTerm] = useState('');
+
+    // Profile Modal State
+    const [isProfileModalOpen, setIsProfileModalOpen] = useState(false);
+    const [selectedVehicleProfile, setSelectedVehicleProfile] = useState<Vehicle | null>(null);
 
     // Form State
     const [formData, setFormData] = useState<Partial<Vehicle>>({});
@@ -301,6 +306,11 @@ const Vehicles: React.FC = () => {
         }
     };
 
+    const handleShowProfile = (vehicle: Vehicle) => {
+        setSelectedVehicleProfile(vehicle);
+        setIsProfileModalOpen(true);
+    };
+
     const filteredVehicles = vehicles.filter(v => {
         const plateStr = v.plate ? v.plate.toLowerCase() : '';
         const driverStr = v.driver ? v.driver.toLowerCase() : '';
@@ -355,6 +365,7 @@ const Vehicles: React.FC = () => {
                         onDelete={handleDeleteClick}
                         onShowLocation={handleShowLocation}
                         onShowStudents={handleShowStudents}
+                        onShowProfile={handleShowProfile}
                     />
                 </div>
             )}
@@ -635,6 +646,12 @@ const Vehicles: React.FC = () => {
                     </div>
                 </div>
             )}
+
+            <VehicleProfileModal 
+                isOpen={isProfileModalOpen}
+                onClose={() => setIsProfileModalOpen(false)}
+                vehicle={selectedVehicleProfile}
+            />
         </div>
     );
 };

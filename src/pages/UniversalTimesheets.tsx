@@ -22,7 +22,7 @@ import {
 } from 'lucide-react';
 import { supabase } from '../lib/supabase';
 import { useAuth } from '../contexts/AuthContext';
-import VehicleTimesheetReportModal from '../components/VehicleTimesheetReportModal';
+import { useAuth } from '../contexts/AuthContext';
 
 interface TaxRate {
     id: string;
@@ -75,7 +75,7 @@ const UniversalTimesheets: React.FC = () => {
     const [saving, setSaving] = useState(false);
     const [errorMsg, setErrorMsg] = useState<string | null>(null);
     const [usingFallback, setUsingFallback] = useState(false);
-    const [showReportModal, setShowReportModal] = useState(false);
+    const [vehicles, setVehicles] = useState<{id: string, plate: string}[]>([]);
 
     // Edit controls for sheet settings
     const [showConfigModal, setShowConfigModal] = useState(false);
@@ -118,6 +118,16 @@ const UniversalTimesheets: React.FC = () => {
 
     // Fetch or initialize timesheet for selected month/year
     const periodKey = `${selectedYear}_${selectedMonth}`;
+
+    useEffect(() => {
+        if (profile?.company_id) {
+            const getVehicles = async () => {
+                const { data } = await supabase.from('vehicles').select('id, plate_number').eq('company_id', profile.company_id);
+                if (data) setVehicles(data.map(v => ({ id: v.id, plate: v.plate_number })));
+            };
+            getVehicles();
+        }
+    }, [profile?.company_id]);
 
     const loadTimesheetData = async () => {
         setLoading(true);
@@ -975,19 +985,6 @@ const UniversalTimesheets: React.FC = () => {
                     <button
                         onClick={handleExportExcel}
                         className="flex items-center gap-1.5 px-4 py-2 bg-emerald-600 hover:bg-emerald-700 text-white text-xs font-bold rounded-xl transition-all shadow-md shadow-emerald-600/10 active:scale-95"
-                        title="Excel İndir (.xlsx)"
-                    >
-                        <FileSpreadsheet size={15} />
-                        <span>Excel'e Aktar</span>
-                    </button>
-                    <button
-                        onClick={() => setShowReportModal(true)}
-                        className="flex items-center gap-1.5 px-4 py-2 bg-indigo-600 hover:bg-indigo-700 text-white text-xs font-bold rounded-xl transition-all shadow-md shadow-indigo-600/10 active:scale-95"
-                        title="Araç Raporu Al (.xlsx)"
-                    >
-                        <Car size={15} />
-                        <span>Araç Raporu Al</span>
-                    </button>
                     <button
                         onClick={handleShare}
                         className="flex items-center gap-1.5 px-4 py-2 bg-blue-500 hover:bg-blue-600 text-white text-xs font-bold rounded-xl transition-all shadow-md shadow-blue-500/10"
@@ -1143,12 +1140,16 @@ const UniversalTimesheets: React.FC = () => {
                                                     {/* Unique Identifier */}
                                                     <td className="p-3 font-semibold text-slate-500 font-mono whitespace-nowrap">
                                                         {isEditing ? (
-                                                            <input 
-                                                                type="text"
+                                                            <select
                                                                 className="px-2 py-1 bg-slate-50 border border-slate-200 rounded focus:outline-none min-w-[100px]"
                                                                 value={rowEditValues.unique_identifier || ''}
                                                                 onChange={e => setRowEditValues({ ...rowEditValues, unique_identifier: e.target.value })}
-                                                            />
+                                                            >
+                                                                <option value="">Seçiniz</option>
+                                                                {vehicles.map(v => (
+                                                                    <option key={v.id} value={v.plate}>{v.plate}</option>
+                                                                ))}
+                                                            </select>
                                                         ) : (
                                                             row.unique_identifier || '-'
                                                         )}
@@ -1838,17 +1839,10 @@ const UniversalTimesheets: React.FC = () => {
                                 Kaydet
                             </button>
                         </div>
+                        </div>
                     </div>
                 </div>
             )}
-
-            <VehicleTimesheetReportModal 
-                isOpen={showReportModal}
-                onClose={() => setShowReportModal(false)}
-                timesheetId={timesheet?.id}
-                month={selectedMonth}
-                year={selectedYear}
-            />
         </div>
     );
 };

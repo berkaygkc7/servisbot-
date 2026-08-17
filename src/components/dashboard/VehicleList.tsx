@@ -1,5 +1,5 @@
 import React from 'react';
-import { Edit, Trash2, MapPin, Users } from 'lucide-react';
+import { Edit, Trash2, MapPin, Users, Activity } from 'lucide-react';
 
 export interface Vehicle {
     id: string;
@@ -20,9 +20,10 @@ interface VehicleListProps {
     onDelete: (id: string) => void;
     onShowLocation: (vehicle: Vehicle) => void;
     onShowStudents?: (vehicle: Vehicle) => void;
+    onShowProfile?: (vehicle: Vehicle) => void;
 }
 
-const VehicleList: React.FC<VehicleListProps> = ({ vehicles, onEdit, onDelete, onShowLocation, onShowStudents }) => {
+const VehicleList: React.FC<VehicleListProps> = ({ vehicles, onEdit, onDelete, onShowLocation, onShowStudents, onShowProfile }) => {
     const getStatusColor = (status: Vehicle['status']) => {
         switch (status) {
             case 'active': return 'bg-emerald-100 text-emerald-700';
@@ -100,6 +101,15 @@ const VehicleList: React.FC<VehicleListProps> = ({ vehicles, onEdit, onDelete, o
                                 </td>
                                 <td className="p-4 text-right">
                                     <div className="flex items-center justify-end gap-1.5 opacity-0 group-hover:opacity-100 transition-opacity">
+                                        {onShowProfile && (
+                                            <button
+                                                onClick={() => onShowProfile(vehicle)}
+                                                className="p-2 hover:bg-indigo-50 rounded-lg text-slate-400 hover:text-indigo-600 transition-colors"
+                                                title="Araç Profilini Gör"
+                                            >
+                                                <Activity size={16} />
+                                            </button>
+                                        )}
                                         <button
                                             onClick={() => onShowStudents && onShowStudents(vehicle)}
                                             className="p-2 hover:bg-indigo-50 rounded-lg text-slate-400 hover:text-indigo-600 transition-colors"
