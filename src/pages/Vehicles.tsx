@@ -466,14 +466,15 @@ const Vehicles: React.FC = () => {
                             
                             /* HIDE GLOBAL UI ELEMENTS */
                             aside, nav, header, .fixed.w-64, [class*="glass-panel-dark"] {
-                                display: none !important;
-                            }
-                            
-                            /* RESET LAYOUT MARGINS */
-                            .ml-64, main.ml-64, [class*="ml-64"] {
+                                di                            /* RESET GLOBAL WRAPPERS */
+                            body, html, #root, .flex.h-screen, main, [class*="ml-64"] {
+                                height: auto !important;
+                                min-height: auto !important;
+                                overflow: visible !important;
                                 margin: 0 !important;
                                 padding: 0 !important;
                                 width: 100% !important;
+                                background: white !important;
                             }
                             
                             /* HIDE EVERYTHING WITH NO-PRINT */
@@ -486,123 +487,40 @@ const Vehicles: React.FC = () => {
                                 position: static !important;
                                 background: transparent !important;
                                 padding: 0 !important;
+                                height: auto !important;
+                                overflow: visible !important;
                                 display: block !important;
-                            }
-                            
-                            /* SHOW THE MANIFEST */
-                            .print-only-manifest {
-                                display: block !important;
-                                position: static !important;
-                                width: 100% !important;
-                                margin: 0 !important;
-                                padding: 0 !important;
                             }
 
-                            .print-manifest-table {
+                            .vehicle-student-modal-content {
+                                box-shadow: none !important;
+                                border: none !important;
+                                border-radius: 0 !important;
+                                margin: 0 !important;
+                                max-height: none !important;
+                                overflow: visible !important;
                                 width: 100% !important;
-                                border-collapse: collapse !important;
-                                margin-top: 10px !important;
-                                font-size: 10pt !important;
-                                page-break-inside: auto !important;
+                                background: white !important;
                             }
-                            .print-manifest-table th, .print-manifest-table td {
-                                border: 1px solid #475569 !important;
-                                padding: 7px 9px !important;
-                                text-align: left !important;
-                                white-space: normal !important;
-                                vertical-align: top !important;
+
+                            .vehicle-student-modal-content .overflow-y-auto,
+                            .vehicle-student-modal-content .flex-1 {
+                                overflow: visible !important;
+                                height: auto !important;
+                                max-height: none !important;
+                                background: white !important;
                             }
-                            .print-manifest-table th {
-                                background-color: #f1f5f9 !important;
-                                font-weight: bold !important;
-                                color: #0f172a !important;
+
+                            /* FORCE COLORS */
+                            * {
                                 -webkit-print-color-adjust: exact !important;
                                 print-color-adjust: exact !important;
-                            }
-                            .print-manifest-table tr {
-                                page-break-inside: avoid !important;
-                                break-inside: avoid !important;
-                            }
-                            .print-manifest-table thead {
-                                display: table-header-group !important;
-                            }
-                            .print-manifest-table tbody {
-                                page-break-inside: auto !important;
-                            }
-                            .print-manifest-table tbody tr {
-                                page-break-inside: avoid !important;
-                                break-inside: avoid !important;
                             }
                         }
                     `}</style>
 
-                    {/* DEDICATED PRINT MANIFEST CONTAINER (Shown ONLY when printing) */}
-                    <div className="print-only-manifest hidden">
-                        <div style={{ borderBottom: '2px solid #0f172a', paddingBottom: '8px', marginBottom: '12px' }}>
-                            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
-                                <h1 style={{ fontSize: '18pt', fontWeight: 'bold', margin: 0, color: '#0f172a' }}>
-                                    {selectedVehicleForStudents.plate} — TAŞINAN ÖĞRENCİ / YOLCU LİSTESİ
-                                </h1>
-                                <span style={{ fontSize: '10pt', fontWeight: 'bold', border: '1px solid #0f172a', padding: '3px 8px', borderRadius: '4px' }}>
-                                    {vehicleStudents.length} / {selectedVehicleForStudents.capacity} Yolcu
-                                </span>
-                            </div>
-                            <div style={{ fontSize: '9.5pt', color: '#334155', marginTop: '6px', display: 'flex', gap: '15px' }}>
-                                <span><strong>Sürücü:</strong> {selectedVehicleForStudents.driver || 'Atanmadı'}</span>
-                                <span><strong>Kapasite:</strong> {selectedVehicleForStudents.capacity} Kişilik</span>
-                                <span><strong>Yazdırma Tarihi:</strong> {new Date().toLocaleDateString('tr-TR')}</span>
-                            </div>
-                        </div>
-
-                        <table className="print-manifest-table">
-                            <thead>
-                                <tr>
-                                    <th style={{ width: '5%' }}>#</th>
-                                    <th style={{ width: '22%' }}>Öğrenci Adı Soyadı</th>
-                                    <th style={{ width: '20%' }}>Okul / Sınıf</th>
-                                    <th style={{ width: '20%' }}>Veli Adı Soyadı</th>
-                                    <th style={{ width: '13%' }}>Telefon</th>
-                                    <th style={{ width: '20%' }}>Mahalle / Açık Adres</th>
-                                </tr>
-                            </thead>
-                            <tbody>
-                                {vehicleStudents
-                                    .filter(s => {
-                                        const term = studentSearchTerm.toLowerCase();
-                                        return (
-                                            (s.full_name || '').toLowerCase().includes(term) ||
-                                            (s.parent_name || '').toLowerCase().includes(term) ||
-                                            (s.neighborhood || '').toLowerCase().includes(term) ||
-                                            (s.schools?.name || '').toLowerCase().includes(term)
-                                        );
-                                    })
-                                    .map((s, index) => (
-                                        <tr key={s.id}>
-                                            <td>{index + 1}</td>
-                                            <td style={{ fontWeight: 'bold' }}>{s.full_name}</td>
-                                            <td>
-                                                {s.schools?.name || s.school_level || 'Belirtilmedi'}
-                                                {s.grade ? ` (${s.grade})` : ''}
-                                            </td>
-                                            <td>{s.parent_name || '-'}</td>
-                                            <td>{s.parent_phone || '-'}</td>
-                                            <td>
-                                                {s.neighborhood ? `[${s.neighborhood}] ` : ''}
-                                                {s.address || ''}
-                                            </td>
-                                        </tr>
-                                    ))}
-                            </tbody>
-                        </table>
-
-                        <div style={{ marginTop: '12px', fontSize: '8.5pt', color: '#64748b', display: 'flex', justifyContent: 'space-between' }}>
-                            <span>ServisBot Otomasyon Sistemi — Taşıma Yolcu Listesi</span>
-                            <span>Toplam {vehicleStudents.length} Öğrenci Kayıtlıdır</span>
-                        </div>
-                    </div>
-
-                    {/* INTERACTIVE SCREEN MODAL */}
-                    <div className="bg-white rounded-2xl w-full max-w-4xl max-h-[90vh] shadow-2xl flex flex-col animate-in fade-in zoom-in duration-200 overflow-hidden vehicle-student-modal-content no-print">
+                    {/* INTERACTIVE SCREEN MODAL (NOW USED FOR PRINT AS WELL) */}
+                    <div className="bg-white rounded-2xl w-full max-w-4xl max-h-[90vh] shadow-2xl flex flex-col animate-in fade-in zoom-in duration-200 overflow-hidden vehicle-student-modal-content">
                         {/* Modal Header */}
                         <div className="p-5 border-b border-slate-100 flex flex-wrap justify-between items-center bg-slate-50/80 gap-3">
                             <div>
