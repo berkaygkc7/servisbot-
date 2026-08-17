@@ -151,6 +151,107 @@ const Vehicles: React.FC = () => {
         }
     };
 
+    const handlePrintStudents = () => {
+        if (!selectedVehicleForStudents) return;
+
+        const filtered = vehicleStudents.filter(s => {
+            const term = studentSearchTerm.toLowerCase();
+            return (
+                (s.full_name || '').toLowerCase().includes(term) ||
+                (s.parent_name || '').toLowerCase().includes(term) ||
+                (s.neighborhood || '').toLowerCase().includes(term) ||
+                (s.schools?.name || '').toLowerCase().includes(term)
+            );
+        });
+
+        const printWindow = window.open('', '_blank', 'width=1000,height=800');
+        if (!printWindow) {
+            alert('Yazdırma penceresi açılamadı. Lütfen tarayıcınızın pop-up engelleyicisini kapatın.');
+            return;
+        }
+
+        const tableRows = filtered.map((s, index) => {
+            const school = s.schools?.name || s.school_level || 'Belirtilmedi';
+            const grade = s.grade ? ` (${s.grade})` : '';
+            const nbr = s.neighborhood ? `[${s.neighborhood}] ` : '';
+            return `
+                <tr>
+                    <td>${index + 1}</td>
+                    <td style="font-weight: bold;">${s.full_name || '-'}</td>
+                    <td>${school}${grade}</td>
+                    <td>${s.parent_name || '-'}</td>
+                    <td>${s.parent_phone || '-'}</td>
+                    <td>${nbr}${s.address || ''}</td>
+                </tr>
+            `;
+        }).join('');
+
+        const html = `
+            <!DOCTYPE html>
+            <html lang="tr">
+            <head>
+                <meta charset="UTF-8">
+                <title>${selectedVehicleForStudents.plate} Öğrenci Listesi</title>
+                <style>
+                    body { font-family: system-ui, -apple-system, sans-serif; padding: 20px; color: #0f172a; }
+                    .header { display: flex; justify-content: space-between; align-items: center; border-bottom: 2px solid #0f172a; padding-bottom: 10px; margin-bottom: 15px; }
+                    .header h1 { font-size: 18pt; margin: 0; }
+                    .stats { font-size: 10pt; font-weight: bold; border: 1px solid #0f172a; padding: 4px 8px; border-radius: 4px; }
+                    .info-row { font-size: 10pt; color: #334155; margin-bottom: 15px; display: flex; gap: 20px; }
+                    table { width: 100%; border-collapse: collapse; margin-top: 10px; font-size: 10pt; }
+                    th, td { border: 1px solid #475569; padding: 8px 10px; text-align: left; }
+                    th { background-color: #f1f5f9; font-weight: bold; }
+                    @media print {
+                        @page { size: A4 portrait; margin: 12mm; }
+                        body { padding: 0; }
+                        th { -webkit-print-color-adjust: exact; print-color-adjust: exact; background-color: #f1f5f9 !important; }
+                    }
+                </style>
+            </head>
+            <body>
+                <div class="header">
+                    <h1>${selectedVehicleForStudents.plate} — TAŞINAN ÖĞRENCİ LİSTESİ</h1>
+                    <div class="stats">${filtered.length} / ${selectedVehicleForStudents.capacity} Yolcu</div>
+                </div>
+                <div class="info-row">
+                    <span><strong>Sürücü:</strong> ${selectedVehicleForStudents.driver || 'Atanmadı'}</span>
+                    <span><strong>Kapasite:</strong> ${selectedVehicleForStudents.capacity} Kişilik</span>
+                    <span><strong>Tarih:</strong> ${new Date().toLocaleDateString('tr-TR')}</span>
+                </div>
+                <table>
+                    <thead>
+                        <tr>
+                            <th style="width:30px">#</th>
+                            <th style="width:180px">Öğrenci Adı Soyadı</th>
+                            <th style="width:150px">Okul / Sınıf</th>
+                            <th style="width:130px">Veli Adı Soyadı</th>
+                            <th style="width:110px">Telefon</th>
+                            <th>Mahalle / Açık Adres</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        ${tableRows}
+                    </tbody>
+                </table>
+                <div style="margin-top: 15px; font-size: 9pt; color: #64748b; display: flex; justify-content: space-between;">
+                    <span>ServisBot Otomasyon Sistemi</span>
+                    <span>Toplam ${filtered.length} Öğrenci Kayıtlıdır</span>
+                </div>
+                <script>
+                    window.onload = function() {
+                        window.print();
+                        setTimeout(function() { window.close(); }, 500);
+                    };
+                </script>
+            </body>
+            </html>
+        `;
+
+        printWindow.document.open();
+        printWindow.document.write(html);
+        printWindow.document.close();
+    };
+
     // Real-time subscription
     React.useEffect(() => {
         const channel = supabase
@@ -284,7 +385,7 @@ const Vehicles: React.FC = () => {
     return (
         <div className="space-y-6">
             {/* Page Header */}
-            <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 no-print">
+            <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
                 <div>
                     <h1 className="text-2xl font-bold text-slate-800">Araç Yönetimi</h1>
                     <p className="text-slate-500">Filodaki tüm araçları yönetin ve takip edin.</p>
@@ -299,7 +400,7 @@ const Vehicles: React.FC = () => {
             </div>
 
             {/* Filters & Search */}
-            <div className="flex flex-col sm:flex-row gap-4 no-print">
+            <div className="flex flex-col sm:flex-row gap-4">
                 <div className="relative flex-1">
                     <Search className="absolute left-3 top-1/2 -translate-y-1/2 text-slate-400" size={20} />
                     <input
@@ -318,9 +419,9 @@ const Vehicles: React.FC = () => {
 
             {/* Vehicle List */}
             {loading ? (
-                <div className="text-center py-10 text-slate-500 no-print">Yükleniyor...</div>
+                <div className="text-center py-10 text-slate-500">Yükleniyor...</div>
             ) : (
-                <div className="no-print">
+                <div>
                     <VehicleList
                         vehicles={filteredVehicles}
                         onEdit={handleEditClick}
@@ -456,154 +557,9 @@ const Vehicles: React.FC = () => {
             )}
             {/* Student List Modal */}
             {isStudentsModalOpen && selectedVehicleForStudents && (
-                <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/50 backdrop-blur-sm vehicle-student-modal-container">
-                    <style>{`
-                        @media print {
-                            @page {
-                                size: A4 portrait;
-                                margin: 12mm;
-                            }
-                            
-                            /* HIDE GLOBAL UI ELEMENTS */
-                            aside, nav, header, .fixed.w-64, [class*="glass-panel-dark"] {
-                                display: none !important;
-                            }
-                            
-                            /* RESET LAYOUT MARGINS */
-                            .ml-64, main.ml-64, [class*="ml-64"] {
-                                margin: 0 !important;
-                                padding: 0 !important;
-                                width: 100% !important;
-                            }
-                            
-                            /* HIDE EVERYTHING WITH NO-PRINT */
-                            .no-print {
-                                display: none !important;
-                            }
-                            
-                            /* RESET MODAL CONTAINER FOR PRINTING */
-                            .vehicle-student-modal-container {
-                                position: static !important;
-                                background: transparent !important;
-                                padding: 0 !important;
-                                display: block !important;
-                            }
-                            
-                            /* SHOW THE MANIFEST */
-                            .print-only-manifest {
-                                display: block !important;
-                                position: static !important;
-                                width: 100% !important;
-                                margin: 0 !important;
-                                padding: 0 !important;
-                            }
-
-                            .print-manifest-table {
-                                width: 100% !important;
-                                border-collapse: collapse !important;
-                                margin-top: 10px !important;
-                                font-size: 10pt !important;
-                                page-break-inside: auto !important;
-                            }
-                            .print-manifest-table th, .print-manifest-table td {
-                                border: 1px solid #475569 !important;
-                                padding: 7px 9px !important;
-                                text-align: left !important;
-                                white-space: normal !important;
-                                word-break: break-word !important;
-                                vertical-align: top !important;
-                            }
-                            .print-manifest-table th {
-                                background-color: #f1f5f9 !important;
-                                font-weight: bold !important;
-                                color: #0f172a !important;
-                                -webkit-print-color-adjust: exact !important;
-                                print-color-adjust: exact !important;
-                            }
-                            .print-manifest-table tr {
-                                page-break-inside: avoid !important;
-                                break-inside: avoid !important;
-                            }
-                            .print-manifest-table thead {
-                                display: table-header-group !important;
-                            }
-                            .print-manifest-table tbody {
-                                page-break-inside: auto !important;
-                            }
-                            .print-manifest-table tbody tr {
-                                page-break-inside: avoid !important;
-                                break-inside: avoid !important;
-                            }
-                        }
-                    `}</style>
-
-                    {/* DEDICATED PRINT MANIFEST CONTAINER (Shown ONLY when printing) */}
-                    <div className="print-only-manifest hidden">
-                        <div style={{ borderBottom: '2px solid #0f172a', paddingBottom: '8px', marginBottom: '12px' }}>
-                            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
-                                <h1 style={{ fontSize: '18pt', fontWeight: 'bold', margin: 0, color: '#0f172a' }}>
-                                    {selectedVehicleForStudents.plate} — TAŞINAN ÖĞRENCİ / YOLCU LİSTESİ
-                                </h1>
-                                <span style={{ fontSize: '10pt', fontWeight: 'bold', border: '1px solid #0f172a', padding: '3px 8px', borderRadius: '4px' }}>
-                                    {vehicleStudents.length} / {selectedVehicleForStudents.capacity} Yolcu
-                                </span>
-                            </div>
-                            <div style={{ fontSize: '9.5pt', color: '#334155', marginTop: '6px', display: 'flex', gap: '15px' }}>
-                                <span><strong>Sürücü:</strong> {selectedVehicleForStudents.driver || 'Atanmadı'}</span>
-                                <span><strong>Kapasite:</strong> {selectedVehicleForStudents.capacity} Kişilik</span>
-                                <span><strong>Yazdırma Tarihi:</strong> {new Date().toLocaleDateString('tr-TR')}</span>
-                            </div>
-                        </div>
-
-                        <table className="print-manifest-table">
-                            <thead>
-                                <tr>
-                                    <th style={{ width: '30px' }}>#</th>
-                                    <th style={{ width: '180px' }}>Öğrenci Adı Soyadı</th>
-                                    <th style={{ width: '150px' }}>Okul / Sınıf</th>
-                                    <th style={{ width: '130px' }}>Veli Adı Soyadı</th>
-                                    <th style={{ width: '110px' }}>Telefon</th>
-                                    <th>Mahalle / Açık Adres</th>
-                                </tr>
-                            </thead>
-                            <tbody>
-                                {vehicleStudents
-                                    .filter(s => {
-                                        const term = studentSearchTerm.toLowerCase();
-                                        return (
-                                            (s.full_name || '').toLowerCase().includes(term) ||
-                                            (s.parent_name || '').toLowerCase().includes(term) ||
-                                            (s.neighborhood || '').toLowerCase().includes(term) ||
-                                            (s.schools?.name || '').toLowerCase().includes(term)
-                                        );
-                                    })
-                                    .map((s, index) => (
-                                        <tr key={s.id}>
-                                            <td>{index + 1}</td>
-                                            <td style={{ fontWeight: 'bold' }}>{s.full_name}</td>
-                                            <td>
-                                                {s.schools?.name || s.school_level || 'Belirtilmedi'}
-                                                {s.grade ? ` (${s.grade})` : ''}
-                                            </td>
-                                            <td>{s.parent_name || '-'}</td>
-                                            <td>{s.parent_phone || '-'}</td>
-                                            <td>
-                                                {s.neighborhood ? `[${s.neighborhood}] ` : ''}
-                                                {s.address || ''}
-                                            </td>
-                                        </tr>
-                                    ))}
-                            </tbody>
-                        </table>
-
-                        <div style={{ marginTop: '12px', fontSize: '8.5pt', color: '#64748b', display: 'flex', justifyContent: 'space-between' }}>
-                            <span>ServisBot Otomasyon Sistemi — Taşıma Yolcu Listesi</span>
-                            <span>Toplam {vehicleStudents.length} Öğrenci Kayıtlıdır</span>
-                        </div>
-                    </div>
-
+                <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/50 backdrop-blur-sm">
                     {/* INTERACTIVE SCREEN MODAL */}
-                    <div className="bg-white rounded-2xl w-full max-w-4xl max-h-[90vh] shadow-2xl flex flex-col animate-in fade-in zoom-in duration-200 overflow-hidden vehicle-student-modal-content no-print">
+                    <div className="bg-white rounded-2xl w-full max-w-4xl max-h-[90vh] shadow-2xl flex flex-col animate-in fade-in zoom-in duration-200 overflow-hidden">
                         {/* Modal Header */}
                         <div className="p-5 border-b border-slate-100 flex flex-wrap justify-between items-center bg-slate-50/80 gap-3">
                             <div>
@@ -619,7 +575,7 @@ const Vehicles: React.FC = () => {
                                     <span>Kapasite: <strong>{selectedVehicleForStudents.capacity} Kişilik</strong></span>
                                 </p>
                             </div>
-                            <div className="flex items-center gap-2 no-print">
+                            <div className="flex items-center gap-2">
                                 <button
                                     onClick={handleShareStudents}
                                     className="flex items-center gap-1.5 px-3 py-2 bg-emerald-600 hover:bg-emerald-700 text-white rounded-xl transition-all text-xs font-bold shadow-sm shadow-emerald-600/20 active:scale-95"
@@ -629,7 +585,7 @@ const Vehicles: React.FC = () => {
                                     <span>Paylaş</span>
                                 </button>
                                 <button
-                                    onClick={() => window.print()}
+                                    onClick={handlePrintStudents}
                                     className="flex items-center gap-1.5 px-3 py-2 bg-white border border-slate-200 text-slate-700 rounded-xl hover:bg-slate-50 transition-colors text-xs font-bold shadow-sm active:scale-95"
                                     title="Listeyi Yazdır"
                                 >
@@ -647,7 +603,7 @@ const Vehicles: React.FC = () => {
 
                         {/* Search & Stats Bar */}
                         <div className="p-4 border-b border-slate-100 bg-white flex flex-col sm:flex-row justify-between items-center gap-3">
-                            <div className="relative w-full sm:w-72 no-print">
+                            <div className="relative w-full sm:w-72">
                                 <Search className="absolute left-3 top-1/2 -translate-y-1/2 text-slate-400" size={16} />
                                 <input
                                     type="text"
@@ -687,7 +643,7 @@ const Vehicles: React.FC = () => {
                                                 <th className="p-3">Okul / Sınıf</th>
                                                 <th className="p-3">Veli Bilgisi</th>
                                                 <th className="p-3">Mahalle / Adres</th>
-                                                <th className="p-3 text-right no-print">İletişim</th>
+                                                <th className="p-3 text-right">İletişim</th>
                                             </tr>
                                         </thead>
                                         <tbody className="divide-y divide-slate-100 text-xs">
@@ -720,7 +676,7 @@ const Vehicles: React.FC = () => {
                                                             {s.neighborhood && <span className="inline-block bg-slate-100 text-slate-700 px-2 py-0.5 rounded text-[11px] font-semibold mr-1 mb-1">{s.neighborhood}</span>}
                                                             <span className="text-slate-500">{s.address}</span>
                                                         </td>
-                                                        <td className="p-3 text-right no-print">
+                                                        <td className="p-3 text-right">
                                                             {s.parent_phone && (
                                                                 <div className="flex items-center justify-end gap-1">
                                                                     <a
