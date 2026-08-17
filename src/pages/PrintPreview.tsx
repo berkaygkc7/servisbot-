@@ -14,9 +14,7 @@ const PrintPreview: React.FC = () => {
                 // Trigger print after a short delay to allow styles to load
                 setTimeout(() => {
                     window.print();
-                    // Optionally close the window after printing (uncomment if desired)
-                    // setTimeout(() => window.close(), 1000);
-                }, 500);
+                }, 800);
             } catch (err) {
                 console.error("Error parsing print data", err);
             }
@@ -43,7 +41,24 @@ const PrintPreview: React.FC = () => {
                 tr { page-break-inside: avoid; }
             `}</style>
             
-            <div className="flex justify-between items-center border-b-2 border-slate-800 pb-4 mb-6">
+            {/* Top Bar (Hidden on Print) */}
+            <div className="no-print fixed top-0 left-0 right-0 bg-slate-800 text-white p-4 flex justify-between items-center shadow-lg z-50">
+                <div>
+                    <h2 className="font-bold text-lg m-0">Baskı Önizleme Modu</h2>
+                    <p className="text-slate-300 text-xs mt-1">Yazdırma penceresi otomatik açılmadıysa sağdaki butona tıklayın.</p>
+                </div>
+                <button 
+                    onClick={() => window.print()}
+                    className="flex items-center gap-2 bg-blue-500 hover:bg-blue-400 text-white px-6 py-2.5 rounded-xl font-bold shadow-md transition-all active:scale-95"
+                >
+                    <svg width="20" height="20" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" viewBox="0 0 24 24"><path d="M6 9V2h12v7"></path><path d="M6 18H4a2 2 0 0 1-2-2v-5a2 2 0 0 1 2-2h16a2 2 0 0 1 2 2v5a2 2 0 0 1-2 2h-2"></path><path d="M6 14h12v8H6z"></path></svg>
+                    Yazdır
+                </button>
+            </div>
+
+            {/* Print Content */}
+            <div className="pt-20">
+                <div className="flex justify-between items-center border-b-2 border-slate-800 pb-4 mb-6">
                 <div>
                     <h1 className="text-2xl font-black text-slate-900 m-0">
                         {vehicle.plate} <span className="text-lg font-bold text-slate-500 ml-2">— TAŞINAN YOLCU / ÖĞRENCİ LİSTESİ</span>
@@ -94,6 +109,7 @@ const PrintPreview: React.FC = () => {
             <div className="mt-8 flex justify-between text-xs text-slate-500 font-medium">
                 <span>ServisBot Otomasyon Sistemi — Taşıma Yolcu Listesi</span>
                 <span>Toplam {students.length} Öğrenci Kayıtlıdır</span>
+            </div>
             </div>
         </div>
     );
