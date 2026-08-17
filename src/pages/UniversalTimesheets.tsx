@@ -52,6 +52,8 @@ interface UniversalTimesheet {
     cell_type: 'number' | 'number_or_text' | 'text';
     grouped_view?: boolean;
     holiday_days?: number[];
+    exported_to_incomes_at?: string;
+    exported_to_expenses_at?: string;
 }
 
 const UniversalTimesheets: React.FC = () => {
@@ -280,6 +282,80 @@ const UniversalTimesheets: React.FC = () => {
             loadTimesheetData();
         }
     }, [selectedMonth, selectedYear, profile?.company_id]);
+
+    const handleExportTo = async (target: 'expenses' | 'incomes') => {
+        if (!timesheet || !profile?.company_id || usingFallback) return;
+
+        if (target === 'expenses' && timesheet.exported_to_expenses_at) {
+            if (!window.confirm("Bu puantaj zaten giderlere aktarılmış. Tekrar aktarmak mükerrer (çifte) kayıtlara yol açabilir. Devam etmek istiyor musunuz?")) return;
+        }
+        if (target === 'incomes' && timesheet.exported_to_incomes_at) {
+            if (!window.confirm("Bu puantaj zaten gelirlere aktarılmış. Tekrar aktarmak mükerrer (çifte) kayıtlara yol açabilir. Devam etmek istiyor musunuz?")) return;
+        }
+
+        if (!window.confirm(`Puantajdaki (Net Tutarı 0'dan büyük olan) tüm satırlar ${target === 'expenses' ? 'Giderler' : 'Gelirler'} tablosuna eklenecek. Onaylıyor musunuz?`)) return;
+
+        setLoading(true);
+        try {
+            const payloads = [];
+            const timestamp = new Date().toISOString().split('T')[0];
+            const titlePrefix = `${selectedMonth} ${selectedYear} - ${timesheet.title || 'Puantaj'}`;
+
+            for (const row of rows) {
+                // Ignore daily notes row
+                if (row.primary_name === '__daily_notes__') continue;
+
+                const { totalAmount } = rowCalculations(row);
+                if (totalAmount <= 0) continue;
+
+                const matchedVehicle = vehicles.find(v => v.plate === row.unique_identifier);
+
+                if (target === 'expenses') {
+                    payloads.push({
+                        company_id: profile.company_id,
+                        expense_category: 'Maaş', 
+                        vehicle_id: matchedVehicle ? matchedVehicle.id : null,
+                        title: `${row.primary_name} Hakedişi`,
+                        expense_date: timestamp,
+                        amount: totalAmount,
+                        description: `${titlePrefix} hakediş aktarımı (${row.unique_identifier || 'Plakasız'})`,
+                        status: 'Bekliyor'
+                    });
+                } else {
+                    payloads.push({
+                        company_id: profile.company_id,
+                        income_category: 'Diğer',
+                        title: `${row.primary_name} Hakedişi`,
+                        income_date: timestamp,
+                        amount: totalAmount,
+                        description: `${titlePrefix} hakediş aktarımı (${row.unique_identifier || 'Plakasız'})`,
+                        status: 'Bekliyor'
+                    });
+                }
+            }
+
+            if (payloads.length === 0) {
+                alert("Aktarılacak geçerli (Net Tutarı 0'dan büyük) satır bulunamadı.");
+                setLoading(false);
+                return;
+            }
+
+            const { error: insertError } = await supabase.from(target).insert(payloads);
+            if (insertError) throw insertError;
+
+            const updateField = target === 'expenses' ? { exported_to_expenses_at: new Date().toISOString() } : { exported_to_incomes_at: new Date().toISOString() };
+            const { error: updateError } = await supabase.from('universal_timesheets').update(updateField).eq('id', timesheet.id);
+            if (updateError) throw updateError;
+
+            setTimesheet({ ...timesheet, ...updateField });
+            alert(`${payloads.length} adet kayıt başarıyla ${target === 'expenses' ? 'Giderler' : 'Gelirler'} tablosuna aktarıldı!`);
+        } catch (err: any) {
+            console.error("Export error:", err);
+            setErrorMsg("Aktarım sırasında bir hata oluştu: " + err.message);
+        } finally {
+            setLoading(false);
+        }
+    };
 
     // Save all changes (database commit or localStorage save)
     const handleSaveAll = async () => {
@@ -735,7 +811,7 @@ const UniversalTimesheets: React.FC = () => {
     };
 
     // Calculations helper per row
-    const rowCalculations = (row: TimesheetRow) => {
+    function rowCalculations(row: TimesheetRow) {
         let numericSum = 0;
         let activeDaysCount = 0;
 
@@ -1369,6 +1445,37 @@ const UniversalTimesheets: React.FC = () => {
                         </table>
                     </div>
                 )}
+                    
+                {/* Export to Incomes/Expenses buttons */}
+                {rows.length > 0 && !usingFallback && !loading && (
+                        <div className="bg-slate-50 border-t border-slate-200 px-6 py-4 flex flex-wrap items-center justify-end gap-3 rounded-b-3xl">
+                            <button
+                                onClick={() => handleExportTo('expenses')}
+                                disabled={loading || saving}
+                                className={`flex items-center gap-2 px-5 py-2.5 rounded-xl text-sm font-bold shadow-sm transition-all ${
+                                    timesheet?.exported_to_expenses_at 
+                                        ? 'bg-emerald-50 text-emerald-700 border border-emerald-200 hover:bg-emerald-100' 
+                                        : 'bg-rose-50 text-rose-700 border border-rose-200 hover:bg-rose-100'
+                                }`}
+                            >
+                                {timesheet?.exported_to_expenses_at ? <Check size={18} /> : <Share2 size={18} />}
+                                {timesheet?.exported_to_expenses_at ? 'Giderlere Aktarıldı' : 'Tümünü Giderlere Aktar'}
+                            </button>
+                            
+                            <button
+                                onClick={() => handleExportTo('incomes')}
+                                disabled={loading || saving}
+                                className={`flex items-center gap-2 px-5 py-2.5 rounded-xl text-sm font-bold shadow-sm transition-all ${
+                                    timesheet?.exported_to_incomes_at 
+                                        ? 'bg-emerald-50 text-emerald-700 border border-emerald-200 hover:bg-emerald-100' 
+                                        : 'bg-indigo-50 text-indigo-700 border border-indigo-200 hover:bg-indigo-100'
+                                }`}
+                            >
+                                {timesheet?.exported_to_incomes_at ? <Check size={18} /> : <Share2 size={18} />}
+                                {timesheet?.exported_to_incomes_at ? 'Gelirlere Aktarıldı' : 'Tümünü Gelirlere Aktar'}
+                            </button>
+                        </div>
+                    )}
             </div>
 
             {/* Config & Tax calculations widgets */}
