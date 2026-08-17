@@ -429,7 +429,8 @@ const Students: React.FC = () => {
         const rawMonth = format(new Date(), 'MMMM yyyy', { locale: tr });
         const currentMonth = rawMonth.charAt(0).toUpperCase() + rawMonth.slice(1);
         
-        if (!window.confirm(`${student.name} isimli öğrencinin ${currentMonth} ayı ödemesini "Ödendi (Nakit)" olarak işaretlemek istiyor musunuz?`)) {
+        const invoiceNo = window.prompt(`${student.name} isimli öğrencinin ${currentMonth} ayı ödemesini "Ödendi (Nakit)" olarak işaretlemek istiyor musunuz?\n\nFatura Numarası (Varsa girin, yoksa boş bırakıp Tamam'a tıklayın):`, "");
+        if (invoiceNo === null) {
             return;
         }
 
@@ -459,7 +460,8 @@ const Students: React.FC = () => {
                     .update({ 
                         status: 'Ödendi', 
                         payment_method: 'Nakit/Elden',
-                        month: currentMonth
+                        month: currentMonth,
+                        invoice_no: invoiceNo.trim()
                     })
                     .eq('id', existing.id);
                 if (error) throw error;
@@ -499,7 +501,7 @@ const Students: React.FC = () => {
                 const payload = {
                     company_id: profile.company_id,
                     student_id: student.id,
-                    invoice_no: '',
+                    invoice_no: invoiceNo.trim(),
                     month: currentMonth,
                     amount: monthlyPrice,
                     due_date: new Date().toISOString().split('T')[0],
