@@ -151,6 +151,92 @@ const Vehicles: React.FC = () => {
         }
     };
 
+    const handlePrintStudents = () => {
+        const printContent = document.getElementById('printable-student-modal');
+        if (!printContent) {
+            // Fallback in case ID is missing
+            window.print();
+            return;
+        }
+        
+        const oldIframe = document.getElementById('print-iframe');
+        if (oldIframe) {
+            oldIframe.remove();
+        }
+
+        const iframe = document.createElement('iframe');
+        iframe.id = 'print-iframe';
+        iframe.style.position = 'absolute';
+        iframe.style.width = '0px';
+        iframe.style.height = '0px';
+        iframe.style.border = 'none';
+        
+        document.body.appendChild(iframe);
+        
+        const doc = iframe.contentWindow?.document;
+        if (!doc) return;
+        
+        // Copy all parent styles to the iframe to retain exactly the same Tailwind look
+        const styleNodes = document.querySelectorAll('style, link[rel="stylesheet"]');
+        styleNodes.forEach(node => {
+            doc.head.appendChild(node.cloneNode(true));
+        });
+        
+        // Specific print overrides inside the iframe
+        const printStyle = doc.createElement('style');
+        printStyle.textContent = `
+            @page { size: A4 portrait; margin: 10mm; }
+            body { 
+                background: white !important; 
+                -webkit-print-color-adjust: exact !important; 
+                print-color-adjust: exact !important;
+                padding: 10px;
+                font-family: system-ui, -apple-system, sans-serif;
+            }
+            .no-print { display: none !important; }
+            
+            /* Clean up the modal for printing */
+            #printable-student-modal {
+                box-shadow: none !important;
+                border: none !important;
+                border-radius: 0 !important;
+                max-height: none !important;
+                height: auto !important;
+                margin: 0 !important;
+                padding: 0 !important;
+                width: 100% !important;
+            }
+            #printable-student-modal .overflow-y-auto, 
+            #printable-student-modal .flex-1 {
+                overflow: visible !important;
+                max-height: none !important;
+                height: auto !important;
+            }
+            
+            /* Ensure the table doesn't get squished */
+            table { width: 100% !important; page-break-inside: auto; }
+            tr { page-break-inside: avoid; page-break-after: auto; }
+            thead { display: table-header-group; }
+            tfoot { display: table-footer-group; }
+        `;
+        doc.head.appendChild(printStyle);
+        
+        doc.body.innerHTML = `
+            <div id="printable-student-modal" class="${printContent.className}">
+                ${printContent.innerHTML}
+            </div>
+        `;
+        
+        // Wait for styles to apply, then trigger print
+        setTimeout(() => {
+            iframe.contentWindow?.focus();
+            iframe.contentWindow?.print();
+            setTimeout(() => {
+                iframe.remove();
+            }, 1000);
+        }, 500);
+    };
+
     // Real-time subscription
     React.useEffect(() => {
         const channel = supabase
@@ -456,71 +542,9 @@ const Vehicles: React.FC = () => {
             )}
             {/* Student List Modal */}
             {isStudentsModalOpen && selectedVehicleForStudents && (
-                <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/50 backdrop-blur-sm vehicle-student-modal-container">
-                    <style>{`
-                        @media print {
-                            @page {
-                                size: A4 portrait;
-                                margin: 12mm;
-                            }
-                            
-                            /* HIDE GLOBAL UI ELEMENTS */
-                            aside, nav, header, .fixed.w-64, [class*="glass-panel-dark"] {
-                                di                            /* RESET GLOBAL WRAPPERS */
-                            body, html, #root, .flex.h-screen, main, [class*="ml-64"] {
-                                height: auto !important;
-                                min-height: auto !important;
-                                overflow: visible !important;
-                                margin: 0 !important;
-                                padding: 0 !important;
-                                width: 100% !important;
-                                background: white !important;
-                            }
-                            
-                            /* HIDE EVERYTHING WITH NO-PRINT */
-                            .no-print {
-                                display: none !important;
-                            }
-                            
-                            /* RESET MODAL CONTAINER FOR PRINTING */
-                            .vehicle-student-modal-container {
-                                position: static !important;
-                                background: transparent !important;
-                                padding: 0 !important;
-                                height: auto !important;
-                                overflow: visible !important;
-                                display: block !important;
-                            }
-
-                            .vehicle-student-modal-content {
-                                box-shadow: none !important;
-                                border: none !important;
-                                border-radius: 0 !important;
-                                margin: 0 !important;
-                                max-height: none !important;
-                                overflow: visible !important;
-                                width: 100% !important;
-                                background: white !important;
-                            }
-
-                            .vehicle-student-modal-content .overflow-y-auto,
-                            .vehicle-student-modal-content .flex-1 {
-                                overflow: visible !important;
-                                height: auto !important;
-                                max-height: none !important;
-                                background: white !important;
-                            }
-
-                            /* FORCE COLORS */
-                            * {
-                                -webkit-print-color-adjust: exact !important;
-                                print-color-adjust: exact !important;
-                            }
-                        }
-                    `}</style>
-
+                <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/50 backdrop-blur-sm">
                     {/* INTERACTIVE SCREEN MODAL (NOW USED FOR PRINT AS WELL) */}
-                    <div className="bg-white rounded-2xl w-full max-w-4xl max-h-[90vh] shadow-2xl flex flex-col animate-in fade-in zoom-in duration-200 overflow-hidden vehicle-student-modal-content">
+                    <div id="printable-student-modal" className="bg-white rounded-2xl w-full max-w-4xl max-h-[90vh] shadow-2xl flex flex-col animate-in fade-in zoom-in duration-200 overflow-hidden vehicle-student-modal-content">
                         {/* Modal Header */}
                         <div className="p-5 border-b border-slate-100 flex flex-wrap justify-between items-center bg-slate-50/80 gap-3">
                             <div>
@@ -546,7 +570,7 @@ const Vehicles: React.FC = () => {
                                     <span>Paylaş</span>
                                 </button>
                                 <button
-                                    onClick={() => window.print()}
+                                    onClick={handlePrintStudents}
                                     className="flex items-center gap-1.5 px-3 py-2 bg-white border border-slate-200 text-slate-700 rounded-xl hover:bg-slate-50 transition-colors text-xs font-bold shadow-sm active:scale-95"
                                     title="Listeyi Yazdır"
                                 >
