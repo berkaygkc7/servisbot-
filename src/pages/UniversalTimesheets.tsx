@@ -144,7 +144,9 @@ const UniversalTimesheets: React.FC = () => {
                 sheetsQuery.eq('company_id', profile.company_id);
             }
 
-            const { data: sheets, error: sheetError } = await sheetsQuery.limit(1);
+            const { data: sheets, error: sheetError } = await sheetsQuery
+                .order('created_at', { ascending: true })
+                .limit(1);
 
             if (sheetError) {
                 throw new Error("Supabase tables not found, switching to local storage");
@@ -1780,7 +1782,7 @@ const UniversalTimesheets: React.FC = () => {
                                     onClick={handleCellCommit}
                                     className="flex-1 px-4 py-2.5 bg-blue-600 hover:bg-blue-700 text-white rounded-xl transition-all font-bold text-xs shadow-md"
                                 >
-                                    Kaydet
+                                    Tamam
                                 </button>
                             </div>
                         </div>
