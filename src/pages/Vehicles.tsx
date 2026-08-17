@@ -461,56 +461,19 @@ const Vehicles: React.FC = () => {
                                 size: A4 portrait;
                                 margin: 12mm;
                             }
-                            /* Hide everything first */
-                            html, body, #root, main, div {
-                                height: auto !important;
-                                overflow: visible !important;
-                                position: static !important;
-                                background: white !important;
-                                box-shadow: none !important;
-                                border: none !important;
-                                margin: 0 !important;
-                                padding: 0 !important;
+                            body * {
+                                visibility: hidden !important;
                             }
-                            body {
-                                padding: 0 !important;
-                                margin: 0 !important;
-                            }
-                            /* Hide sidebar, header, and all navigation elements */
-                            .h-screen.w-64.fixed,
-                            aside,
-                            nav,
-                            header,
-                            .glass-panel-dark,
-                            .ml-64 > header,
-                            [class*="glass-panel-dark"] {
-                                display: none !important;
-                            }
-                            /* Remove main content left margin (sidebar offset) */
-                            .ml-64, main.ml-64, [class*="ml-64"] {
-                                margin-left: 0 !important;
-                                padding: 0 !important;
-                                width: 100% !important;
-                            }
-                            .no-print {
-                                display: none !important;
-                            }
-                            .vehicle-student-modal-container {
-                                display: none !important;
+                            .print-only-manifest, .print-only-manifest * {
+                                visibility: visible !important;
                             }
                             .print-only-manifest {
-                                display: block !important;
                                 position: absolute !important;
                                 left: 0 !important;
                                 top: 0 !important;
                                 width: 100% !important;
-                                height: auto !important;
-                                overflow: visible !important;
-                                background: white !important;
-                                color: black !important;
-                                z-index: 999999 !important;
-                                padding: 0 !important;
                                 margin: 0 !important;
+                                padding: 0 !important;
                             }
                             .print-manifest-table {
                                 width: 100% !important;
