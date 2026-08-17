@@ -510,7 +510,6 @@ const Vehicles: React.FC = () => {
                                 padding: 7px 9px !important;
                                 text-align: left !important;
                                 white-space: normal !important;
-                                word-break: break-word !important;
                                 vertical-align: top !important;
                             }
                             .print-manifest-table th {
@@ -558,12 +557,12 @@ const Vehicles: React.FC = () => {
                         <table className="print-manifest-table">
                             <thead>
                                 <tr>
-                                    <th style={{ width: '30px' }}>#</th>
-                                    <th style={{ width: '180px' }}>Öğrenci Adı Soyadı</th>
-                                    <th style={{ width: '150px' }}>Okul / Sınıf</th>
-                                    <th style={{ width: '130px' }}>Veli Adı Soyadı</th>
-                                    <th style={{ width: '110px' }}>Telefon</th>
-                                    <th>Mahalle / Açık Adres</th>
+                                    <th style={{ width: '5%' }}>#</th>
+                                    <th style={{ width: '22%' }}>Öğrenci Adı Soyadı</th>
+                                    <th style={{ width: '20%' }}>Okul / Sınıf</th>
+                                    <th style={{ width: '20%' }}>Veli Adı Soyadı</th>
+                                    <th style={{ width: '13%' }}>Telefon</th>
+                                    <th style={{ width: '20%' }}>Mahalle / Açık Adres</th>
                                 </tr>
                             </thead>
                             <tbody>
