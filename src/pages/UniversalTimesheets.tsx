@@ -17,11 +17,9 @@ import {
     Sliders,
     Calendar,
     Share2,
-    FileSpreadsheet,
-    Car
+    FileSpreadsheet
 } from 'lucide-react';
 import { supabase } from '../lib/supabase';
-import { useAuth } from '../contexts/AuthContext';
 import { useAuth } from '../contexts/AuthContext';
 
 interface TaxRate {
@@ -985,6 +983,11 @@ const UniversalTimesheets: React.FC = () => {
                     <button
                         onClick={handleExportExcel}
                         className="flex items-center gap-1.5 px-4 py-2 bg-emerald-600 hover:bg-emerald-700 text-white text-xs font-bold rounded-xl transition-all shadow-md shadow-emerald-600/10 active:scale-95"
+                        title="Excel İndir (.xlsx)"
+                    >
+                        <FileSpreadsheet size={15} />
+                        <span>Excel'e Aktar</span>
+                    </button>
                     <button
                         onClick={handleShare}
                         className="flex items-center gap-1.5 px-4 py-2 bg-blue-500 hover:bg-blue-600 text-white text-xs font-bold rounded-xl transition-all shadow-md shadow-blue-500/10"
@@ -1838,7 +1841,6 @@ const UniversalTimesheets: React.FC = () => {
                             >
                                 Kaydet
                             </button>
-                        </div>
                         </div>
                     </div>
                 </div>

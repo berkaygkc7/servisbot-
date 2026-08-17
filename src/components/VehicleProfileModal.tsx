@@ -1,4 +1,4 @@
-import React, { useState, useEffect, useMemo } from 'react';
+import React, { useState, useEffect } from 'react';
 import { supabase } from '../lib/supabase';
 import { useAuth } from '../contexts/AuthContext';
 import * as XLSX from 'xlsx';
@@ -44,7 +44,6 @@ const VehicleProfileModal: React.FC<VehicleProfileModalProps> = ({ isOpen, onClo
     const [timesheetRows, setTimesheetRows] = useState<any[]>([]);
     const [expenses, setExpenses] = useState<any[]>([]);
     const [trips, setTrips] = useState<any[]>([]);
-    const [activeTimesheetId, setActiveTimesheetId] = useState<string | null>(null);
 
     useEffect(() => {
         if (isOpen && vehicle && profile?.company_id) {
@@ -69,7 +68,6 @@ const VehicleProfileModal: React.FC<VehicleProfileModalProps> = ({ isOpen, onClo
 
             let tRows: any[] = [];
             if (tsData) {
-                setActiveTimesheetId(tsData.id);
                 // 2. Fetch timesheet rows matching the vehicle's plate
                 const { data: rowData } = await supabase
                     .from('universal_timesheet_rows')
@@ -78,8 +76,6 @@ const VehicleProfileModal: React.FC<VehicleProfileModalProps> = ({ isOpen, onClo
                     .ilike('unique_identifier', `%${vehicle.plate}%`);
                 
                 if (rowData) tRows = rowData;
-            } else {
-                setActiveTimesheetId(null);
             }
             setTimesheetRows(tRows);
 
@@ -208,7 +204,6 @@ const VehicleProfileModal: React.FC<VehicleProfileModalProps> = ({ isOpen, onClo
 
     // Render Helpers
     const totalExpenseAmount = expenses.reduce((sum, e) => sum + Number(e.amount), 0);
-    const totalTripAmount = trips.reduce((sum, t) => sum + Number(t.amount), 0);
     const totalTimesheetAmount = timesheetRows.reduce((sum, r) => {
         const daysInMonth = new Date(parseInt(selectedYear), parseInt(selectedMonth), 0).getDate();
         let totalDays = 0;
