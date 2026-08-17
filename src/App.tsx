@@ -23,6 +23,7 @@ import Login from './pages/auth/Login';
 import Register from './pages/auth/Register';
 import ApplicationForm from './pages/public/ApplicationForm';
 import { KVKK, PrivacyPolicy, TermsOfService } from './pages/public/LegalPages';
+import PrintPreview from './pages/PrintPreview';
 
 // Driver Pages
 import DriverLayout from './layouts/DriverLayout';
@@ -138,6 +139,9 @@ function App() {
               <Route path="settings" element={<PlatformSettings />} />
               <Route path="account" element={<SuperAdminAccount />} />
             </Route>
+
+            {/* Print Route (Standalone) */}
+            <Route path="/print-preview" element={<ProtectedRoute><PrintPreview /></ProtectedRoute>} />
 
             {/* Fallback Catch-All Route */}
             <Route path="*" element={<Navigate to="/" replace />} />

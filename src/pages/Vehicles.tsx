@@ -152,89 +152,31 @@ const Vehicles: React.FC = () => {
     };
 
     const handlePrintStudents = () => {
-        const printContent = document.getElementById('printable-student-modal');
-        if (!printContent) {
-            // Fallback in case ID is missing
-            window.print();
-            return;
-        }
-        
-        const oldIframe = document.getElementById('print-iframe');
-        if (oldIframe) {
-            oldIframe.remove();
-        }
+        if (!selectedVehicleForStudents) return;
 
-        const iframe = document.createElement('iframe');
-        iframe.id = 'print-iframe';
-        iframe.style.position = 'absolute';
-        iframe.style.width = '0px';
-        iframe.style.height = '0px';
-        iframe.style.border = 'none';
-        
-        document.body.appendChild(iframe);
-        
-        const doc = iframe.contentWindow?.document;
-        if (!doc) return;
-        
-        // Copy all parent styles to the iframe to retain exactly the same Tailwind look
-        const styleNodes = document.querySelectorAll('style, link[rel="stylesheet"]');
-        styleNodes.forEach(node => {
-            doc.head.appendChild(node.cloneNode(true));
+        // Apply same filters as on screen
+        const filteredStudents = vehicleStudents.filter(s => {
+            const term = studentSearchTerm.toLowerCase();
+            return (
+                (s.full_name || '').toLowerCase().includes(term) ||
+                (s.parent_name || '').toLowerCase().includes(term) ||
+                (s.neighborhood || '').toLowerCase().includes(term) ||
+                (s.schools?.name || '').toLowerCase().includes(term)
+            );
         });
+
+        // Store in localStorage for the new window to read
+        localStorage.setItem('print_vehicle_data', JSON.stringify({
+            vehicle: selectedVehicleForStudents,
+            students: filteredStudents
+        }));
+
+        // Open new tab (this avoids pop-up blockers as it is triggered directly by user click)
+        const printWindow = window.open('/print-preview', '_blank');
         
-        // Specific print overrides inside the iframe
-        const printStyle = doc.createElement('style');
-        printStyle.textContent = `
-            @page { size: A4 portrait; margin: 10mm; }
-            body { 
-                background: white !important; 
-                -webkit-print-color-adjust: exact !important; 
-                print-color-adjust: exact !important;
-                padding: 10px;
-                font-family: system-ui, -apple-system, sans-serif;
-            }
-            .no-print { display: none !important; }
-            
-            /* Clean up the modal for printing */
-            #printable-student-modal {
-                box-shadow: none !important;
-                border: none !important;
-                border-radius: 0 !important;
-                max-height: none !important;
-                height: auto !important;
-                margin: 0 !important;
-                padding: 0 !important;
-                width: 100% !important;
-            }
-            #printable-student-modal .overflow-y-auto, 
-            #printable-student-modal .flex-1 {
-                overflow: visible !important;
-                max-height: none !important;
-                height: auto !important;
-            }
-            
-            /* Ensure the table doesn't get squished */
-            table { width: 100% !important; page-break-inside: auto; }
-            tr { page-break-inside: avoid; page-break-after: auto; }
-            thead { display: table-header-group; }
-            tfoot { display: table-footer-group; }
-        `;
-        doc.head.appendChild(printStyle);
-        
-        doc.body.innerHTML = `
-            <div id="printable-student-modal" class="${printContent.className}">
-                ${printContent.innerHTML}
-            </div>
-        `;
-        
-        // Wait for styles to apply, then trigger print
-        setTimeout(() => {
-            iframe.contentWindow?.focus();
-            iframe.contentWindow?.print();
-            setTimeout(() => {
-                iframe.remove();
-            }, 1000);
-        }, 500);
+        if (!printWindow) {
+            alert("Yeni sekme açılamadı! Lütfen tarayıcınızın pop-up (açılır pencere) engelleyicisini kapatıp tekrar deneyin.");
+        }
     };
 
     // Real-time subscription
