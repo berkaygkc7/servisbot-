@@ -17,10 +17,12 @@ import {
     Sliders,
     Calendar,
     Share2,
-    FileSpreadsheet
+    FileSpreadsheet,
+    Car
 } from 'lucide-react';
 import { supabase } from '../lib/supabase';
 import { useAuth } from '../contexts/AuthContext';
+import VehicleTimesheetReportModal from '../components/VehicleTimesheetReportModal';
 
 interface TaxRate {
     id: string;
@@ -50,6 +52,8 @@ interface UniversalTimesheet {
     category_label: string;
     unique_key_label: string;
     cell_type: 'number' | 'number_or_text' | 'text';
+    grouped_view?: boolean;
+    holiday_days?: number[];
 }
 
 const UniversalTimesheets: React.FC = () => {
@@ -71,6 +75,7 @@ const UniversalTimesheets: React.FC = () => {
     const [saving, setSaving] = useState(false);
     const [errorMsg, setErrorMsg] = useState<string | null>(null);
     const [usingFallback, setUsingFallback] = useState(false);
+    const [showReportModal, setShowReportModal] = useState(false);
 
     // Edit controls for sheet settings
     const [showConfigModal, setShowConfigModal] = useState(false);
@@ -79,7 +84,8 @@ const UniversalTimesheets: React.FC = () => {
         primary_label: 'Personel Adı / Hizmet',
         category_label: 'Departman / Güzergah',
         unique_key_label: 'Sicil No / Plaka',
-        cell_type: 'number_or_text' as 'number' | 'number_or_text' | 'text'
+        cell_type: 'number_or_text' as 'number' | 'number_or_text' | 'text',
+        grouped_view: false
     });
 
     // Tevkifat/Stopaj Module State
@@ -171,7 +177,9 @@ const UniversalTimesheets: React.FC = () => {
                     primary_label: 'Personel Adı / Hizmet',
                     category_label: 'Departman / Güzergah',
                     unique_key_label: 'Sicil No / Plaka',
-                    cell_type: 'number_or_text'
+                    cell_type: 'number_or_text',
+                    grouped_view: false,
+                    holiday_days: []
                 };
                 
                 // Try to insert it into Supabase
@@ -185,7 +193,9 @@ const UniversalTimesheets: React.FC = () => {
                         year: newSheet.year,
                         primary_label: newSheet.primary_label,
                         category_label: newSheet.category_label,
-                        unique_key_label: newSheet.unique_key_label
+                        unique_key_label: newSheet.unique_key_label,
+                        grouped_view: newSheet.grouped_view,
+                        holiday_days: newSheet.holiday_days
                     }]);
 
                 if (insertError) throw insertError;
@@ -241,7 +251,9 @@ const UniversalTimesheets: React.FC = () => {
             primary_label: 'Personel Adı / Hizmet',
             category_label: 'Departman / Güzergah',
             unique_key_label: 'Sicil No / Plaka',
-            cell_type: 'number_or_text'
+            cell_type: 'number_or_text',
+            grouped_view: false,
+            holiday_days: []
         };
         setTimesheet(defaultSheet);
         setRows([]);
@@ -313,7 +325,9 @@ const UniversalTimesheets: React.FC = () => {
                         title: timesheet.title,
                         primary_label: timesheet.primary_label,
                         category_label: timesheet.category_label,
-                        unique_key_label: timesheet.unique_key_label
+                        unique_key_label: timesheet.unique_key_label,
+                        grouped_view: timesheet.grouped_view,
+                        holiday_days: timesheet.holiday_days
                     })
                     .eq('id', timesheet.id);
 
@@ -530,8 +544,11 @@ const UniversalTimesheets: React.FC = () => {
         return Array.from({ length: count }, (_, i) => i + 1);
     }, [selectedMonth, selectedYear]);
 
-    // Check if weekend
+    // Check if weekend or marked as holiday
     const getDayStyle = (day: number) => {
+        if (timesheet?.holiday_days?.includes(day)) {
+            return 'bg-slate-800 text-amber-400 font-bold border-slate-700 opacity-90';
+        }
         const yearInt = parseInt(selectedYear);
         const monthInt = parseInt(selectedMonth);
         const dateObj = new Date(yearInt, monthInt - 1, day);
@@ -542,6 +559,24 @@ const UniversalTimesheets: React.FC = () => {
         return 'bg-slate-50/30 text-slate-600 border-slate-100';
     };
 
+    const toggleHoliday = (day: number) => {
+        if (!timesheet) return;
+        const currentHolidays = timesheet.holiday_days || [];
+        const isHoliday = currentHolidays.includes(day);
+        
+        let newHolidays;
+        if (isHoliday) {
+            newHolidays = currentHolidays.filter(d => d !== day);
+        } else {
+            newHolidays = [...currentHolidays, day];
+        }
+        
+        setTimesheet({
+            ...timesheet,
+            holiday_days: newHolidays
+        });
+    };
+
     // Table settings configurator modal helpers
     const handleOpenConfig = () => {
         if (!timesheet) return;
@@ -550,7 +585,8 @@ const UniversalTimesheets: React.FC = () => {
             primary_label: timesheet.primary_label,
             category_label: timesheet.category_label,
             unique_key_label: timesheet.unique_key_label,
-            cell_type: timesheet.cell_type
+            cell_type: timesheet.cell_type,
+            grouped_view: timesheet.grouped_view || false
         });
         setShowConfigModal(true);
     };
@@ -563,7 +599,8 @@ const UniversalTimesheets: React.FC = () => {
             primary_label: configForm.primary_label,
             category_label: configForm.category_label,
             unique_key_label: configForm.unique_key_label,
-            cell_type: configForm.cell_type
+            cell_type: configForm.cell_type,
+            grouped_view: configForm.grouped_view
         });
         setShowConfigModal(false);
     };
@@ -944,6 +981,14 @@ const UniversalTimesheets: React.FC = () => {
                         <span>Excel'e Aktar</span>
                     </button>
                     <button
+                        onClick={() => setShowReportModal(true)}
+                        className="flex items-center gap-1.5 px-4 py-2 bg-indigo-600 hover:bg-indigo-700 text-white text-xs font-bold rounded-xl transition-all shadow-md shadow-indigo-600/10 active:scale-95"
+                        title="Araç Raporu Al (.xlsx)"
+                    >
+                        <Car size={15} />
+                        <span>Araç Raporu Al</span>
+                    </button>
+                    <button
                         onClick={handleShare}
                         className="flex items-center gap-1.5 px-4 py-2 bg-blue-500 hover:bg-blue-600 text-white text-xs font-bold rounded-xl transition-all shadow-md shadow-blue-500/10"
                     >
@@ -989,7 +1034,9 @@ const UniversalTimesheets: React.FC = () => {
                                     {daysInMonth.map(day => (
                                         <th 
                                             key={day} 
-                                            className={`p-3 text-center border-l border-slate-100/60 whitespace-nowrap ${getDayStyle(day)}`}
+                                            className={`p-3 text-center border-l border-slate-100/60 whitespace-nowrap cursor-pointer hover:opacity-80 transition-opacity ${getDayStyle(day)}`}
+                                            onClick={() => toggleHoliday(day)}
+                                            title="Tatil/Çalışılmayan gün işaretlemek için tıklayın"
                                         >
                                             {day.toString().padStart(2, '0')}
                                         </th>
@@ -1022,208 +1069,240 @@ const UniversalTimesheets: React.FC = () => {
                                         </td>
                                     </tr>
                                 ) : (
-                                    rows.map((row, idx) => {
-                                        const isEditing = editingRowId === row.id;
-                                        const { totalAdet, totalAmount } = rowCalculations(row);
+                                    (() => {
+                                        let itemsToRender: any[] = [];
+                                        if (timesheet?.grouped_view) {
+                                            const grouped = rows.reduce((acc, row) => {
+                                                const cat = row.category || 'Kategorisiz';
+                                                if (!acc[cat]) acc[cat] = [];
+                                                acc[cat].push(row);
+                                                return acc;
+                                            }, {} as Record<string, typeof rows>);
+                                            
+                                            Object.entries(grouped).forEach(([cat, catRows]) => {
+                                                itemsToRender.push({ type: 'header', title: cat });
+                                                catRows.forEach(row => itemsToRender.push({ type: 'row', row }));
+                                            });
+                                        } else {
+                                            itemsToRender = rows.map(row => ({ type: 'row', row }));
+                                        }
 
-                                        return (
-                                            <tr key={row.id} className="hover:bg-slate-50/40 transition-colors text-xs text-slate-700">
-                                                
-                                                {/* Sticky ID */}
-                                                <td className="p-3 text-center font-bold text-slate-400 sticky left-0 bg-white z-10 shadow-[1px_0_0_0_#f1f5f9] whitespace-nowrap">
-                                                    {(idx + 1).toString().padStart(2, '0')}
-                                                </td>
-
-                                                {/* Sticky Primary Name */}
-                                                <td className="p-3 sticky left-12 bg-white z-10 shadow-[1px_0_0_0_#f1f5f9] font-bold whitespace-nowrap">
-                                                    {isEditing ? (
-                                                        <input 
-                                                            type="text"
-                                                            className="px-2 py-1 bg-slate-50 border border-slate-200 rounded font-semibold text-slate-800 focus:outline-none focus:ring-1 focus:ring-blue-500 min-w-[140px]"
-                                                            value={rowEditValues.primary_name || ''}
-                                                            onChange={e => setRowEditValues({ ...rowEditValues, primary_name: e.target.value })}
-                                                        />
-                                                    ) : (
-                                                        <span className="text-slate-800">{row.primary_name}</span>
-                                                    )}
-                                                </td>
-
-                                                {/* Category */}
-                                                <td className="p-3 font-medium text-slate-600 whitespace-nowrap">
-                                                    {isEditing ? (
-                                                        <input 
-                                                            type="text"
-                                                            className="px-2 py-1 bg-slate-50 border border-slate-200 rounded focus:outline-none min-w-[100px]"
-                                                            value={rowEditValues.category || ''}
-                                                            onChange={e => setRowEditValues({ ...rowEditValues, category: e.target.value })}
-                                                        />
-                                                    ) : (
-                                                        row.category || '-'
-                                                    )}
-                                                </td>
-
-                                                {/* Unique Identifier */}
-                                                <td className="p-3 font-semibold text-slate-500 font-mono whitespace-nowrap">
-                                                    {isEditing ? (
-                                                        <input 
-                                                            type="text"
-                                                            className="px-2 py-1 bg-slate-50 border border-slate-200 rounded focus:outline-none min-w-[100px]"
-                                                            value={rowEditValues.unique_identifier || ''}
-                                                            onChange={e => setRowEditValues({ ...rowEditValues, unique_identifier: e.target.value })}
-                                                        />
-                                                    ) : (
-                                                        row.unique_identifier || '-'
-                                                    )}
-                                                </td>
-
-                                                {/* Description */}
-                                                <td className="p-3 text-slate-500 whitespace-nowrap">
-                                                    {isEditing ? (
-                                                        <input 
-                                                            type="text"
-                                                            className="px-2 py-1 bg-slate-50 border border-slate-200 rounded focus:outline-none min-w-[120px]"
-                                                            value={rowEditValues.description || ''}
-                                                            onChange={e => setRowEditValues({ ...rowEditValues, description: e.target.value })}
-                                                        />
-                                                    ) : (
-                                                        row.description || '-'
-                                                    )}
-                                                </td>
-
-                                                {/* Dynamic Days Grid */}
-                                                {daysInMonth.map(day => {
-                                                    const cellValRaw = row.days_data[day.toString()] || '';
-                                                    let cellValDisplay = '';
-                                                    let cellNote = '';
-                                                    if (typeof cellValRaw === 'object' && cellValRaw !== null) {
-                                                        cellValDisplay = cellValRaw.value || '';
-                                                        cellNote = cellValRaw.note || '';
-                                                    } else {
-                                                        cellValDisplay = String(cellValRaw);
-                                                    }
-
-                                                    let displayVal = cellValDisplay;
-                                                    if (!displayVal && cellNote) {
-                                                        displayVal = cellNote;
-                                                    }
-
-                                                    return (
-                                                        <td 
-                                                            key={day}
-                                                            onClick={() => handleCellClick(row.id, day, cellValRaw)}
-                                                            className={`p-1 border-l border-slate-100 text-center cursor-pointer select-none relative min-w-[2.5rem] whitespace-nowrap px-2 ${getDayStyle(day)}`}
-                                                        >
-                                                            <div className="relative w-full h-full flex items-center justify-center min-h-[1.5rem] whitespace-nowrap" title={cellNote ? `Not: ${cellNote}` : undefined}>
-                                                                <span className={`font-bold text-[11px] whitespace-nowrap ${
-                                                                    cellValDisplay === 'R' ? 'text-rose-500' :
-                                                                    cellValDisplay === 'İ' ? 'text-amber-500' :
-                                                                    cellValDisplay === 'M' ? 'text-emerald-500' : 'text-slate-800'
-                                                                }`}>
-                                                                    {displayVal || '-'}
-                                                                </span>
-                                                                {cellNote && (
-                                                                    <span className="absolute top-0 right-0 w-1.5 h-1.5 bg-rose-500 rounded-full animate-pulse" />
-                                                                )}
-                                                            </div>
+                                        let displayIndex = 0;
+                                        return itemsToRender.map((item, mapIdx) => {
+                                            if (item.type === 'header') {
+                                                return (
+                                                    <tr key={`header-${item.title}-${mapIdx}`} className="bg-slate-200/60 border-y border-slate-300">
+                                                        <td colSpan={daysInMonth.length + 11} className="p-3 text-center font-black text-slate-800 text-sm tracking-widest uppercase shadow-inner">
+                                                            {item.title}
                                                         </td>
-                                                    );
-                                                })}
+                                                    </tr>
+                                                );
+                                            }
+                                            
+                                            const row = item.row;
+                                            const idx = displayIndex++;
+                                            const isEditing = editingRowId === row.id;
+                                            const { totalAdet, totalAmount } = rowCalculations(row);
 
-                                                {/* Calculations and Accrual Totals */}
-                                                <td className="p-3 text-center border-l border-slate-200 font-extrabold bg-blue-50/10 text-blue-700">
-                                                    {totalAdet}
-                                                </td>
+                                            return (
+                                                <tr key={row.id} className="hover:bg-slate-50/40 transition-colors text-xs text-slate-700">
+                                                    
+                                                    {/* Sticky ID */}
+                                                    <td className="p-3 text-center font-bold text-slate-400 sticky left-0 bg-white z-10 shadow-[1px_0_0_0_#f1f5f9] whitespace-nowrap">
+                                                        {(idx + 1).toString().padStart(2, '0')}
+                                                    </td>
 
-                                                {/* Unit price */}
-                                                <td className="p-3 text-right border-l border-slate-100 font-medium">
-                                                    {isEditing ? (
-                                                        <input 
-                                                            type="number"
-                                                            className="w-24 px-2 py-1 text-right bg-slate-50 border border-slate-200 rounded font-bold focus:outline-none"
-                                                            value={rowEditValues.unit_price || 0}
-                                                            onChange={e => setRowEditValues({ ...rowEditValues, unit_price: parseFloat(e.target.value) || 0 })}
-                                                        />
-                                                    ) : (
-                                                        `${row.unit_price.toLocaleString('tr-TR')} ₺`
-                                                    )}
-                                                </td>
-
-                                                {/* Extra Bonuses */}
-                                                <td className="p-3 text-right font-medium text-emerald-600">
-                                                    {isEditing ? (
-                                                        <input 
-                                                            type="number"
-                                                            className="w-20 px-2 py-1 text-right bg-slate-50 border border-slate-200 rounded focus:outline-none"
-                                                            value={rowEditValues.extra_payment || 0}
-                                                            onChange={e => setRowEditValues({ ...rowEditValues, extra_payment: parseFloat(e.target.value) || 0 })}
-                                                        />
-                                                    ) : (
-                                                        row.extra_payment > 0 ? `+${row.extra_payment.toLocaleString('tr-TR')} ₺` : '-'
-                                                    )}
-                                                </td>
-
-                                                {/* Deductions */}
-                                                <td className="p-3 text-right font-medium text-rose-600">
-                                                    {isEditing ? (
-                                                        <input 
-                                                            type="number"
-                                                            className="w-20 px-2 py-1 text-right bg-slate-50 border border-slate-200 rounded focus:outline-none"
-                                                            value={rowEditValues.deduction || 0}
-                                                            onChange={e => setRowEditValues({ ...rowEditValues, deduction: parseFloat(e.target.value) || 0 })}
-                                                        />
-                                                    ) : (
-                                                        row.deduction > 0 ? `-${row.deduction.toLocaleString('tr-TR')} ₺` : '-'
-                                                    )}
-                                                </td>
-
-                                                {/* Row total final */}
-                                                <td className="p-3 text-right bg-slate-900 text-white font-extrabold sticky right-0 z-10">
-                                                    {totalAmount.toLocaleString('tr-TR', { minimumFractionDigits: 2 })} ₺
-                                                </td>
-
-                                                {/* Action buttons */}
-                                                <td className="p-3 text-center">
-                                                    <div className="flex items-center justify-center gap-1">
+                                                    {/* Sticky Primary Name */}
+                                                    <td className="p-3 sticky left-12 bg-white z-10 shadow-[1px_0_0_0_#f1f5f9] font-bold whitespace-nowrap">
                                                         {isEditing ? (
-                                                            <>
-                                                                <button 
-                                                                    onClick={() => handleSaveRowEdit(row.id)}
-                                                                    className="p-1 text-emerald-600 hover:bg-emerald-50 rounded"
-                                                                    title="Tamam"
-                                                                >
-                                                                    <Check size={14} />
-                                                                </button>
-                                                                <button 
-                                                                    onClick={handleCancelRowEdit}
-                                                                    className="p-1 text-rose-600 hover:bg-rose-50 rounded"
-                                                                    title="İptal"
-                                                                >
-                                                                    <X size={14} />
-                                                                </button>
-                                                            </>
+                                                            <input 
+                                                                type="text"
+                                                                className="px-2 py-1 bg-slate-50 border border-slate-200 rounded font-semibold text-slate-800 focus:outline-none focus:ring-1 focus:ring-blue-500 min-w-[140px]"
+                                                                value={rowEditValues.primary_name || ''}
+                                                                onChange={e => setRowEditValues({ ...rowEditValues, primary_name: e.target.value })}
+                                                            />
                                                         ) : (
-                                                            <>
-                                                                <button 
-                                                                    onClick={() => handleStartEditRow(row)}
-                                                                    className="p-1 text-slate-400 hover:text-blue-600 rounded"
-                                                                    title="Satırı Düzenle"
-                                                                >
-                                                                    <Edit2 size={14} />
-                                                                </button>
-                                                                <button 
-                                                                    onClick={() => handleDeleteRow(row.id)}
-                                                                    className="p-1 text-slate-400 hover:text-rose-600 rounded"
-                                                                    title="Sil"
-                                                                >
-                                                                    <Trash2 size={14} />
-                                                                </button>
-                                                            </>
+                                                            <span className="text-slate-800">{row.primary_name}</span>
                                                         )}
-                                                    </div>
-                                                </td>
-                                            </tr>
-                                        );
-                                    })
+                                                    </td>
+
+                                                    {/* Category */}
+                                                    <td className="p-3 font-medium text-slate-600 whitespace-nowrap">
+                                                        {isEditing ? (
+                                                            <input 
+                                                                type="text"
+                                                                className="px-2 py-1 bg-slate-50 border border-slate-200 rounded focus:outline-none min-w-[100px]"
+                                                                value={rowEditValues.category || ''}
+                                                                onChange={e => setRowEditValues({ ...rowEditValues, category: e.target.value })}
+                                                            />
+                                                        ) : (
+                                                            row.category || '-'
+                                                        )}
+                                                    </td>
+
+                                                    {/* Unique Identifier */}
+                                                    <td className="p-3 font-semibold text-slate-500 font-mono whitespace-nowrap">
+                                                        {isEditing ? (
+                                                            <input 
+                                                                type="text"
+                                                                className="px-2 py-1 bg-slate-50 border border-slate-200 rounded focus:outline-none min-w-[100px]"
+                                                                value={rowEditValues.unique_identifier || ''}
+                                                                onChange={e => setRowEditValues({ ...rowEditValues, unique_identifier: e.target.value })}
+                                                            />
+                                                        ) : (
+                                                            row.unique_identifier || '-'
+                                                        )}
+                                                    </td>
+
+                                                    {/* Description */}
+                                                    <td className="p-3 text-slate-500 whitespace-nowrap">
+                                                        {isEditing ? (
+                                                            <input 
+                                                                type="text"
+                                                                className="px-2 py-1 bg-slate-50 border border-slate-200 rounded focus:outline-none min-w-[120px]"
+                                                                value={rowEditValues.description || ''}
+                                                                onChange={e => setRowEditValues({ ...rowEditValues, description: e.target.value })}
+                                                            />
+                                                        ) : (
+                                                            row.description || '-'
+                                                        )}
+                                                    </td>
+
+                                                    {/* Dynamic Days Grid */}
+                                                    {daysInMonth.map(day => {
+                                                        const cellValRaw = row.days_data[day.toString()] || '';
+                                                        let cellValDisplay = '';
+                                                        let cellNote = '';
+                                                        if (typeof cellValRaw === 'object' && cellValRaw !== null) {
+                                                            cellValDisplay = cellValRaw.value || '';
+                                                            cellNote = cellValRaw.note || '';
+                                                        } else {
+                                                            cellValDisplay = String(cellValRaw);
+                                                        }
+
+                                                        let displayVal = cellValDisplay;
+                                                        if (!displayVal && cellNote) {
+                                                            displayVal = cellNote;
+                                                        }
+
+                                                        return (
+                                                            <td 
+                                                                key={day}
+                                                                onClick={() => handleCellClick(row.id, day, cellValRaw)}
+                                                                className={`p-1 border-l border-slate-100 text-center cursor-pointer select-none relative min-w-[2.5rem] whitespace-nowrap px-2 ${getDayStyle(day)}`}
+                                                            >
+                                                                <div className="relative w-full h-full flex items-center justify-center min-h-[1.5rem] whitespace-nowrap" title={cellNote ? `Not: ${cellNote}` : undefined}>
+                                                                    <span className={`font-bold text-[11px] whitespace-nowrap ${
+                                                                        cellValDisplay === 'R' ? 'text-rose-500' :
+                                                                        cellValDisplay === 'İ' ? 'text-amber-500' :
+                                                                        cellValDisplay === 'M' ? 'text-emerald-500' : 'text-slate-800'
+                                                                    }`}>
+                                                                        {displayVal || '-'}
+                                                                    </span>
+                                                                    {cellNote && (
+                                                                        <span className="absolute top-0 right-0 w-1.5 h-1.5 bg-rose-500 rounded-full animate-pulse" />
+                                                                    )}
+                                                                </div>
+                                                            </td>
+                                                        );
+                                                    })}
+
+                                                    {/* Calculations and Accrual Totals */}
+                                                    <td className="p-3 text-center border-l border-slate-200 font-extrabold bg-blue-50/10 text-blue-700">
+                                                        {totalAdet}
+                                                    </td>
+
+                                                    {/* Unit price */}
+                                                    <td className="p-3 text-right border-l border-slate-100 font-medium">
+                                                        {isEditing ? (
+                                                            <input 
+                                                                type="number"
+                                                                className="w-24 px-2 py-1 text-right bg-slate-50 border border-slate-200 rounded font-bold focus:outline-none"
+                                                                value={rowEditValues.unit_price || 0}
+                                                                onChange={e => setRowEditValues({ ...rowEditValues, unit_price: parseFloat(e.target.value) || 0 })}
+                                                            />
+                                                        ) : (
+                                                            `${row.unit_price.toLocaleString('tr-TR')} ₺`
+                                                        )}
+                                                    </td>
+
+                                                    {/* Extra Bonuses */}
+                                                    <td className="p-3 text-right font-medium text-emerald-600">
+                                                        {isEditing ? (
+                                                            <input 
+                                                                type="number"
+                                                                className="w-20 px-2 py-1 text-right bg-slate-50 border border-slate-200 rounded focus:outline-none"
+                                                                value={rowEditValues.extra_payment || 0}
+                                                                onChange={e => setRowEditValues({ ...rowEditValues, extra_payment: parseFloat(e.target.value) || 0 })}
+                                                            />
+                                                        ) : (
+                                                            row.extra_payment > 0 ? `+${row.extra_payment.toLocaleString('tr-TR')} ₺` : '-'
+                                                        )}
+                                                    </td>
+
+                                                    {/* Deductions */}
+                                                    <td className="p-3 text-right font-medium text-rose-600">
+                                                        {isEditing ? (
+                                                            <input 
+                                                                type="number"
+                                                                className="w-20 px-2 py-1 text-right bg-slate-50 border border-slate-200 rounded focus:outline-none"
+                                                                value={rowEditValues.deduction || 0}
+                                                                onChange={e => setRowEditValues({ ...rowEditValues, deduction: parseFloat(e.target.value) || 0 })}
+                                                            />
+                                                        ) : (
+                                                            row.deduction > 0 ? `-${row.deduction.toLocaleString('tr-TR')} ₺` : '-'
+                                                        )}
+                                                    </td>
+
+                                                    {/* Row total final */}
+                                                    <td className="p-3 text-right bg-slate-900 text-white font-extrabold sticky right-0 z-10">
+                                                        {totalAmount.toLocaleString('tr-TR', { minimumFractionDigits: 2 })} ₺
+                                                    </td>
+
+                                                    {/* Action buttons */}
+                                                    <td className="p-3 text-center">
+                                                        <div className="flex items-center justify-center gap-1">
+                                                            {isEditing ? (
+                                                                <>
+                                                                    <button 
+                                                                        onClick={() => handleSaveRowEdit(row.id)}
+                                                                        className="p-1 text-emerald-600 hover:bg-emerald-50 rounded"
+                                                                        title="Tamam"
+                                                                    >
+                                                                        <Check size={14} />
+                                                                    </button>
+                                                                    <button 
+                                                                        onClick={handleCancelRowEdit}
+                                                                        className="p-1 text-rose-600 hover:bg-rose-50 rounded"
+                                                                        title="İptal"
+                                                                    >
+                                                                        <X size={14} />
+                                                                    </button>
+                                                                </>
+                                                            ) : (
+                                                                <>
+                                                                    <button 
+                                                                        onClick={() => handleStartEditRow(row)}
+                                                                        className="p-1 text-slate-400 hover:text-blue-600 rounded"
+                                                                        title="Satırı Düzenle"
+                                                                    >
+                                                                        <Edit2 size={14} />
+                                                                    </button>
+                                                                    <button 
+                                                                        onClick={() => handleDeleteRow(row.id)}
+                                                                        className="p-1 text-slate-400 hover:text-rose-600 rounded"
+                                                                        title="Sil"
+                                                                    >
+                                                                        <Trash2 size={14} />
+                                                                    </button>
+                                                                </>
+                                                            )}
+                                                        </div>
+                                                    </td>
+                                                </tr>
+                                            );
+                                        });
+                                    })()
                                 )}
                             </tbody>
 
@@ -1574,7 +1653,7 @@ const UniversalTimesheets: React.FC = () => {
                             <div>
                                 <label className="block text-xs font-bold text-slate-500 uppercase mb-1.5">Hücre Veri Giriş Kuralı</label>
                                 <select 
-                                    className="w-full px-3.5 py-2.5 bg-slate-50 border border-slate-200 rounded-xl focus:outline-none focus:ring-1 focus:ring-blue-500 font-semibold text-slate-700 text-sm"
+                                    className="w-full px-3.5 py-2.5 bg-slate-50 border border-slate-200 rounded-xl focus:outline-none focus:ring-1 focus:ring-blue-500 font-semibold text-slate-700 text-sm mb-4"
                                     value={configForm.cell_type}
                                     onChange={e => setConfigForm({ ...configForm, cell_type: e.target.value as any })}
                                 >
@@ -1582,6 +1661,21 @@ const UniversalTimesheets: React.FC = () => {
                                     <option value="number_or_text">Sayı ve Harf Kodları (R, İ, M gibi kısaltmalar)</option>
                                     <option value="text">Serbest Metin Girişi</option>
                                 </select>
+                            </div>
+
+                            <div>
+                                <label className="flex items-center gap-2 cursor-pointer p-3 bg-slate-50 rounded-xl border border-slate-200 hover:bg-slate-100 transition-colors">
+                                    <input 
+                                        type="checkbox" 
+                                        className="w-5 h-5 text-blue-600 rounded border-gray-300 focus:ring-blue-500"
+                                        checked={configForm.grouped_view || false}
+                                        onChange={e => setConfigForm({ ...configForm, grouped_view: e.target.checked })}
+                                    />
+                                    <div>
+                                        <span className="text-sm font-bold text-slate-800 block">Kategoriye Göre Gruplu Görünüm</span>
+                                        <span className="text-xs text-slate-500">Satırları departman veya kuruma göre başlıklar altında gruplar.</span>
+                                    </div>
+                                </label>
                             </div>
                         </div>
 
@@ -1748,6 +1842,13 @@ const UniversalTimesheets: React.FC = () => {
                 </div>
             )}
 
+            <VehicleTimesheetReportModal 
+                isOpen={showReportModal}
+                onClose={() => setShowReportModal(false)}
+                timesheetId={timesheet?.id}
+                month={selectedMonth}
+                year={selectedYear}
+            />
         </div>
     );
 };

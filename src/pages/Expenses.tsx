@@ -1,7 +1,7 @@
 import React, { useState, useEffect, useMemo } from 'react';
 import {
     Search, X, Wrench, Fuel, Users, Wallet, MoreHorizontal,
-    Check, Trash2, Edit2, Loader2, AlertCircle, TrendingUp, TrendingDown
+    Check, Trash2, Edit2, Loader2, AlertCircle, TrendingUp, TrendingDown, Map
 } from 'lucide-react';
 import {
     BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip as RechartsTooltip, Legend, ResponsiveContainer,
@@ -24,11 +24,13 @@ export interface FinancialRecord {
     vehicle_id?: string | null;
     vehicle_plate?: string;
     student_name?: string;
+    kilometer?: number | null;
 }
 
 export const EXPENSE_CATEGORIES = [
     { id: 'Araç Bakım', icon: Wrench, color: 'text-blue-600', bg: 'bg-blue-50' },
     { id: 'Yakıt', icon: Fuel, color: 'text-orange-600', bg: 'bg-orange-50' },
+    { id: 'Gezi / Ekstra İş', icon: Map, color: 'text-indigo-600', bg: 'bg-indigo-50' },
     { id: 'Maaş', icon: Users, color: 'text-purple-600', bg: 'bg-purple-50' },
     { id: 'Vergi/Sigorta', icon: Wallet, color: 'text-emerald-600', bg: 'bg-emerald-50' },
     { id: 'Diğer', icon: MoreHorizontal, color: 'text-slate-600', bg: 'bg-slate-50' }
@@ -60,7 +62,8 @@ const Expenses: React.FC = () => {
     const [formData, setFormData] = useState<Partial<FinancialRecord>>({
         category: 'Araç Bakım',
         status: 'upcoming',
-        date: new Date().toISOString().split('T')[0]
+        date: new Date().toISOString().split('T')[0],
+        kilometer: undefined
     });
     
     const [vehicleSearchQuery, setVehicleSearchQuery] = useState('');
@@ -149,7 +152,8 @@ const Expenses: React.FC = () => {
                     status: e.status,
                     created_at: e.created_at,
                     vehicle_id: e.vehicle_id,
-                    vehicle_plate: e.vehicles?.plate_number
+                    vehicle_plate: e.vehicles?.plate_number,
+                    kilometer: e.kilometer
                 })));
             }
 
@@ -204,12 +208,13 @@ const Expenses: React.FC = () => {
                 const payload = {
                     company_id: profile?.company_id,
                     expense_category: formData.category,
-                    vehicle_id: ['Araç Bakım', 'Yakıt'].includes(formData.category || '') ? (formData.vehicle_id || null) : null,
+                    vehicle_id: ['Araç Bakım', 'Yakıt', 'Gezi / Ekstra İş'].includes(formData.category || '') ? (formData.vehicle_id || null) : null,
                     title: formData.title,
                     expense_date: formData.date,
                     amount: formData.amount,
                     description: formData.description,
-                    status: formData.status
+                    status: formData.status,
+                    kilometer: formData.category === 'Yakıt' || formData.category === 'Gezi / Ekstra İş' ? (formData.kilometer || null) : null
                 };
 
                 if (editingRecord && editingRecord.source === 'expense') {
@@ -288,7 +293,8 @@ const Expenses: React.FC = () => {
                 title: record.title,
                 amount: record.amount,
                 description: record.description,
-                vehicle_id: record.vehicle_id
+                vehicle_id: record.vehicle_id,
+                kilometer: record.kilometer
             });
         } else {
             setFormData({
@@ -781,7 +787,7 @@ const Expenses: React.FC = () => {
                                     />
                                 </div>
 
-                                {modalType === 'expense' && ['Araç Bakım', 'Yakıt'].includes(formData.category || 'Araç Bakım') && (
+                                {modalType === 'expense' && ['Araç Bakım', 'Yakıt', 'Gezi / Ekstra İş'].includes(formData.category || 'Araç Bakım') && (
                                     <div className="col-span-2">
                                         <label className="block text-sm font-bold text-slate-700 mb-1">İlgili Araç (Opsiyonel)</label>
                                         <div className="relative">
@@ -862,6 +868,19 @@ const Expenses: React.FC = () => {
                                         onChange={e => setFormData({ ...formData, amount: Number(e.target.value) })}
                                     />
                                 </div>
+                                {modalType === 'expense' && ['Yakıt', 'Gezi / Ekstra İş'].includes(formData.category || '') && (
+                                    <div className="col-span-2">
+                                        <label className="block text-sm font-bold text-slate-700 mb-1">Kilometre (Opsiyonel)</label>
+                                        <input
+                                            type="number"
+                                            placeholder="Örn: 154200"
+                                            min="0"
+                                            className="w-full px-3 py-2.5 bg-slate-50 border border-slate-200 rounded-xl focus:outline-none focus:ring-2 focus:ring-blue-500/20 focus:border-blue-500 transition-all"
+                                            value={formData.kilometer || ''}
+                                            onChange={e => setFormData({ ...formData, kilometer: e.target.value ? Number(e.target.value) : undefined })}
+                                        />
+                                    </div>
+                                )}
                                 <div>
                                     <label className="block text-sm font-bold text-slate-700 mb-1">Durum</label>
                                     <select
