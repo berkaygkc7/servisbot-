@@ -284,7 +284,7 @@ const Vehicles: React.FC = () => {
     return (
         <div className="space-y-6">
             {/* Page Header */}
-            <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
+            <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 no-print">
                 <div>
                     <h1 className="text-2xl font-bold text-slate-800">Araç Yönetimi</h1>
                     <p className="text-slate-500">Filodaki tüm araçları yönetin ve takip edin.</p>
@@ -299,7 +299,7 @@ const Vehicles: React.FC = () => {
             </div>
 
             {/* Filters & Search */}
-            <div className="flex flex-col sm:flex-row gap-4">
+            <div className="flex flex-col sm:flex-row gap-4 no-print">
                 <div className="relative flex-1">
                     <Search className="absolute left-3 top-1/2 -translate-y-1/2 text-slate-400" size={20} />
                     <input
@@ -318,15 +318,17 @@ const Vehicles: React.FC = () => {
 
             {/* Vehicle List */}
             {loading ? (
-                <div className="text-center py-10 text-slate-500">Yükleniyor...</div>
+                <div className="text-center py-10 text-slate-500 no-print">Yükleniyor...</div>
             ) : (
-                <VehicleList
-                    vehicles={filteredVehicles}
-                    onEdit={handleEditClick}
-                    onDelete={handleDeleteClick}
-                    onShowLocation={handleShowLocation}
-                    onShowStudents={handleShowStudents}
-                />
+                <div className="no-print">
+                    <VehicleList
+                        vehicles={filteredVehicles}
+                        onEdit={handleEditClick}
+                        onDelete={handleDeleteClick}
+                        onShowLocation={handleShowLocation}
+                        onShowStudents={handleShowStudents}
+                    />
+                </div>
             )}
 
             {/* Add/Edit Modal */}
@@ -456,31 +458,46 @@ const Vehicles: React.FC = () => {
             {isStudentsModalOpen && selectedVehicleForStudents && (
                 <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/50 backdrop-blur-sm vehicle-student-modal-container">
                     <style>{`
-                            @media print {
-                                @page {
-                                    size: A4 portrait;
-                                    margin: 12mm;
-                                }
-                                html, body, #root, main, div {
-                                    height: auto !important;
-                                    overflow: visible !important;
-                                    position: static !important;
-                                }
-                                body * {
-                                    visibility: hidden !important;
-                                }
-                                .print-only-manifest, .print-only-manifest * {
-                                    visibility: visible !important;
-                                }
-                                .print-only-manifest {
-                                    display: block !important;
-                                    position: absolute !important;
-                                    left: 0 !important;
-                                    top: 0 !important;
-                                    width: 100% !important;
-                                    margin: 0 !important;
-                                    padding: 0 !important;
-                                }
+                        @media print {
+                            @page {
+                                size: A4 portrait;
+                                margin: 12mm;
+                            }
+                            
+                            /* HIDE GLOBAL UI ELEMENTS */
+                            aside, nav, header, .fixed.w-64, [class*="glass-panel-dark"] {
+                                display: none !important;
+                            }
+                            
+                            /* RESET LAYOUT MARGINS */
+                            .ml-64, main.ml-64, [class*="ml-64"] {
+                                margin: 0 !important;
+                                padding: 0 !important;
+                                width: 100% !important;
+                            }
+                            
+                            /* HIDE EVERYTHING WITH NO-PRINT */
+                            .no-print {
+                                display: none !important;
+                            }
+                            
+                            /* RESET MODAL CONTAINER FOR PRINTING */
+                            .vehicle-student-modal-container {
+                                position: static !important;
+                                background: transparent !important;
+                                padding: 0 !important;
+                                display: block !important;
+                            }
+                            
+                            /* SHOW THE MANIFEST */
+                            .print-only-manifest {
+                                display: block !important;
+                                position: static !important;
+                                width: 100% !important;
+                                margin: 0 !important;
+                                padding: 0 !important;
+                            }
+
                             .print-manifest-table {
                                 width: 100% !important;
                                 border-collapse: collapse !important;
@@ -494,7 +511,6 @@ const Vehicles: React.FC = () => {
                                 text-align: left !important;
                                 white-space: normal !important;
                                 word-break: break-word !important;
-                                overflow: visible !important;
                                 vertical-align: top !important;
                             }
                             .print-manifest-table th {
