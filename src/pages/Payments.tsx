@@ -278,7 +278,6 @@ const Payments = () => {
             const existingStudentIds = new Set(existingPayments?.map(ep => ep.student_id) || []);
 
             const invoicesToInsert = [];
-            const timestamp = Date.now().toString(36);
             let skippedNoPriceCount = 0;
 
             for (let i = 0; i < (students || []).length; i++) {
@@ -322,7 +321,7 @@ const Payments = () => {
 
                 invoicesToInsert.push({
                     company_id: profile.company_id,
-                    invoice_no: `INV-${timestamp}-${i}`, // basic unique invoice no
+                    invoice_no: '',
                     student_id: s.id,
                     month: month,
                     amount: billAmount,

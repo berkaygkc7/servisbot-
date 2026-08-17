@@ -54,7 +54,7 @@ const Payments = () => {
 
     // Add Payment Modal State
     const [newPayment, setNewPayment] = useState({
-        invoice_no: `SRV-${new Date().getFullYear()}-${Math.floor(Math.random() * 10000).toString().padStart(4, '0')}`,
+        invoice_no: '',
         student_id: '',
         month: '',
         amount: '',
@@ -343,7 +343,7 @@ const Payments = () => {
 
             setIsAddModalOpen(false);
             setNewPayment({
-                invoice_no: `SRV-${new Date().getFullYear()}-${Math.floor(Math.random() * 10000).toString().padStart(4, '0')}`,
+                invoice_no: '',
                 student_id: '',
                 month: currentMonthStr,
                 amount: '',

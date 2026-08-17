@@ -499,7 +499,7 @@ const Students: React.FC = () => {
                 const payload = {
                     company_id: profile.company_id,
                     student_id: student.id,
-                    invoice_no: `INV-${Date.now().toString(36)}-${Math.floor(Math.random()*1000)}`,
+                    invoice_no: '',
                     month: currentMonth,
                     amount: monthlyPrice,
                     due_date: new Date().toISOString().split('T')[0],
