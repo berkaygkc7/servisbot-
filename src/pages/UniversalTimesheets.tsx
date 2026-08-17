@@ -17,7 +17,8 @@ import {
     Sliders,
     Calendar,
     Share2,
-    FileSpreadsheet
+    FileSpreadsheet,
+    RotateCcw
 } from 'lucide-react';
 import { supabase } from '../lib/supabase';
 import { useAuth } from '../contexts/AuthContext';
@@ -352,6 +353,41 @@ const UniversalTimesheets: React.FC = () => {
         } catch (err: any) {
             console.error("Export error:", err);
             setErrorMsg("Aktarım sırasında bir hata oluştu: " + err.message);
+        } finally {
+            setLoading(false);
+        }
+    };
+
+    const handleUndoExport = async (target: 'expenses' | 'incomes') => {
+        if (!timesheet || !profile?.company_id) return;
+        
+        if (!window.confirm(`Bu puantajın ${target === 'expenses' ? 'Giderler' : 'Gelirler'} tablosuna aktarılan tüm kayıtları silinecek (Geri alınacak). Onaylıyor musunuz?`)) return;
+
+        setLoading(true);
+        try {
+            const titlePrefix = `${selectedMonth} ${selectedYear} - ${timesheet.title || 'Puantaj'}`;
+            const searchDesc = `${titlePrefix} hakediş aktarımı%`;
+
+            const { error: deleteError } = await supabase
+                .from(target)
+                .delete()
+                .eq('company_id', profile.company_id)
+                .like('description', searchDesc);
+
+            if (deleteError) throw deleteError;
+
+            // Reset the exported_at field
+            const updateField = target === 'expenses' ? { exported_to_expenses_at: null } : { exported_to_incomes_at: null };
+            const { error: updateError } = await supabase.from('universal_timesheets').update(updateField).eq('id', timesheet.id);
+            
+            if (updateError) throw updateError;
+
+            // @ts-ignore - Supabase types might not allow null for date strings in our local interface directly without typing, but it's fine for state
+            setTimesheet({ ...timesheet, ...updateField });
+            alert(`Aktarım başarıyla geri alındı! İlgili kayıtlar tablodan silindi.`);
+        } catch (err: any) {
+            console.error("Undo error:", err);
+            setErrorMsg("Geri alma işlemi sırasında bir hata oluştu: " + err.message);
         } finally {
             setLoading(false);
         }
@@ -1448,34 +1484,61 @@ const UniversalTimesheets: React.FC = () => {
                     
                 {/* Export to Incomes/Expenses buttons */}
                 {rows.length > 0 && !usingFallback && !loading && (
-                        <div className="bg-slate-50 border-t border-slate-200 px-6 py-4 flex flex-wrap items-center justify-end gap-3 rounded-b-3xl">
+                    <div className="bg-slate-50 border-t border-slate-200 px-6 py-4 flex flex-wrap items-center justify-end gap-5 rounded-b-3xl">
+                        
+                        {/* Expenses Button Group */}
+                        <div className="flex items-center gap-2">
+                            {timesheet?.exported_to_expenses_at && (
+                                <button
+                                    onClick={() => handleUndoExport('expenses')}
+                                    disabled={loading || saving}
+                                    className="p-2.5 rounded-xl bg-white border border-slate-200 text-slate-500 hover:bg-rose-50 hover:text-rose-600 hover:border-rose-200 transition-all shadow-sm"
+                                    title="Giderlere aktarımı geri al"
+                                >
+                                    <RotateCcw size={18} />
+                                </button>
+                            )}
                             <button
                                 onClick={() => handleExportTo('expenses')}
                                 disabled={loading || saving}
                                 className={`flex items-center gap-2 px-5 py-2.5 rounded-xl text-sm font-bold shadow-sm transition-all ${
                                     timesheet?.exported_to_expenses_at 
-                                        ? 'bg-emerald-50 text-emerald-700 border border-emerald-200 hover:bg-emerald-100' 
+                                        ? 'bg-rose-600 text-white border border-rose-600 hover:bg-rose-700 shadow-rose-200' 
                                         : 'bg-rose-50 text-rose-700 border border-rose-200 hover:bg-rose-100'
                                 }`}
                             >
                                 {timesheet?.exported_to_expenses_at ? <Check size={18} /> : <Share2 size={18} />}
                                 {timesheet?.exported_to_expenses_at ? 'Giderlere Aktarıldı' : 'Tümünü Giderlere Aktar'}
                             </button>
-                            
+                        </div>
+                        
+                        {/* Incomes Button Group */}
+                        <div className="flex items-center gap-2">
+                            {timesheet?.exported_to_incomes_at && (
+                                <button
+                                    onClick={() => handleUndoExport('incomes')}
+                                    disabled={loading || saving}
+                                    className="p-2.5 rounded-xl bg-white border border-slate-200 text-slate-500 hover:bg-emerald-50 hover:text-emerald-600 hover:border-emerald-200 transition-all shadow-sm"
+                                    title="Gelirlere aktarımı geri al"
+                                >
+                                    <RotateCcw size={18} />
+                                </button>
+                            )}
                             <button
                                 onClick={() => handleExportTo('incomes')}
                                 disabled={loading || saving}
                                 className={`flex items-center gap-2 px-5 py-2.5 rounded-xl text-sm font-bold shadow-sm transition-all ${
                                     timesheet?.exported_to_incomes_at 
-                                        ? 'bg-emerald-50 text-emerald-700 border border-emerald-200 hover:bg-emerald-100' 
-                                        : 'bg-indigo-50 text-indigo-700 border border-indigo-200 hover:bg-indigo-100'
+                                        ? 'bg-emerald-600 text-white border border-emerald-600 hover:bg-emerald-700 shadow-emerald-200' 
+                                        : 'bg-emerald-50 text-emerald-700 border border-emerald-200 hover:bg-emerald-100'
                                 }`}
                             >
                                 {timesheet?.exported_to_incomes_at ? <Check size={18} /> : <Share2 size={18} />}
                                 {timesheet?.exported_to_incomes_at ? 'Gelirlere Aktarıldı' : 'Tümünü Gelirlere Aktar'}
                             </button>
                         </div>
-                    )}
+                    </div>
+                )}
             </div>
 
             {/* Config & Tax calculations widgets */}
