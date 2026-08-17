@@ -58,13 +58,16 @@ const VehicleProfileModal: React.FC<VehicleProfileModalProps> = ({ isOpen, onClo
         
         try {
             // 1. Fetch the timesheet ID for the selected month/year
-            const { data: tsData } = await supabase
+            const { data: tsDataArr } = await supabase
                 .from('universal_timesheets')
                 .select('id')
                 .eq('company_id', profile.company_id)
                 .eq('month', selectedMonth)
                 .eq('year', selectedYear)
-                .single();
+                .order('created_at', { ascending: true })
+                .limit(1);
+            
+            const tsData = tsDataArr && tsDataArr.length > 0 ? tsDataArr[0] : null;
 
             let tRows: any[] = [];
             if (tsData) {
