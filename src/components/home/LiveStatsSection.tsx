@@ -33,7 +33,6 @@ const LiveStatsSection: React.FC = () => {
         students: 0,
         vehicles: 0
     });
-    const [isLoaded, setIsLoaded] = useState(false);
     
     // We use a ref to trigger animation only when the section is in view
     const sectionRef = useRef<HTMLDivElement>(null);
@@ -53,8 +52,6 @@ const LiveStatsSection: React.FC = () => {
             }
         } catch (error) {
             console.error('Error fetching live stats:', error);
-        } finally {
-            setIsLoaded(true);
         }
     };
 
