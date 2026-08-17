@@ -15,7 +15,6 @@ import Drivers from './pages/Drivers';
 import Settings from './pages/Settings';
 import Expenses from './pages/Expenses';
 import Payments from './pages/Payments';
-import Timesheets from './pages/Timesheets';
 import UniversalTimesheets from './pages/UniversalTimesheets';
 import { AuthProvider } from './contexts/AuthContext';
 import ProtectedRoute from './components/auth/ProtectedRoute';
@@ -116,8 +115,7 @@ function App() {
               <Route path="routes" element={<ProtectedRoute allowedRoles={['owner', 'admin', 'dispatcher']}><RoutesPage /></ProtectedRoute>} />
               <Route path="expenses" element={<ProtectedRoute allowedRoles={['owner', 'admin', 'accountant']}><Expenses /></ProtectedRoute>} />
               <Route path="payments" element={<ProtectedRoute allowedRoles={['owner', 'admin', 'accountant']}><Payments /></ProtectedRoute>} />
-              <Route path="timesheets" element={<ProtectedRoute allowedRoles={['owner', 'admin', 'accountant']}><Timesheets /></ProtectedRoute>} />
-              <Route path="universal-timesheets" element={<ProtectedRoute allowedRoles={['owner', 'admin', 'accountant']}><UniversalTimesheets /></ProtectedRoute>} />
+              <Route path="timesheets" element={<ProtectedRoute allowedRoles={['owner', 'admin', 'accountant']}><UniversalTimesheets /></ProtectedRoute>} />
               <Route path="settings" element={<ProtectedRoute allowedRoles={['owner', 'admin']}><Settings /></ProtectedRoute>} />
             </Route>
 

@@ -11,7 +11,6 @@ import {
     UserCheck,
     Wallet,
     CreditCard,
-    ClipboardList,
     Layers,
     ShieldAlert
 } from 'lucide-react';
@@ -31,8 +30,7 @@ const Sidebar: React.FC = () => {
         { icon: Map, label: 'Rotalar', path: '/dashboard/routes', allowedRoles: ['owner', 'admin', 'dispatcher'] },
         { icon: CreditCard, label: 'Ödemeler', path: '/dashboard/payments', allowedRoles: ['owner', 'admin', 'accountant'] },
         { icon: Wallet, label: 'Gelir / Giderler', path: '/dashboard/expenses', allowedRoles: ['owner', 'admin', 'accountant'] },
-        { icon: ClipboardList, label: 'Puantaj', path: '/dashboard/timesheets', allowedRoles: ['owner', 'admin', 'accountant'] },
-        { icon: Layers, label: 'Evrensel Puantaj', path: '/dashboard/universal-timesheets', allowedRoles: ['owner', 'admin', 'accountant'] },
+        { icon: Layers, label: 'Puantaj', path: '/dashboard/timesheets', allowedRoles: ['owner', 'admin', 'accountant'] },
         { icon: Settings, label: 'Ayarlar', path: '/dashboard/settings', allowedRoles: ['owner', 'admin'] },
     ];
 
