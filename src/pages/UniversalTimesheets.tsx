@@ -1051,7 +1051,7 @@ const UniversalTimesheets: React.FC = () => {
                             {timesheet?.title || 'Evrensel Puantaj ve Hakediş Paneli'}
                         </h1>
                         <div className="flex items-center gap-2 mt-1">
-                            <span className="text-xs text-slate-400 font-medium">Esnek, Sektör Bağımsız Takip Modülü</span>
+                            <span className="text-sm text-slate-400 font-medium">Esnek, Sektör Bağımsız Takip Modülü</span>
                             {usingFallback && (
                                 <span className="inline-flex items-center gap-1 text-[10px] font-bold px-2 py-0.5 bg-amber-100 text-amber-800 rounded-md border border-amber-200">
                                     <Info size={10} /> Local Storage Aktif
@@ -1066,7 +1066,7 @@ const UniversalTimesheets: React.FC = () => {
                     <select
                         value={selectedMonth}
                         onChange={e => setSelectedMonth(e.target.value)}
-                        className="px-3 py-2 bg-slate-50 border border-slate-200 rounded-xl text-xs font-bold text-slate-700 focus:outline-none"
+                        className="px-3 py-2 bg-slate-50 border border-slate-200 rounded-xl text-sm font-bold text-slate-700 focus:outline-none"
                     >
                         {Array.from({ length: 12 }, (_, i) => {
                             const m = (i + 1).toString().padStart(2, '0');
@@ -1081,7 +1081,7 @@ const UniversalTimesheets: React.FC = () => {
                     <select
                         value={selectedYear}
                         onChange={e => setSelectedYear(e.target.value)}
-                        className="px-3 py-2 bg-slate-50 border border-slate-200 rounded-xl text-xs font-bold text-slate-700 focus:outline-none"
+                        className="px-3 py-2 bg-slate-50 border border-slate-200 rounded-xl text-sm font-bold text-slate-700 focus:outline-none"
                     >
                         <option value="2026">2026</option>
                         <option value="2027">2027</option>
@@ -1092,7 +1092,7 @@ const UniversalTimesheets: React.FC = () => {
 
                     <button 
                         onClick={handleOpenConfig}
-                        className="flex items-center gap-1.5 px-3.5 py-2 bg-slate-100 hover:bg-slate-200 text-slate-700 text-xs font-bold rounded-xl transition-all"
+                        className="flex items-center gap-1.5 px-3.5 py-2 bg-slate-100 hover:bg-slate-200 text-slate-700 text-sm font-bold rounded-xl transition-all"
                     >
                         <Sliders size={14} />
                         <span>Başlıkları Özelleştir</span>
@@ -1100,7 +1100,7 @@ const UniversalTimesheets: React.FC = () => {
 
                     <button 
                         onClick={handleAddRow}
-                        className="flex items-center gap-1.5 px-3.5 py-2 bg-emerald-600 hover:bg-emerald-700 text-white text-xs font-bold rounded-xl transition-all shadow-sm"
+                        className="flex items-center gap-1.5 px-3.5 py-2 bg-emerald-600 hover:bg-emerald-700 text-white text-sm font-bold rounded-xl transition-all shadow-sm"
                     >
                         <Plus size={14} />
                         <span>Yeni Satır Ekle</span>
@@ -1109,7 +1109,7 @@ const UniversalTimesheets: React.FC = () => {
                     <button 
                         onClick={() => handleSaveAll(false)}
                         disabled={saving}
-                        className="flex items-center gap-1.5 px-4 py-2 bg-blue-600 hover:bg-blue-700 text-white text-xs font-bold rounded-xl transition-all shadow-md shadow-blue-600/10 disabled:opacity-50"
+                        className="flex items-center gap-1.5 px-4 py-2 bg-blue-600 hover:bg-blue-700 text-white text-sm font-bold rounded-xl transition-all shadow-md shadow-blue-600/10 disabled:opacity-50"
                     >
                         {saving ? (
                             <>
@@ -1125,7 +1125,7 @@ const UniversalTimesheets: React.FC = () => {
                     </button>
                     <button
                         onClick={handleExportExcel}
-                        className="flex items-center gap-1.5 px-4 py-2 bg-emerald-600 hover:bg-emerald-700 text-white text-xs font-bold rounded-xl transition-all shadow-md shadow-emerald-600/10 active:scale-95"
+                        className="flex items-center gap-1.5 px-4 py-2 bg-emerald-600 hover:bg-emerald-700 text-white text-sm font-bold rounded-xl transition-all shadow-md shadow-emerald-600/10 active:scale-95"
                         title="Excel İndir (.xlsx)"
                     >
                         <FileSpreadsheet size={15} />
@@ -1133,7 +1133,7 @@ const UniversalTimesheets: React.FC = () => {
                     </button>
                     <button
                         onClick={handleShare}
-                        className="flex items-center gap-1.5 px-4 py-2 bg-blue-500 hover:bg-blue-600 text-white text-xs font-bold rounded-xl transition-all shadow-md shadow-blue-500/10"
+                        className="flex items-center gap-1.5 px-4 py-2 bg-blue-500 hover:bg-blue-600 text-white text-sm font-bold rounded-xl transition-all shadow-md shadow-blue-500/10"
                     >
                         <Share2 size={14} />
                         <span className="hidden sm:inline">Paylaş</span>
@@ -1141,7 +1141,7 @@ const UniversalTimesheets: React.FC = () => {
                 </div>
             </div>
 
-            {isAutoSaving && (<div className="absolute top-4 right-4 bg-emerald-50 text-emerald-700 px-3 py-1.5 rounded-lg text-xs font-bold flex items-center gap-1.5 shadow-sm border border-emerald-100 z-50 animate-pulse"><CheckCircle2 size={14} /><span>Otomatik kaydediliyor...</span></div>)}{errorMsg && (
+            {isAutoSaving && (<div className="absolute top-4 right-4 bg-emerald-50 text-emerald-700 px-4 py-2 rounded-lg text-sm font-bold flex items-center gap-1.5 shadow-sm border border-emerald-100 z-50 animate-pulse"><CheckCircle2 size={14} /><span>Otomatik kaydediliyor...</span></div>)}{errorMsg && (
                 <div className="bg-red-50 border border-red-200 p-4 rounded-xl flex items-center gap-3 text-red-800 text-sm">
                     <AlertCircle size={18} className="shrink-0" />
                     <span>{errorMsg}</span>
@@ -1160,18 +1160,18 @@ const UniversalTimesheets: React.FC = () => {
                     <div className="overflow-x-auto relative max-w-full">
                         <table className="w-max min-w-full text-left border-collapse table-auto">
                             <thead>
-                                <tr className="bg-slate-50/80 border-b border-slate-100 text-slate-600 text-xs font-bold tracking-wider uppercase">
-                                    <th className="p-3 text-center whitespace-nowrap sticky left-0 bg-slate-50/90 z-20 shadow-[1px_0_0_0_#f1f5f9]">Sıra</th>
-                                    <th className="p-3 whitespace-nowrap sticky left-12 bg-slate-50/90 z-20 shadow-[1px_0_0_0_#f1f5f9]">
+                                <tr className="bg-slate-50/80 border-b border-slate-100 text-slate-600 text-[15px] font-black tracking-wider uppercase">
+                                    <th className="p-4 text-center whitespace-nowrap sticky left-0 bg-slate-50/90 z-20 shadow-[1px_0_0_0_#f1f5f9]">Sıra</th>
+                                    <th className="p-4 whitespace-nowrap sticky left-12 bg-slate-50/90 z-20 shadow-[1px_0_0_0_#f1f5f9]">
                                         {timesheet?.primary_label || 'Öğe Adı'}
                                     </th>
-                                    <th className="p-3 whitespace-nowrap">
+                                    <th className="p-4 whitespace-nowrap">
                                         {timesheet?.category_label || 'Kategori'}
                                     </th>
-                                    <th className="p-3 whitespace-nowrap">
+                                    <th className="p-4 whitespace-nowrap">
                                         {timesheet?.unique_key_label || 'Kimlik No'}
                                     </th>
-                                    <th className="p-3 whitespace-nowrap">Açıklama</th>
+                                    <th className="p-4 whitespace-nowrap">Açıklama</th>
 
                                     {/* Days Columns */}
                                     {daysInMonth.map(day => (
@@ -1186,12 +1186,12 @@ const UniversalTimesheets: React.FC = () => {
                                     ))}
 
                                     {/* Financial Headers */}
-                                    <th className="p-3 text-center border-l border-slate-200 bg-blue-50/30 text-blue-900 whitespace-nowrap">Adet/Gün</th>
-                                    <th className="p-3 text-right border-l border-slate-100 whitespace-nowrap">B. Fiyat</th>
-                                    <th className="p-3 text-right whitespace-nowrap">Prim/Ek</th>
-                                    <th className="p-3 text-right text-red-700 whitespace-nowrap">Kesinti</th>
-                                    <th className="p-3 text-right bg-slate-900 text-white sticky right-0 z-10 whitespace-nowrap">Tutar</th>
-                                    <th className="p-3 text-center whitespace-nowrap">İşlem</th>
+                                    <th className="p-4 text-center border-l border-slate-200 bg-blue-50/30 text-blue-900 whitespace-nowrap">Adet/Gün</th>
+                                    <th className="p-4 text-right border-l border-slate-100 whitespace-nowrap">B. Fiyat</th>
+                                    <th className="p-4 text-right whitespace-nowrap">Prim/Ek</th>
+                                    <th className="p-4 text-right text-red-700 whitespace-nowrap">Kesinti</th>
+                                    <th className="p-4 text-right bg-slate-900 text-white sticky right-0 z-10 whitespace-nowrap">Tutar</th>
+                                    <th className="p-4 text-center whitespace-nowrap">İşlem</th>
                                 </tr>
                             </thead>
                             
@@ -1204,7 +1204,7 @@ const UniversalTimesheets: React.FC = () => {
                                                 <span className="text-sm font-medium">Bu tablo için henüz satır eklenmemiş.</span>
                                                 <button 
                                                     onClick={handleAddRow}
-                                                    className="mt-2 text-xs font-bold text-blue-600 hover:underline"
+                                                    className="mt-2 text-sm font-bold text-blue-600 hover:underline"
                                                 >
                                                     Bir satır ekleyerek başlayın
                                                 </button>
@@ -1235,7 +1235,7 @@ const UniversalTimesheets: React.FC = () => {
                                             if (item.type === 'header') {
                                                 return (
                                                     <tr key={`header-${item.title}-${mapIdx}`} className="bg-slate-200/60 border-y border-slate-300">
-                                                        <td colSpan={daysInMonth.length + 11} className="p-3 text-center font-black text-slate-800 text-sm tracking-widest uppercase shadow-inner">
+                                                        <td colSpan={daysInMonth.length + 11} className="p-4 text-center font-black text-slate-800 text-base tracking-widest uppercase shadow-inner">
                                                             {item.title}
                                                         </td>
                                                     </tr>
@@ -1248,19 +1248,19 @@ const UniversalTimesheets: React.FC = () => {
                                             const { totalAdet, totalAmount } = rowCalculations(row);
 
                                             return (
-                                                <tr key={row.id} className="hover:bg-slate-50/40 transition-colors text-xs text-slate-700">
+                                                <tr key={row.id} className="hover:bg-slate-50/40 transition-colors text-[15px] text-slate-700">
                                                     
                                                     {/* Sticky ID */}
-                                                    <td className="p-3 text-center font-bold text-slate-400 sticky left-0 bg-white z-10 shadow-[1px_0_0_0_#f1f5f9] whitespace-nowrap">
+                                                    <td className="p-4 text-center font-bold text-slate-400 sticky left-0 bg-white z-10 shadow-[1px_0_0_0_#f1f5f9] whitespace-nowrap">
                                                         {(idx + 1).toString().padStart(2, '0')}
                                                     </td>
 
                                                     {/* Sticky Primary Name */}
-                                                    <td className="p-3 sticky left-12 bg-white z-10 shadow-[1px_0_0_0_#f1f5f9] font-bold whitespace-nowrap">
+                                                    <td className="p-4 sticky left-12 bg-white z-10 shadow-[1px_0_0_0_#f1f5f9] font-bold whitespace-nowrap">
                                                         {isEditing ? (
                                                             <input 
                                                                 type="text"
-                                                                className="px-3 py-1.5 bg-slate-50 border border-slate-200 rounded font-semibold text-slate-800 focus:outline-none focus:ring-1 focus:ring-blue-500 min-w-[140px]"
+                                                                className="px-4 py-2.5 bg-slate-50 border border-slate-200 rounded font-semibold text-slate-800 focus:outline-none focus:ring-1 focus:ring-blue-500 min-w-[140px]"
                                                                 value={rowEditValues.primary_name || ''}
                                                                 onChange={e => setRowEditValues({ ...rowEditValues, primary_name: e.target.value })}
                                                             />
@@ -1270,11 +1270,11 @@ const UniversalTimesheets: React.FC = () => {
                                                     </td>
 
                                                     {/* Category */}
-                                                    <td className="p-3 font-medium text-slate-600 whitespace-nowrap">
+                                                    <td className="p-4 font-medium text-slate-600 whitespace-nowrap">
                                                         {isEditing ? (
                                                             <input 
                                                                 type="text"
-                                                                className="px-3 py-1.5 bg-slate-50 border border-slate-200 rounded focus:outline-none min-w-[100px]"
+                                                                className="px-4 py-2.5 bg-slate-50 border border-slate-200 rounded focus:outline-none min-w-[100px]"
                                                                 value={rowEditValues.category || ''}
                                                                 onChange={e => setRowEditValues({ ...rowEditValues, category: e.target.value })}
                                                             />
@@ -1284,10 +1284,10 @@ const UniversalTimesheets: React.FC = () => {
                                                     </td>
 
                                                     {/* Unique Identifier */}
-                                                    <td className="p-3 font-semibold text-slate-500 font-mono whitespace-nowrap">
+                                                    <td className="p-4 font-semibold text-slate-500 font-mono whitespace-nowrap">
                                                         {isEditing ? (
                                                             <select
-                                                                className="px-3 py-1.5 bg-slate-50 border border-slate-200 rounded focus:outline-none min-w-[100px]"
+                                                                className="px-4 py-2.5 bg-slate-50 border border-slate-200 rounded focus:outline-none min-w-[100px]"
                                                                 value={rowEditValues.unique_identifier || ''}
                                                                 onChange={e => setRowEditValues({ ...rowEditValues, unique_identifier: e.target.value })}
                                                             >
@@ -1302,11 +1302,11 @@ const UniversalTimesheets: React.FC = () => {
                                                     </td>
 
                                                     {/* Description */}
-                                                    <td className="p-3 text-slate-500 whitespace-nowrap">
+                                                    <td className="p-4 text-slate-500 whitespace-nowrap">
                                                         {isEditing ? (
                                                             <input 
                                                                 type="text"
-                                                                className="px-3 py-1.5 bg-slate-50 border border-slate-200 rounded focus:outline-none min-w-[120px]"
+                                                                className="px-4 py-2.5 bg-slate-50 border border-slate-200 rounded focus:outline-none min-w-[120px]"
                                                                 value={rowEditValues.description || ''}
                                                                 onChange={e => setRowEditValues({ ...rowEditValues, description: e.target.value })}
                                                             />
@@ -1336,10 +1336,10 @@ const UniversalTimesheets: React.FC = () => {
                                                             <td 
                                                                 key={day}
                                                                 onClick={() => handleCellClick(row.id, day, cellValRaw)}
-                                                                className={`p-1.5 border-l border-slate-100 text-center cursor-pointer select-none relative min-w-[2.5rem] whitespace-nowrap px-2 ${getDayStyle(day)}`}
+                                                                className={`p-3 border-l border-slate-100 text-center cursor-pointer select-none relative min-w-[2.5rem] whitespace-nowrap px-2 ${getDayStyle(day)}`}
                                                             >
                                                                 <div className="relative w-full h-full flex items-center justify-center min-h-[1.5rem] whitespace-nowrap" title={cellNote ? `Not: ${cellNote}` : undefined}>
-                                                                    <span className={`font-bold text-xs whitespace-nowrap ${
+                                                                    <span className={`font-black text-base whitespace-nowrap ${
                                                                         cellValDisplay === 'R' ? 'text-rose-500' :
                                                                         cellValDisplay === 'İ' ? 'text-amber-500' :
                                                                         cellValDisplay === 'M' ? 'text-emerald-500' : 'text-slate-800'
@@ -1355,16 +1355,16 @@ const UniversalTimesheets: React.FC = () => {
                                                     })}
 
                                                     {/* Calculations and Accrual Totals */}
-                                                    <td className="p-3 text-center border-l border-slate-200 font-extrabold bg-blue-50/10 text-blue-700">
+                                                    <td className="p-4 text-center border-l border-slate-200 font-extrabold bg-blue-50/10 text-blue-700">
                                                         {totalAdet}
                                                     </td>
 
                                                     {/* Unit price */}
-                                                    <td className="p-3 text-right border-l border-slate-100 font-medium">
+                                                    <td className="p-4 text-right border-l border-slate-100 font-medium">
                                                         {isEditing ? (
                                                             <input 
                                                                 type="number"
-                                                                className="w-24 px-3 py-1.5 text-right bg-slate-50 border border-slate-200 rounded font-bold focus:outline-none"
+                                                                className="w-28 px-4 py-2.5 text-right bg-slate-50 border border-slate-200 rounded font-bold focus:outline-none"
                                                                 value={rowEditValues.unit_price || 0}
                                                                 onChange={e => setRowEditValues({ ...rowEditValues, unit_price: parseFloat(e.target.value) || 0 })}
                                                             />
@@ -1374,11 +1374,11 @@ const UniversalTimesheets: React.FC = () => {
                                                     </td>
 
                                                     {/* Extra Bonuses */}
-                                                    <td className="p-3 text-right font-medium text-emerald-600">
+                                                    <td className="p-4 text-right font-medium text-emerald-600">
                                                         {isEditing ? (
                                                             <input 
                                                                 type="number"
-                                                                className="w-20 px-3 py-1.5 text-right bg-slate-50 border border-slate-200 rounded focus:outline-none"
+                                                                className="w-24 px-4 py-2.5 text-right bg-slate-50 border border-slate-200 rounded focus:outline-none"
                                                                 value={rowEditValues.extra_payment || 0}
                                                                 onChange={e => setRowEditValues({ ...rowEditValues, extra_payment: parseFloat(e.target.value) || 0 })}
                                                             />
@@ -1388,11 +1388,11 @@ const UniversalTimesheets: React.FC = () => {
                                                     </td>
 
                                                     {/* Deductions */}
-                                                    <td className="p-3 text-right font-medium text-rose-600">
+                                                    <td className="p-4 text-right font-medium text-rose-600">
                                                         {isEditing ? (
                                                             <input 
                                                                 type="number"
-                                                                className="w-20 px-3 py-1.5 text-right bg-slate-50 border border-slate-200 rounded focus:outline-none"
+                                                                className="w-24 px-4 py-2.5 text-right bg-slate-50 border border-slate-200 rounded focus:outline-none"
                                                                 value={rowEditValues.deduction || 0}
                                                                 onChange={e => setRowEditValues({ ...rowEditValues, deduction: parseFloat(e.target.value) || 0 })}
                                                             />
@@ -1402,12 +1402,12 @@ const UniversalTimesheets: React.FC = () => {
                                                     </td>
 
                                                     {/* Row total final */}
-                                                    <td className="p-3 text-right bg-slate-900 text-white font-extrabold sticky right-0 z-10">
+                                                    <td className="p-4 text-right bg-slate-900 text-white font-extrabold sticky right-0 z-10">
                                                         {totalAmount.toLocaleString('tr-TR', { minimumFractionDigits: 2 })} ₺
                                                     </td>
 
                                                     {/* Action buttons */}
-                                                    <td className="p-3 text-center">
+                                                    <td className="p-4 text-center">
                                                         <div className="flex items-center justify-center gap-1">
                                                             {isEditing ? (
                                                                 <>
@@ -1455,7 +1455,7 @@ const UniversalTimesheets: React.FC = () => {
 
                             {/* Aggregates Summary Row */}
                             {rows.length > 0 && (
-                                <tfoot className="bg-slate-100/80 border-t-2 border-slate-200 text-slate-800 font-extrabold text-xs uppercase">
+                                <tfoot className="bg-slate-100/80 border-t-2 border-slate-200 text-slate-800 font-black text-base uppercase">
                                     {/* Daily column notes row */}
                                     <tr className="bg-slate-50 border-b border-slate-200/60 no-print">
                                         <td colSpan={5} className="p-2.5 text-right font-bold sticky left-0 bg-slate-50 z-10 shadow-[1px_0_0_0_#cbd5e1] text-slate-500 text-[10px]">
@@ -1478,7 +1478,7 @@ const UniversalTimesheets: React.FC = () => {
                                     </tr>
 
                                     <tr>
-                                        <td colSpan={5} className="p-3 text-right font-black sticky left-0 bg-slate-100 z-10 shadow-[1px_0_0_0_#cbd5e1]">
+                                        <td colSpan={5} className="p-4 text-right font-black sticky left-0 bg-slate-100 z-10 shadow-[1px_0_0_0_#cbd5e1]">
                                             GENEL TOPLAM
                                         </td>
                                         
@@ -1490,17 +1490,17 @@ const UniversalTimesheets: React.FC = () => {
                                         ))}
 
                                         {/* Financial aggregates */}
-                                        <td className="p-3 text-center border-l border-slate-350 bg-blue-100/50 text-blue-900 font-black">
+                                        <td className="p-4 text-center border-l border-slate-350 bg-blue-100/50 text-blue-900 font-black">
                                             {aggregatedTotals.grandTotalAdet}
                                         </td>
-                                        <td className="p-3 border-l border-slate-200"></td>
-                                        <td className="p-3 text-right text-emerald-700">
+                                        <td className="p-4 border-l border-slate-200"></td>
+                                        <td className="p-4 text-right text-emerald-700">
                                             +{aggregatedTotals.grandTotalExtras.toLocaleString('tr-TR')} ₺
                                         </td>
-                                        <td className="p-3 text-right text-rose-700">
+                                        <td className="p-4 text-right text-rose-700">
                                             -{aggregatedTotals.grandTotalDeductions.toLocaleString('tr-TR')} ₺
                                         </td>
-                                        <td className="p-3 text-right bg-slate-950 text-white text-xs font-black sticky right-0 z-10">
+                                        <td className="p-4 text-right bg-slate-950 text-white text-sm font-black sticky right-0 z-10">
                                             {aggregatedTotals.grandTotalAmount.toLocaleString('tr-TR', { minimumFractionDigits: 2 })} ₺
                                         </td>
                                         <td></td>
@@ -1589,7 +1589,7 @@ const UniversalTimesheets: React.FC = () => {
                             <input 
                                 type="text"
                                 placeholder="Örn: KDV %20 veya Stopaj"
-                                className="px-3 py-2 bg-white border border-slate-200 rounded-xl text-xs font-semibold focus:outline-none"
+                                className="px-3 py-2 bg-white border border-slate-200 rounded-xl text-sm font-semibold focus:outline-none"
                                 value={newTaxName}
                                 onChange={e => setNewTaxName(e.target.value)}
                             />
@@ -1600,7 +1600,7 @@ const UniversalTimesheets: React.FC = () => {
                                 <input 
                                     type="number"
                                     placeholder="20"
-                                    className="w-full px-3 py-2 bg-white border border-slate-200 rounded-xl text-xs font-extrabold focus:outline-none"
+                                    className="w-full px-3 py-2 bg-white border border-slate-200 rounded-xl text-sm font-extrabold focus:outline-none"
                                     value={newTaxRate}
                                     onChange={e => setNewTaxRate(e.target.value === '' ? '' : parseFloat(e.target.value))}
                                 />
@@ -1611,7 +1611,7 @@ const UniversalTimesheets: React.FC = () => {
                             <button
                                 onClick={handleAddTaxRate}
                                 disabled={!newTaxName || newTaxRate === ''}
-                                className="w-full flex items-center justify-center gap-1.5 px-4 py-2.5 bg-slate-900 hover:bg-slate-800 text-white text-xs font-bold rounded-xl transition-all shadow-sm disabled:opacity-50"
+                                className="w-full flex items-center justify-center gap-1.5 px-4 py-2.5 bg-slate-900 hover:bg-slate-800 text-white text-sm font-bold rounded-xl transition-all shadow-sm disabled:opacity-50"
                             >
                                 <Plus size={14} />
                                 <span>Listeye Ekle</span>
@@ -1622,7 +1622,7 @@ const UniversalTimesheets: React.FC = () => {
                     <div className="space-y-2">
                         <h4 className="text-[10px] font-bold text-slate-400 uppercase tracking-wider">Aktif Vergi/Katsayı Kırılımları</h4>
                         {taxes.length === 0 ? (
-                            <p className="text-xs text-slate-400 italic">Henüz bir vergi oranı tanımlanmamış. Eklenen tutar brüt üzerinden hakedişe yansır.</p>
+                            <p className="text-sm text-slate-400 italic">Henüz bir vergi oranı tanımlanmamış. Eklenen tutar brüt üzerinden hakedişe yansır.</p>
                         ) : (
                             <div className="grid grid-cols-1 md:grid-cols-2 gap-2">
                                 {taxes.map(t => {
@@ -1640,20 +1640,20 @@ const UniversalTimesheets: React.FC = () => {
                                                     <div className="flex items-center gap-2 flex-1">
                                                         <input 
                                                             type="text"
-                                                            className="flex-1 px-3 py-1.5 bg-slate-50 border border-slate-200 rounded text-xs font-semibold"
+                                                            className="flex-1 px-4 py-2 bg-slate-50 border border-slate-200 rounded text-sm font-semibold"
                                                             value={taxEditValues.tax_name}
                                                             onChange={e => setTaxEditValues({ ...taxEditValues, tax_name: e.target.value })}
                                                         />
                                                         <input 
                                                             type="number"
-                                                            className="w-16 px-3 py-1.5 bg-slate-50 border border-slate-200 rounded text-xs font-bold text-right"
+                                                            className="w-16 px-4 py-2 bg-slate-50 border border-slate-200 rounded text-sm font-bold text-right"
                                                             value={taxEditValues.tax_rate}
                                                             onChange={e => setTaxEditValues({ ...taxEditValues, tax_rate: parseFloat(e.target.value) || 0 })}
                                                         />
                                                     </div>
                                                 ) : (
                                                     <div className="flex flex-col">
-                                                        <span className="font-bold text-slate-700 text-xs">{t.tax_name}</span>
+                                                        <span className="font-bold text-slate-700 text-sm">{t.tax_name}</span>
                                                         <span className="text-[10px] text-slate-400">Çarpan Oranı: %{t.tax_rate}</span>
                                                     </div>
                                                 )}
@@ -1710,12 +1710,12 @@ const UniversalTimesheets: React.FC = () => {
 
                     <div className="space-y-6 relative z-10">
                         <div className="flex items-center gap-4 border-b border-slate-700/50 pb-5">
-                            <div className="p-3 bg-gradient-to-br from-blue-500/20 to-indigo-500/20 border border-blue-500/30 text-blue-400 rounded-2xl shadow-inner">
+                            <div className="p-4 bg-gradient-to-br from-blue-500/20 to-indigo-500/20 border border-blue-500/30 text-blue-400 rounded-2xl shadow-inner">
                                 <Coins size={24} />
                             </div>
                             <div>
                                 <h3 className="font-bold text-lg tracking-tight text-slate-100">Modüler Bordro & Hakediş</h3>
-                                <p className="text-xs text-slate-400 font-medium">Birim Fiyat ve Yasal Katsayı Toplamları</p>
+                                <p className="text-sm text-slate-400 font-medium">Birim Fiyat ve Yasal Katsayı Toplamları</p>
                             </div>
                         </div>
 
@@ -1783,7 +1783,7 @@ const UniversalTimesheets: React.FC = () => {
                         <div className="absolute inset-0 bg-white/5 opacity-0 group-hover:opacity-100 transition-opacity duration-300"></div>
                         <div className="absolute -right-4 -top-4 w-24 h-24 bg-white/10 rounded-full blur-2xl group-hover:bg-white/20 transition-all duration-500"></div>
                         
-                        <p className="text-xs text-blue-100 font-bold uppercase tracking-widest mb-2 opacity-90">Nihai Ödenecek Net Tutar</p>
+                        <p className="text-sm text-blue-100 font-bold uppercase tracking-widest mb-2 opacity-90">Nihai Ödenecek Net Tutar</p>
                         <div className="flex items-baseline justify-between">
                             <p className="text-3xl font-black tracking-tight text-white drop-shadow-md">
                                 {financeSummary.netTutar.toLocaleString('tr-TR', { minimumFractionDigits: 2 })}
@@ -1813,7 +1813,7 @@ const UniversalTimesheets: React.FC = () => {
                         
                         <div className="p-6 space-y-4">
                             <div>
-                                <label className="block text-xs font-bold text-slate-500 uppercase mb-1.5">Tablo Başlığı</label>
+                                <label className="block text-sm font-bold text-slate-500 uppercase mb-1.5">Tablo Başlığı</label>
                                 <input 
                                     type="text"
                                     className="w-full px-3.5 py-2.5 bg-slate-50 border border-slate-200 rounded-xl focus:outline-none focus:ring-1 focus:ring-blue-500 font-bold text-slate-800 text-sm"
@@ -1823,7 +1823,7 @@ const UniversalTimesheets: React.FC = () => {
                             </div>
 
                             <div>
-                                <label className="block text-xs font-bold text-slate-500 uppercase mb-1.5">Ana Öğe Kolon Başlığı</label>
+                                <label className="block text-sm font-bold text-slate-500 uppercase mb-1.5">Ana Öğe Kolon Başlığı</label>
                                 <input 
                                     type="text"
                                     className="w-full px-3.5 py-2.5 bg-slate-50 border border-slate-200 rounded-xl focus:outline-none focus:ring-1 focus:ring-blue-500 font-semibold"
@@ -1834,7 +1834,7 @@ const UniversalTimesheets: React.FC = () => {
                             </div>
 
                             <div>
-                                <label className="block text-xs font-bold text-slate-500 uppercase mb-1.5">Kategori Kolon Başlığı</label>
+                                <label className="block text-sm font-bold text-slate-500 uppercase mb-1.5">Kategori Kolon Başlığı</label>
                                 <input 
                                     type="text"
                                     className="w-full px-3.5 py-2.5 bg-slate-50 border border-slate-200 rounded-xl focus:outline-none focus:ring-1 focus:ring-blue-500 font-semibold"
@@ -1845,7 +1845,7 @@ const UniversalTimesheets: React.FC = () => {
                             </div>
 
                             <div>
-                                <label className="block text-xs font-bold text-slate-500 uppercase mb-1.5">Benzersiz Kimlik Kolon Başlığı</label>
+                                <label className="block text-sm font-bold text-slate-500 uppercase mb-1.5">Benzersiz Kimlik Kolon Başlığı</label>
                                 <input 
                                     type="text"
                                     className="w-full px-3.5 py-2.5 bg-slate-50 border border-slate-200 rounded-xl focus:outline-none focus:ring-1 focus:ring-blue-500 font-semibold"
@@ -1856,7 +1856,7 @@ const UniversalTimesheets: React.FC = () => {
                             </div>
 
                             <div>
-                                <label className="block text-xs font-bold text-slate-500 uppercase mb-1.5">Hücre Veri Giriş Kuralı</label>
+                                <label className="block text-sm font-bold text-slate-500 uppercase mb-1.5">Hücre Veri Giriş Kuralı</label>
                                 <select 
                                     className="w-full px-3.5 py-2.5 bg-slate-50 border border-slate-200 rounded-xl focus:outline-none focus:ring-1 focus:ring-blue-500 font-semibold text-slate-700 text-sm mb-4"
                                     value={configForm.cell_type}
@@ -1878,7 +1878,7 @@ const UniversalTimesheets: React.FC = () => {
                                     />
                                     <div>
                                         <span className="text-sm font-bold text-slate-800 block">Kategoriye Göre Gruplu Görünüm</span>
-                                        <span className="text-xs text-slate-500">Satırları departman veya kuruma göre başlıklar altında gruplar.</span>
+                                        <span className="text-sm text-slate-500">Satırları departman veya kuruma göre başlıklar altında gruplar.</span>
                                     </div>
                                 </label>
                             </div>
@@ -1887,13 +1887,13 @@ const UniversalTimesheets: React.FC = () => {
                         <div className="p-6 bg-slate-50 flex gap-3">
                             <button 
                                 onClick={() => setShowConfigModal(false)}
-                                className="flex-1 px-4 py-2.5 bg-white border border-slate-200 text-slate-600 rounded-xl hover:bg-slate-100 transition-colors font-bold text-xs"
+                                className="flex-1 px-4 py-2.5 bg-white border border-slate-200 text-slate-600 rounded-xl hover:bg-slate-100 transition-colors font-bold text-sm"
                             >
                                 İptal
                             </button>
                             <button 
                                 onClick={handleSaveConfig}
-                                className="flex-1 px-4 py-2.5 bg-blue-600 hover:bg-blue-700 text-white rounded-xl transition-all font-bold text-xs shadow-md"
+                                className="flex-1 px-4 py-2.5 bg-blue-600 hover:bg-blue-700 text-white rounded-xl transition-all font-bold text-sm shadow-md"
                             >
                                 Uygula
                             </button>
@@ -1929,13 +1929,13 @@ const UniversalTimesheets: React.FC = () => {
                                         <span className="text-[10px] font-bold text-slate-400 uppercase tracking-wider block">Seçili Satır</span>
                                         <span className="font-bold text-slate-800 text-sm">{targetRow.primary_name}</span>
                                         {targetRow.category && (
-                                            <span className="text-xs text-slate-500 block mt-0.5">({targetRow.category})</span>
+                                            <span className="text-sm text-slate-500 block mt-0.5">({targetRow.category})</span>
                                         )}
                                     </div>
                                 )}
 
                                 <div>
-                                    <label className="block text-xs font-bold text-slate-500 uppercase mb-1.5">Değer / Kod</label>
+                                    <label className="block text-sm font-bold text-slate-500 uppercase mb-1.5">Değer / Kod</label>
                                     <input 
                                         autoFocus
                                         type="text"
@@ -1953,7 +1953,7 @@ const UniversalTimesheets: React.FC = () => {
                                 </div>
 
                                 <div>
-                                    <label className="block text-xs font-bold text-slate-500 uppercase mb-1.5">Günlük Açıklama / Not</label>
+                                    <label className="block text-sm font-bold text-slate-500 uppercase mb-1.5">Günlük Açıklama / Not</label>
                                     <textarea 
                                         rows={3}
                                         placeholder="Bu güne ait not veya detaylı açıklama girin..."
@@ -1973,13 +1973,13 @@ const UniversalTimesheets: React.FC = () => {
                             <div className="p-6 bg-slate-50 flex gap-3">
                                 <button 
                                     onClick={() => setEditingCell(null)}
-                                    className="flex-1 px-4 py-2.5 bg-white border border-slate-200 text-slate-600 rounded-xl hover:bg-slate-100 transition-colors font-bold text-xs"
+                                    className="flex-1 px-4 py-2.5 bg-white border border-slate-200 text-slate-600 rounded-xl hover:bg-slate-100 transition-colors font-bold text-sm"
                                 >
                                     İptal
                                 </button>
                                 <button 
                                     onClick={handleCellCommit}
-                                    className="flex-1 px-4 py-2.5 bg-blue-600 hover:bg-blue-700 text-white rounded-xl transition-all font-bold text-xs shadow-md"
+                                    className="flex-1 px-4 py-2.5 bg-blue-600 hover:bg-blue-700 text-white rounded-xl transition-all font-bold text-sm shadow-md"
                                 >
                                     Tamam
                                 </button>
@@ -2009,12 +2009,12 @@ const UniversalTimesheets: React.FC = () => {
                         </div>
                         
                         <div className="p-6 space-y-4">
-                            <p className="text-xs text-slate-500 font-medium">
+                            <p className="text-sm text-slate-500 font-medium">
                                 Bu günün sütununun en altında görünecek genel notu veya açıklamayı (tatil, vardiya detayı vb.) buraya yazabilirsiniz.
                             </p>
 
                             <div>
-                                <label className="block text-xs font-bold text-slate-500 uppercase mb-1.5">Sütun Notu</label>
+                                <label className="block text-sm font-bold text-slate-500 uppercase mb-1.5">Sütun Notu</label>
                                 <input 
                                     autoFocus
                                     type="text"
@@ -2032,13 +2032,13 @@ const UniversalTimesheets: React.FC = () => {
                         <div className="p-6 bg-slate-50 flex gap-3">
                             <button 
                                 onClick={() => setEditingColumnNoteDay(null)}
-                                className="flex-1 px-4 py-2.5 bg-white border border-slate-200 text-slate-600 rounded-xl hover:bg-slate-100 transition-colors font-bold text-xs"
+                                className="flex-1 px-4 py-2.5 bg-white border border-slate-200 text-slate-600 rounded-xl hover:bg-slate-100 transition-colors font-bold text-sm"
                             >
                                 İptal
                             </button>
                             <button 
                                 onClick={handleSaveColumnNote}
-                                className="flex-1 px-4 py-2.5 bg-blue-600 hover:bg-blue-700 text-white rounded-xl transition-all font-bold text-xs shadow-md"
+                                className="flex-1 px-4 py-2.5 bg-blue-600 hover:bg-blue-700 text-white rounded-xl transition-all font-bold text-sm shadow-md"
                             >
                                 Kaydet
                             </button>
