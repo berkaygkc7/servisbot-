@@ -934,7 +934,7 @@ const UniversalTimesheets: React.FC = () => {
     // Financial tax computations
     const financeSummary = useMemo(() => {
         const baseAmount = aggregatedTotals.grandTotalAmount;
-        const brut = baseAmount + aggregatedTotals.grandTotalExtras - aggregatedTotals.grandTotalDeductions;
+        const brut = baseAmount; // baseAmount (grandTotalAmount) already includes all row-level extras and deductions
         const taxableBrut = Math.max(0, brut);
         
         let totalTaxAmount = 0;
