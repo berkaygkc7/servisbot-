@@ -18,7 +18,8 @@ import {
     Calendar,
     Share2,
     FileSpreadsheet,
-    RotateCcw
+    RotateCcw,
+    CheckCircle2
 } from 'lucide-react';
 import { supabase } from '../lib/supabase';
 import { useAuth } from '../contexts/AuthContext';
@@ -393,11 +394,18 @@ const UniversalTimesheets: React.FC = () => {
         }
     };
 
+    const [isAutoSaving, setIsAutoSaving] = useState(false);
+
     // Save all changes (database commit or localStorage save)
-    const handleSaveAll = async () => {
+    const handleSaveAll = async (silent: boolean = false) => {
         if (!timesheet) return;
-        setSaving(true);
-        setErrorMsg(null);
+        
+        if (!silent) {
+            setSaving(true);
+            setErrorMsg(null);
+        } else {
+            setIsAutoSaving(true);
+        }
 
         try {
             // Auto-commit any active inline row edits first!
@@ -525,16 +533,35 @@ const UniversalTimesheets: React.FC = () => {
             }
 
             // For Supabase path: reload to get server-assigned IDs for newly inserted rows
-            if (!usingFallback) {
+            if (!usingFallback && !silent) {
                 await loadTimesheetData();
+                alert("Değişiklikler başarıyla kaydedildi!");
             }
         } catch (err: any) {
             console.error("Save failed:", err.message);
-            setErrorMsg(err.message || "Kaydedilirken bir hata oluştu.");
+            if (!silent) {
+                setErrorMsg(err.message || "Kaydedilirken bir hata oluştu.");
+            }
         } finally {
-            setSaving(false);
+            if (!silent) {
+                setSaving(false);
+            } else {
+                setIsAutoSaving(false);
+            }
         }
     };
+
+    // Auto-save effect
+    useEffect(() => {
+        if (!timesheet || usingFallback || loading || rows.length === 0) return;
+        
+        // Wait 2.5 seconds after last edit to auto-save silently
+        const timer = setTimeout(() => {
+            handleSaveAll(true);
+        }, 2500);
+        
+        return () => clearTimeout(timer);
+    }, [rows, dailyNotes, taxes, tevkifatEnabled, tevkifatRateNumerator, tevkifatRateDenominator, timesheet]);
 
     const handleShare = () => {
         if (rows.length === 0) {
@@ -1080,7 +1107,7 @@ const UniversalTimesheets: React.FC = () => {
                     </button>
 
                     <button 
-                        onClick={handleSaveAll}
+                        onClick={() => handleSaveAll(false)}
                         disabled={saving}
                         className="flex items-center gap-1.5 px-4 py-2 bg-blue-600 hover:bg-blue-700 text-white text-xs font-bold rounded-xl transition-all shadow-md shadow-blue-600/10 disabled:opacity-50"
                     >
@@ -1114,7 +1141,7 @@ const UniversalTimesheets: React.FC = () => {
                 </div>
             </div>
 
-            {errorMsg && (
+            {isAutoSaving && (<div className="absolute top-4 right-4 bg-emerald-50 text-emerald-700 px-3 py-1.5 rounded-lg text-xs font-bold flex items-center gap-1.5 shadow-sm border border-emerald-100 z-50 animate-pulse"><CheckCircle2 size={14} /><span>Otomatik kaydediliyor...</span></div>)}{errorMsg && (
                 <div className="bg-red-50 border border-red-200 p-4 rounded-xl flex items-center gap-3 text-red-800 text-sm">
                     <AlertCircle size={18} className="shrink-0" />
                     <span>{errorMsg}</span>
@@ -1133,7 +1160,7 @@ const UniversalTimesheets: React.FC = () => {
                     <div className="overflow-x-auto relative max-w-full">
                         <table className="w-max min-w-full text-left border-collapse table-auto">
                             <thead>
-                                <tr className="bg-slate-50/80 border-b border-slate-100 text-slate-600 text-[11px] font-bold tracking-wider uppercase">
+                                <tr className="bg-slate-50/80 border-b border-slate-100 text-slate-600 text-xs font-bold tracking-wider uppercase">
                                     <th className="p-3 text-center whitespace-nowrap sticky left-0 bg-slate-50/90 z-20 shadow-[1px_0_0_0_#f1f5f9]">Sıra</th>
                                     <th className="p-3 whitespace-nowrap sticky left-12 bg-slate-50/90 z-20 shadow-[1px_0_0_0_#f1f5f9]">
                                         {timesheet?.primary_label || 'Öğe Adı'}
@@ -1233,7 +1260,7 @@ const UniversalTimesheets: React.FC = () => {
                                                         {isEditing ? (
                                                             <input 
                                                                 type="text"
-                                                                className="px-2 py-1 bg-slate-50 border border-slate-200 rounded font-semibold text-slate-800 focus:outline-none focus:ring-1 focus:ring-blue-500 min-w-[140px]"
+                                                                className="px-3 py-1.5 bg-slate-50 border border-slate-200 rounded font-semibold text-slate-800 focus:outline-none focus:ring-1 focus:ring-blue-500 min-w-[140px]"
                                                                 value={rowEditValues.primary_name || ''}
                                                                 onChange={e => setRowEditValues({ ...rowEditValues, primary_name: e.target.value })}
                                                             />
@@ -1247,7 +1274,7 @@ const UniversalTimesheets: React.FC = () => {
                                                         {isEditing ? (
                                                             <input 
                                                                 type="text"
-                                                                className="px-2 py-1 bg-slate-50 border border-slate-200 rounded focus:outline-none min-w-[100px]"
+                                                                className="px-3 py-1.5 bg-slate-50 border border-slate-200 rounded focus:outline-none min-w-[100px]"
                                                                 value={rowEditValues.category || ''}
                                                                 onChange={e => setRowEditValues({ ...rowEditValues, category: e.target.value })}
                                                             />
@@ -1260,7 +1287,7 @@ const UniversalTimesheets: React.FC = () => {
                                                     <td className="p-3 font-semibold text-slate-500 font-mono whitespace-nowrap">
                                                         {isEditing ? (
                                                             <select
-                                                                className="px-2 py-1 bg-slate-50 border border-slate-200 rounded focus:outline-none min-w-[100px]"
+                                                                className="px-3 py-1.5 bg-slate-50 border border-slate-200 rounded focus:outline-none min-w-[100px]"
                                                                 value={rowEditValues.unique_identifier || ''}
                                                                 onChange={e => setRowEditValues({ ...rowEditValues, unique_identifier: e.target.value })}
                                                             >
@@ -1279,7 +1306,7 @@ const UniversalTimesheets: React.FC = () => {
                                                         {isEditing ? (
                                                             <input 
                                                                 type="text"
-                                                                className="px-2 py-1 bg-slate-50 border border-slate-200 rounded focus:outline-none min-w-[120px]"
+                                                                className="px-3 py-1.5 bg-slate-50 border border-slate-200 rounded focus:outline-none min-w-[120px]"
                                                                 value={rowEditValues.description || ''}
                                                                 onChange={e => setRowEditValues({ ...rowEditValues, description: e.target.value })}
                                                             />
@@ -1309,10 +1336,10 @@ const UniversalTimesheets: React.FC = () => {
                                                             <td 
                                                                 key={day}
                                                                 onClick={() => handleCellClick(row.id, day, cellValRaw)}
-                                                                className={`p-1 border-l border-slate-100 text-center cursor-pointer select-none relative min-w-[2.5rem] whitespace-nowrap px-2 ${getDayStyle(day)}`}
+                                                                className={`p-1.5 border-l border-slate-100 text-center cursor-pointer select-none relative min-w-[2.5rem] whitespace-nowrap px-2 ${getDayStyle(day)}`}
                                                             >
                                                                 <div className="relative w-full h-full flex items-center justify-center min-h-[1.5rem] whitespace-nowrap" title={cellNote ? `Not: ${cellNote}` : undefined}>
-                                                                    <span className={`font-bold text-[11px] whitespace-nowrap ${
+                                                                    <span className={`font-bold text-xs whitespace-nowrap ${
                                                                         cellValDisplay === 'R' ? 'text-rose-500' :
                                                                         cellValDisplay === 'İ' ? 'text-amber-500' :
                                                                         cellValDisplay === 'M' ? 'text-emerald-500' : 'text-slate-800'
@@ -1337,7 +1364,7 @@ const UniversalTimesheets: React.FC = () => {
                                                         {isEditing ? (
                                                             <input 
                                                                 type="number"
-                                                                className="w-24 px-2 py-1 text-right bg-slate-50 border border-slate-200 rounded font-bold focus:outline-none"
+                                                                className="w-24 px-3 py-1.5 text-right bg-slate-50 border border-slate-200 rounded font-bold focus:outline-none"
                                                                 value={rowEditValues.unit_price || 0}
                                                                 onChange={e => setRowEditValues({ ...rowEditValues, unit_price: parseFloat(e.target.value) || 0 })}
                                                             />
@@ -1351,7 +1378,7 @@ const UniversalTimesheets: React.FC = () => {
                                                         {isEditing ? (
                                                             <input 
                                                                 type="number"
-                                                                className="w-20 px-2 py-1 text-right bg-slate-50 border border-slate-200 rounded focus:outline-none"
+                                                                className="w-20 px-3 py-1.5 text-right bg-slate-50 border border-slate-200 rounded focus:outline-none"
                                                                 value={rowEditValues.extra_payment || 0}
                                                                 onChange={e => setRowEditValues({ ...rowEditValues, extra_payment: parseFloat(e.target.value) || 0 })}
                                                             />
@@ -1365,7 +1392,7 @@ const UniversalTimesheets: React.FC = () => {
                                                         {isEditing ? (
                                                             <input 
                                                                 type="number"
-                                                                className="w-20 px-2 py-1 text-right bg-slate-50 border border-slate-200 rounded focus:outline-none"
+                                                                className="w-20 px-3 py-1.5 text-right bg-slate-50 border border-slate-200 rounded focus:outline-none"
                                                                 value={rowEditValues.deduction || 0}
                                                                 onChange={e => setRowEditValues({ ...rowEditValues, deduction: parseFloat(e.target.value) || 0 })}
                                                             />
@@ -1428,7 +1455,7 @@ const UniversalTimesheets: React.FC = () => {
 
                             {/* Aggregates Summary Row */}
                             {rows.length > 0 && (
-                                <tfoot className="bg-slate-100/80 border-t-2 border-slate-200 text-slate-800 font-extrabold text-[11px] uppercase">
+                                <tfoot className="bg-slate-100/80 border-t-2 border-slate-200 text-slate-800 font-extrabold text-xs uppercase">
                                     {/* Daily column notes row */}
                                     <tr className="bg-slate-50 border-b border-slate-200/60 no-print">
                                         <td colSpan={5} className="p-2.5 text-right font-bold sticky left-0 bg-slate-50 z-10 shadow-[1px_0_0_0_#cbd5e1] text-slate-500 text-[10px]">
@@ -1613,13 +1640,13 @@ const UniversalTimesheets: React.FC = () => {
                                                     <div className="flex items-center gap-2 flex-1">
                                                         <input 
                                                             type="text"
-                                                            className="flex-1 px-2 py-1 bg-slate-50 border border-slate-200 rounded text-xs font-semibold"
+                                                            className="flex-1 px-3 py-1.5 bg-slate-50 border border-slate-200 rounded text-xs font-semibold"
                                                             value={taxEditValues.tax_name}
                                                             onChange={e => setTaxEditValues({ ...taxEditValues, tax_name: e.target.value })}
                                                         />
                                                         <input 
                                                             type="number"
-                                                            className="w-16 px-2 py-1 bg-slate-50 border border-slate-200 rounded text-xs font-bold text-right"
+                                                            className="w-16 px-3 py-1.5 bg-slate-50 border border-slate-200 rounded text-xs font-bold text-right"
                                                             value={taxEditValues.tax_rate}
                                                             onChange={e => setTaxEditValues({ ...taxEditValues, tax_rate: parseFloat(e.target.value) || 0 })}
                                                         />
@@ -1688,7 +1715,7 @@ const UniversalTimesheets: React.FC = () => {
                             </div>
                             <div>
                                 <h3 className="font-bold text-lg tracking-tight text-slate-100">Modüler Bordro & Hakediş</h3>
-                                <p className="text-[11px] text-slate-400 font-medium">Birim Fiyat ve Yasal Katsayı Toplamları</p>
+                                <p className="text-xs text-slate-400 font-medium">Birim Fiyat ve Yasal Katsayı Toplamları</p>
                             </div>
                         </div>
 
@@ -1756,7 +1783,7 @@ const UniversalTimesheets: React.FC = () => {
                         <div className="absolute inset-0 bg-white/5 opacity-0 group-hover:opacity-100 transition-opacity duration-300"></div>
                         <div className="absolute -right-4 -top-4 w-24 h-24 bg-white/10 rounded-full blur-2xl group-hover:bg-white/20 transition-all duration-500"></div>
                         
-                        <p className="text-[11px] text-blue-100 font-bold uppercase tracking-widest mb-2 opacity-90">Nihai Ödenecek Net Tutar</p>
+                        <p className="text-xs text-blue-100 font-bold uppercase tracking-widest mb-2 opacity-90">Nihai Ödenecek Net Tutar</p>
                         <div className="flex items-baseline justify-between">
                             <p className="text-3xl font-black tracking-tight text-white drop-shadow-md">
                                 {financeSummary.netTutar.toLocaleString('tr-TR', { minimumFractionDigits: 2 })}
