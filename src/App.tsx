@@ -7,40 +7,40 @@ import MobileAppShowcase from './components/home/MobileAppShowcase';
 
 import Footer from './components/layout/Footer';
 import DashboardLayout from './layouts/DashboardLayout';
-import DashboardHome from './pages/DashboardHome';
-import Vehicles from './pages/Vehicles';
-import Students from './pages/Students';
-import RoutesPage from './pages/RoutesPage';
-import Drivers from './pages/Drivers';
-import Settings from './pages/Settings';
-import Expenses from './pages/Expenses';
-import Payments from './pages/Payments';
-import UniversalTimesheets from './pages/UniversalTimesheets';
+const DashboardHome = lazy(() => import('./pages/DashboardHome'));
+const Vehicles = lazy(() => import('./pages/Vehicles'));
+const Students = lazy(() => import('./pages/Students'));
+const RoutesPage = lazy(() => import('./pages/RoutesPage'));
+const Drivers = lazy(() => import('./pages/Drivers'));
+const Settings = lazy(() => import('./pages/Settings'));
+const Expenses = lazy(() => import('./pages/Expenses'));
+const Payments = lazy(() => import('./pages/Payments'));
+const UniversalTimesheets = lazy(() => import('./pages/UniversalTimesheets'));
 import { AuthProvider } from './contexts/AuthContext';
 import ProtectedRoute from './components/auth/ProtectedRoute';
-import Login from './pages/auth/Login';
-import Register from './pages/auth/Register';
-import ApplicationForm from './pages/public/ApplicationForm';
+const Login = lazy(() => import('./pages/auth/Login'));
+const Register = lazy(() => import('./pages/auth/Register'));
+const ApplicationForm = lazy(() => import('./pages/public/ApplicationForm'));
 import { KVKK, PrivacyPolicy, TermsOfService } from './pages/public/LegalPages';
-import PrintPreview from './pages/PrintPreview';
+const PrintPreview = lazy(() => import('./pages/PrintPreview'));
 
 // Driver Pages
 import DriverLayout from './layouts/DriverLayout';
-import DriverHome from './pages/driver/DriverHome';
-import DriverRouteExecution from './pages/driver/DriverRouteExecution';
-import SharedRouteViewer from './pages/driver/SharedRouteViewer';
+const DriverHome = lazy(() => import('./pages/driver/DriverHome'));
+const DriverRouteExecution = lazy(() => import('./pages/driver/DriverRouteExecution'));
+const SharedRouteViewer = lazy(() => import('./pages/driver/SharedRouteViewer'));
 
 // Super Admin
 import SuperAdminLayout from './layouts/SuperAdminLayout';
-import SuperAdminDashboard from './pages/superadmin/SuperAdminDashboard';
-import CompaniesList from './pages/superadmin/CompaniesList';
-import AdminUsers from './pages/superadmin/AdminUsers';
-import PlatformSettings from './pages/superadmin/PlatformSettings';
-import AuditLogs from './pages/superadmin/AuditLogs';
-import SuperAdminAccount from './pages/superadmin/SuperAdminAccount';
+const SuperAdminDashboard = lazy(() => import('./pages/superadmin/SuperAdminDashboard'));
+const CompaniesList = lazy(() => import('./pages/superadmin/CompaniesList'));
+const AdminUsers = lazy(() => import('./pages/superadmin/AdminUsers'));
+const PlatformSettings = lazy(() => import('./pages/superadmin/PlatformSettings'));
+const AuditLogs = lazy(() => import('./pages/superadmin/AuditLogs'));
+const SuperAdminAccount = lazy(() => import('./pages/superadmin/SuperAdminAccount'));
 
-import { useEffect, useState } from 'react';
-import { CheckCircle2 } from 'lucide-react';
+import { useEffect, useState, lazy, Suspense } from 'react';
+import { CheckCircle2, Loader2 } from 'lucide-react';
 import { APIProvider } from '@vis.gl/react-google-maps';
 
 // Landing Page Layout
@@ -92,58 +92,69 @@ const LandingPage = () => {
   );
 };
 
+const LoadingFallback = () => (
+  <div className="flex h-screen w-full items-center justify-center bg-slate-50">
+    <div className="flex flex-col items-center gap-3">
+      <Loader2 className="h-8 w-8 animate-spin text-blue-600" />
+      <span className="text-sm font-medium text-slate-500">Yükleniyor...</span>
+    </div>
+  </div>
+);
+
 function App() {
   return (
     <APIProvider apiKey={import.meta.env.VITE_GOOGLE_MAPS_API_KEY as string}>
       <AuthProvider>
         <BrowserRouter>
-          <Routes>
-            <Route path="/" element={<LandingPage />} />
-            <Route path="/login" element={<Login />} />
-            <Route path="/register" element={<Register />} />
-            <Route path="/apply/:token" element={<ApplicationForm />} />
-            <Route path="/kvkk" element={<KVKK />} />
-            <Route path="/gizlilik-politikasi" element={<PrivacyPolicy />} />
-            <Route path="/kullanim-sartlari" element={<TermsOfService />} />
+          <Suspense fallback={<LoadingFallback />}>
+            <Routes>
+              <Route path="/" element={<LandingPage />} />
+              <Route path="/login" element={<Login />} />
+              <Route path="/register" element={<Register />} />
+              <Route path="/apply/:token" element={<ApplicationForm />} />
+              <Route path="/kvkk" element={<KVKK />} />
+              <Route path="/gizlilik-politikasi" element={<PrivacyPolicy />} />
+              <Route path="/kullanim-sartlari" element={<TermsOfService />} />
 
-            {/* Dashboard Routes (Protected) */}
-            <Route path="/dashboard" element={<ProtectedRoute><DashboardLayout /></ProtectedRoute>}>
-              <Route index element={<ProtectedRoute allowedRoles={['owner', 'admin', 'dispatcher']}><DashboardHome /></ProtectedRoute>} />
-              <Route path="vehicles" element={<ProtectedRoute allowedRoles={['owner', 'admin', 'dispatcher']}><Vehicles /></ProtectedRoute>} />
-              <Route path="drivers" element={<ProtectedRoute allowedRoles={['owner', 'admin', 'dispatcher']}><Drivers /></ProtectedRoute>} />
-              <Route path="students" element={<ProtectedRoute allowedRoles={['owner', 'admin', 'dispatcher']}><Students /></ProtectedRoute>} />
-              <Route path="routes" element={<ProtectedRoute allowedRoles={['owner', 'admin', 'dispatcher']}><RoutesPage /></ProtectedRoute>} />
-              <Route path="expenses" element={<ProtectedRoute allowedRoles={['owner', 'admin', 'accountant']}><Expenses /></ProtectedRoute>} />
-              <Route path="payments" element={<ProtectedRoute allowedRoles={['owner', 'admin', 'accountant']}><Payments /></ProtectedRoute>} />
-              <Route path="timesheets" element={<ProtectedRoute allowedRoles={['owner', 'admin', 'accountant']}><UniversalTimesheets /></ProtectedRoute>} />
-              <Route path="settings" element={<ProtectedRoute allowedRoles={['owner', 'admin']}><Settings /></ProtectedRoute>} />
-            </Route>
+              {/* Dashboard Routes (Protected) */}
+              <Route path="/dashboard" element={<ProtectedRoute><DashboardLayout /></ProtectedRoute>}>
+                <Route index element={<ProtectedRoute allowedRoles={['owner', 'admin', 'dispatcher']}><DashboardHome /></ProtectedRoute>} />
+                <Route path="vehicles" element={<ProtectedRoute allowedRoles={['owner', 'admin', 'dispatcher']}><Vehicles /></ProtectedRoute>} />
+                <Route path="drivers" element={<ProtectedRoute allowedRoles={['owner', 'admin', 'dispatcher']}><Drivers /></ProtectedRoute>} />
+                <Route path="students" element={<ProtectedRoute allowedRoles={['owner', 'admin', 'dispatcher']}><Students /></ProtectedRoute>} />
+                <Route path="routes" element={<ProtectedRoute allowedRoles={['owner', 'admin', 'dispatcher']}><RoutesPage /></ProtectedRoute>} />
+                <Route path="expenses" element={<ProtectedRoute allowedRoles={['owner', 'admin', 'accountant']}><Expenses /></ProtectedRoute>} />
+                <Route path="payments" element={<ProtectedRoute allowedRoles={['owner', 'admin', 'accountant']}><Payments /></ProtectedRoute>} />
+                <Route path="timesheets" element={<ProtectedRoute allowedRoles={['owner', 'admin', 'accountant']}><UniversalTimesheets /></ProtectedRoute>} />
+                <Route path="settings" element={<ProtectedRoute allowedRoles={['owner', 'admin']}><Settings /></ProtectedRoute>} />
+              </Route>
 
-            {/* Driver Routes (Protected) */}
-            <Route path="/driver" element={<ProtectedRoute allowedRoles={['driver', 'owner', 'admin']}><DriverLayout /></ProtectedRoute>}>
-              <Route index element={<DriverHome />} />
-              <Route path="route/:id" element={<DriverRouteExecution />} />
-            </Route>
+              {/* Driver Routes (Protected) */}
+              <Route path="/driver" element={<ProtectedRoute allowedRoles={['driver', 'owner', 'admin']}><DriverLayout /></ProtectedRoute>}>
+                <Route index element={<DriverHome />} />
+                <Route path="route/:id" element={<DriverRouteExecution />} />
+              </Route>
 
-            {/* Shared Route Viewer (Protected) */}
-            <Route path="/share/route/:id" element={<ProtectedRoute allowedRoles={['driver', 'owner', 'admin']}><SharedRouteViewer /></ProtectedRoute>} />
+              {/* Shared Route Viewer (Protected) */}
+              <Route path="/share/route/:id" element={<ProtectedRoute allowedRoles={['driver', 'owner', 'admin']}><SharedRouteViewer /></ProtectedRoute>} />
 
-            {/* Super Admin Routes */}
-            <Route path="/superadmin" element={<ProtectedRoute><SuperAdminLayout /></ProtectedRoute>}>
-              <Route index element={<SuperAdminDashboard />} />
-              <Route path="companies" element={<CompaniesList />} />
-              <Route path="admins" element={<AdminUsers />} />
-              <Route path="logs" element={<AuditLogs />} />
-              <Route path="settings" element={<PlatformSettings />} />
-              <Route path="account" element={<SuperAdminAccount />} />
-            </Route>
+              {/* Super Admin Routes */}
+              <Route path="/superadmin" element={<ProtectedRoute><SuperAdminLayout /></ProtectedRoute>}>
+                <Route index element={<SuperAdminDashboard />} />
+                <Route path="companies" element={<CompaniesList />} />
+                <Route path="admins" element={<AdminUsers />} />
+                <Route path="logs" element={<AuditLogs />} />
+                <Route path="settings" element={<PlatformSettings />} />
+                <Route path="account" element={<SuperAdminAccount />} />
+              </Route>
 
-            {/* Print Route (Standalone) */}
-            <Route path="/print-preview" element={<ProtectedRoute><PrintPreview /></ProtectedRoute>} />
+              {/* Print Route (Standalone) */}
+              <Route path="/print-preview" element={<ProtectedRoute><PrintPreview /></ProtectedRoute>} />
 
-            {/* Fallback Catch-All Route */}
-            <Route path="*" element={<Navigate to="/" replace />} />
-          </Routes>
+              {/* Fallback Catch-All Route */}
+              <Route path="*" element={<Navigate to="/" replace />} />
+            </Routes>
+          </Suspense>
         </BrowserRouter>
       </AuthProvider>
     </APIProvider>
