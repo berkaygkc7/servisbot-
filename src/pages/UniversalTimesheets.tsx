@@ -303,12 +303,20 @@ const UniversalTimesheets: React.FC = () => {
             const timestamp = new Date().toISOString().split('T')[0];
             const titlePrefix = `${selectedMonth} ${selectedYear} - ${timesheet.title || 'Puantaj'}`;
 
+            // Calculate global net ratio to apply taxes per row
+            const totalBrutTutar = aggregatedTotals.grandTotalAmount;
+            const totalNetTutar = financeSummary.netTutar;
+            const netRatio = totalBrutTutar > 0 ? (totalNetTutar / totalBrutTutar) : 1;
+
             for (const row of rows) {
                 // Ignore daily notes row
                 if (row.primary_name === '__daily_notes__') continue;
 
                 const { totalAmount } = rowCalculations(row);
                 if (totalAmount <= 0) continue;
+
+                // Calculate Net Amount for this specific row
+                const rowNetTutar = Number((totalAmount * netRatio).toFixed(2));
 
                 const matchedVehicle = vehicles.find(v => v.plate === row.unique_identifier);
 
@@ -317,20 +325,20 @@ const UniversalTimesheets: React.FC = () => {
                         company_id: profile.company_id,
                         expense_category: 'Maaş', 
                         vehicle_id: matchedVehicle ? matchedVehicle.id : null,
-                        title: `${row.primary_name} Hakedişi`,
+                        title: `${row.primary_name} Hakedişi (Net)`,
                         expense_date: timestamp,
-                        amount: totalAmount,
-                        description: `${titlePrefix} hakediş aktarımı (${row.unique_identifier || 'Plakasız'})`,
+                        amount: rowNetTutar,
+                        description: `${titlePrefix} hakediş aktarımı (${row.unique_identifier || 'Plakasız'}) - Brüt: ${totalAmount}₺`,
                         status: 'Bekliyor'
                     });
                 } else {
                     payloads.push({
                         company_id: profile.company_id,
                         income_category: 'Diğer',
-                        title: `${row.primary_name} Hakedişi`,
+                        title: `${row.primary_name} Hakedişi (Net)`,
                         income_date: timestamp,
-                        amount: totalAmount,
-                        description: `${titlePrefix} hakediş aktarımı (${row.unique_identifier || 'Plakasız'})`,
+                        amount: rowNetTutar,
+                        description: `${titlePrefix} hakediş aktarımı (${row.unique_identifier || 'Plakasız'}) - Brüt: ${totalAmount}₺`,
                         status: 'Bekliyor'
                     });
                 }
