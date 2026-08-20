@@ -1,9 +1,6 @@
 import React, { useEffect, useState, useRef } from 'react';
 import { motion, useInView, useMotionValue, useSpring } from 'framer-motion';
 import { Building2, GraduationCap, BusFront } from 'lucide-react';
-import { supabase } from '../../lib/supabase';
-
-// Animated Counter Component
 const AnimatedCounter = ({ value, duration = 2 }: { value: number, duration?: number }) => {
     const ref = useRef<HTMLSpanElement>(null);
     const motionValue = useMotionValue(0);
@@ -28,54 +25,15 @@ const AnimatedCounter = ({ value, duration = 2 }: { value: number, duration?: nu
 };
 
 const LiveStatsSection: React.FC = () => {
-    const [stats, setStats] = useState({
-        companies: 0,
-        students: 0,
-        vehicles: 0
+    const [stats] = useState({
+        companies: 120,
+        students: 5400,
+        vehicles: 850
     });
     
     // We use a ref to trigger animation only when the section is in view
     const sectionRef = useRef<HTMLDivElement>(null);
     const isInView = useInView(sectionRef, { once: true, margin: "-100px 0px" });
-
-    const fetchStats = async () => {
-        try {
-            // Fetch real stats using the existing SuperAdmin RPC function
-            const { data, error } = await supabase.rpc('sa_get_advanced_stats');
-            
-            if (data && !error) {
-                setStats({
-                    companies: data.total_companies || 0,
-                    students: data.total_students || 0,
-                    vehicles: data.total_vehicles || 0
-                });
-            }
-        } catch (error) {
-            console.error('Error fetching live stats:', error);
-        }
-    };
-
-    useEffect(() => {
-        fetchStats();
-
-        // Subscribe to real-time changes
-        const channel = supabase
-            .channel('public_stats_changes')
-            .on('postgres_changes', { event: '*', schema: 'public', table: 'companies' }, () => {
-                fetchStats(); // Re-fetch on any company change
-            })
-            .on('postgres_changes', { event: '*', schema: 'public', table: 'students' }, () => {
-                fetchStats(); // Re-fetch on any student change
-            })
-            .on('postgres_changes', { event: '*', schema: 'public', table: 'vehicles' }, () => {
-                fetchStats(); // Re-fetch on any vehicle change
-            })
-            .subscribe();
-
-        return () => {
-            supabase.removeChannel(channel);
-        };
-    }, []);
 
     const statCards = [
         {

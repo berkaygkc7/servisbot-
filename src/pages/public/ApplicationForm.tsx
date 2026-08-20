@@ -699,14 +699,15 @@ const ApplicationForm: React.FC = () => {
                                         
                                         const selectedRule = availableNeighborhoods.find((n: any) => safeRender(n) === formData.neighborhood);
                                         const monthlyPrice = selectedRule && typeof selectedRule === 'object' && selectedRule.amount ? parseFloat(selectedRule.amount) : 0;
-                                        const annualPrice = monthlyPrice * installmentMultiplier;
+                                        const ruleAnnualPrice = selectedRule && typeof selectedRule === 'object' && selectedRule.annual_amount ? parseFloat(selectedRule.annual_amount) : null;
+                                        const annualPrice = ruleAnnualPrice !== null && ruleAnnualPrice > 0 ? ruleAnnualPrice : monthlyPrice * installmentMultiplier;
 
                                         return (
                                             <>
                                                 <p>Servis ücretlerinin ödemesi okuldaki servis yetkilisine yapılır. Başka birine yapılan ödemeler geçerli değildir. İlk taksit en geç okulların açıldığı gün peşin olarak alınmak suretiyle, taksit ödemeleri her ayın 1'i ile 10'u arasında yapılır. Servis ücretleri belirlenip {installmentText} taksit halinde ödenmesi kararlaştırıldığı için toplam sene üzerinden hesaplanmakta olup, ara tatiller, resmi ve milli tatiller ile eğitim öğretime ara verildiği dönemler belirlenen fiyata dahil değildir.</p>
                                                 <p className="font-bold text-blue-900 bg-blue-50/80 border border-blue-200 p-3 rounded-xl mt-2 text-sm">
                                                     {annualPrice > 0 ? (
-                                                        <>Yıllık servis ücreti <span className="text-emerald-700 underline font-black text-base ml-1 mr-1">{Number(annualPrice).toLocaleString('tr-TR')} TL + KDV</span>'dir. <span className="text-xs text-slate-500 font-medium block mt-1">(Aylık {Number(monthlyPrice).toLocaleString('tr-TR')} TL x {installmentMultiplier} Taksit)</span></>
+                                                        <>Yıllık servis ücreti <span className="text-emerald-700 underline font-black text-base ml-1 mr-1">{Number(annualPrice).toLocaleString('tr-TR')} TL + KDV</span>'dir. <span className="text-xs text-slate-500 font-medium block mt-1">{ruleAnnualPrice !== null && ruleAnnualPrice > 0 ? '(Bu mahalleye özel yıllık fiyat uygulanmıştır)' : `(Aylık ${Number(monthlyPrice).toLocaleString('tr-TR')} TL x ${installmentMultiplier} Taksit)`}</span></>
                                                     ) : (
                                                         <>Yıllık servis ücreti <span className="italic text-slate-500 font-normal mr-1">(Seçilen mahalleye göre otomatik belirlenecektir)</span> TL+KDV'dir.</>
                                                     )}

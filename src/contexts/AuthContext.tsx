@@ -138,9 +138,14 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
                     .from('users')
                     .select('*')
                     .eq('id', userId)
-                    .single();
+                    .maybeSingle();
 
                 if (userError) throw userError;
+                if (!userData) {
+                    const err = new Error("Profile not found");
+                    (err as any).code = 'PGRST116';
+                    throw err;
+                }
                 console.log("User data fetched:", userData);
 
                 // 2. Fetch company info (Separate simple query)
@@ -183,8 +188,13 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
                     await new Promise(resolve => setTimeout(resolve, 2000));
 
                     try {
-                        const { data: userData, error: userError } = await supabase.from('users').select('*').eq('id', userId).single();
+                        const { data: userData, error: userError } = await supabase.from('users').select('*').eq('id', userId).maybeSingle();
                         if (userError) throw userError;
+                        if (!userData) {
+                            const err = new Error("Profile not found");
+                            (err as any).code = 'PGRST116';
+                            throw err;
+                        }
                         const { data: companyData } = await supabase.from('companies').select('company_name, city, public_registration_token, logo_url, whatsapp_template, tax_office, tax_number, address, phone').eq('id', userData.company_id).single();
 
                         const profileData = { ...userData, companies: companyData } as UserProfile;

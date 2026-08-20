@@ -31,6 +31,7 @@ interface PricingRule {
     school_id?: string | null;
     school_level: string;
     amount: number;
+    annual_amount?: number;
 }
 
 interface TeamMember {
@@ -63,7 +64,7 @@ const Settings: React.FC = () => {
 
     // School Pricing Modal State
     const [selectedSchoolForPricing, setSelectedSchoolForPricing] = useState<SchoolData | null>(null);
-    const [schoolPricingFormData, setSchoolPricingFormData] = useState<{ neighborhood: string; amount: string }>({ neighborhood: '', amount: '' });
+    const [schoolPricingFormData, setSchoolPricingFormData] = useState<{ neighborhood: string; amount: string; annual_amount: string }>({ neighborhood: '', amount: '', annual_amount: '' });
     const [isSchoolPricingSubmitting, setIsSchoolPricingSubmitting] = useState(false);
     const [city, setCity] = useState(profile?.companies?.city || '');
     const [logoUrl, setLogoUrl] = useState(profile?.companies?.logo_url || '');
@@ -295,12 +296,13 @@ const Settings: React.FC = () => {
                 school_id: selectedSchoolForPricing.id,
                 school_level: schoolPricingFormData.neighborhood,
                 amount: parseFloat(schoolPricingFormData.amount),
+                annual_amount: schoolPricingFormData.annual_amount ? parseFloat(schoolPricingFormData.annual_amount) : null,
                 updated_at: new Date().toISOString()
             }]);
 
             if (error) throw error;
 
-            setSchoolPricingFormData({ neighborhood: '', amount: '' });
+            setSchoolPricingFormData({ neighborhood: '', amount: '', annual_amount: '' });
             await fetchPricingRules();
         } catch (error: any) {
             console.error('Error saving school pricing rule:', error);
@@ -1288,7 +1290,7 @@ const Settings: React.FC = () => {
                                     <Plus size={16} className="text-emerald-600" />
                                     Yeni Mahalle Fiyatı Ekle
                                 </h4>
-                                <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+                                <div className="grid grid-cols-1 sm:grid-cols-3 gap-3">
                                     <div>
                                         <label className="block text-xs font-bold text-slate-600 mb-1">Mahalle / Bölge</label>
                                         <input
@@ -1309,6 +1311,16 @@ const Settings: React.FC = () => {
                                             className="w-full px-3.5 py-2.5 bg-white border border-slate-200 rounded-xl focus:outline-none focus:ring-2 focus:ring-emerald-500/20 focus:border-emerald-500 text-sm font-medium text-slate-800"
                                             value={schoolPricingFormData.amount}
                                             onChange={e => setSchoolPricingFormData({ ...schoolPricingFormData, amount: e.target.value })}
+                                        />
+                                    </div>
+                                    <div>
+                                        <label className="block text-xs font-bold text-slate-600 mb-1">Yıllık Tutar (Opsiyonel)</label>
+                                        <input
+                                            type="number"
+                                            placeholder="Örn: 15000"
+                                            className="w-full px-3.5 py-2.5 bg-white border border-slate-200 rounded-xl focus:outline-none focus:ring-2 focus:ring-emerald-500/20 focus:border-emerald-500 text-sm font-medium text-slate-800"
+                                            value={schoolPricingFormData.annual_amount}
+                                            onChange={e => setSchoolPricingFormData({ ...schoolPricingFormData, annual_amount: e.target.value })}
                                         />
                                     </div>
                                 </div>
@@ -1346,7 +1358,14 @@ const Settings: React.FC = () => {
                                                         <span className="font-semibold text-slate-800 text-sm">{rule.school_level}</span>
                                                     </div>
                                                     <div className="flex items-center gap-3">
-                                                        <span className="font-extrabold text-emerald-600 text-sm">{Number(rule.amount).toLocaleString('tr-TR')} ₺</span>
+                                                        <div className="flex flex-col items-end">
+                                                            <span className="font-extrabold text-emerald-600 text-sm">{Number(rule.amount).toLocaleString('tr-TR')} ₺/Ay</span>
+                                                            {rule.annual_amount && (
+                                                                <span className="text-[10px] font-medium text-slate-500 bg-slate-100 px-1.5 py-0.5 rounded mt-0.5">
+                                                                    Yıllık: {Number(rule.annual_amount).toLocaleString('tr-TR')} ₺
+                                                                </span>
+                                                            )}
+                                                        </div>
                                                         <button
                                                             onClick={() => handleDeletePricing(rule.id, rule.school_level)}
                                                             className="text-slate-300 hover:text-red-500 hover:bg-red-50 p-1.5 rounded-lg transition-colors"

@@ -1,3 +1,4 @@
+import { useEffect, useState, lazy, Suspense } from 'react';
 import { BrowserRouter, Routes, Route, Navigate } from 'react-router-dom';
 import Navbar from './components/layout/Navbar';
 import Hero from './components/home/Hero';
@@ -39,7 +40,6 @@ const PlatformSettings = lazy(() => import('./pages/superadmin/PlatformSettings'
 const AuditLogs = lazy(() => import('./pages/superadmin/AuditLogs'));
 const SuperAdminAccount = lazy(() => import('./pages/superadmin/SuperAdminAccount'));
 
-import { useEffect, useState, lazy, Suspense } from 'react';
 import { CheckCircle2, Loader2 } from 'lucide-react';
 import { APIProvider } from '@vis.gl/react-google-maps';
 
