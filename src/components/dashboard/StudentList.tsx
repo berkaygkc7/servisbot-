@@ -23,6 +23,7 @@ export interface Student {
     registration_number?: number;
     status?: 'active' | 'inactive' | 'pending';
     tags?: string[];
+    shift?: string;
     custom_price?: number | null;
     total_debt?: number | null;
     parent_tc?: string;
@@ -81,6 +82,13 @@ const StudentList: React.FC<StudentListProps> = ({
                                                     {tag}
                                                 </span>
                                             ))}
+                                        </div>
+                                    )}
+                                    {student.shift && (
+                                        <div className="mt-1.5 flex">
+                                            <span className="bg-amber-100 text-amber-700 text-[10px] px-2 py-0.5 rounded border border-amber-200 font-bold">
+                                                {student.shift}
+                                            </span>
                                         </div>
                                     )}
                                     <div 

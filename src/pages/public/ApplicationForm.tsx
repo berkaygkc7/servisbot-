@@ -86,7 +86,8 @@ const ApplicationForm: React.FC = () => {
         neighborhood: '',
         schoolLevel: '',
         schoolId: '',
-        grade: ''
+        grade: '',
+        shift: ''
     });
 
     const geocodingLibrary = useMapsLibrary('geocoding');
@@ -237,7 +238,8 @@ const ApplicationForm: React.FC = () => {
                 p_grade: formData.grade || null,
                 p_neighborhood: formData.neighborhood || null,
                 p_total_debt: calculatedTotalDebt,
-                p_custom_price: monthlyPrice
+                p_custom_price: monthlyPrice,
+                p_shift: formData.shift || null
             });
 
             if (error) throw error;
@@ -464,7 +466,41 @@ const ApplicationForm: React.FC = () => {
                                     </select>
                                 </div>
 
-                                <div>
+                                {schools.find((s: any) => (s.id || s) === formData.schoolId)?.has_shifts && (
+                                    <div className="mt-4">
+                                        <label className="block text-sm font-bold text-slate-700 mb-1.5 ml-1">
+                                            Öğrenci Devresi <span className="text-red-500">*</span>
+                                        </label>
+                                        <div className="flex gap-4">
+                                            <label className="flex items-center p-3 bg-white border border-slate-200 rounded-xl cursor-pointer hover:border-blue-300 transition-colors flex-1">
+                                                <input
+                                                    type="radio"
+                                                    name="shift"
+                                                    value="Sabahçı"
+                                                    checked={formData.shift === 'Sabahçı'}
+                                                    onChange={handleChange}
+                                                    required
+                                                    className="w-4 h-4 text-blue-600 border-slate-300 focus:ring-blue-500"
+                                                />
+                                                <span className="ml-2 text-sm font-medium text-slate-700">Sabahçı</span>
+                                            </label>
+                                            <label className="flex items-center p-3 bg-white border border-slate-200 rounded-xl cursor-pointer hover:border-blue-300 transition-colors flex-1">
+                                                <input
+                                                    type="radio"
+                                                    name="shift"
+                                                    value="Öğlenci"
+                                                    checked={formData.shift === 'Öğlenci'}
+                                                    onChange={handleChange}
+                                                    required
+                                                    className="w-4 h-4 text-blue-600 border-slate-300 focus:ring-blue-500"
+                                                />
+                                                <span className="ml-2 text-sm font-medium text-slate-700">Öğlenci</span>
+                                            </label>
+                                        </div>
+                                    </div>
+                                )}
+
+                                <div className="mt-4">
                                     <label className="block text-sm font-bold text-slate-700 mb-1">
                                         Fiyatlandırma Mahallesi
                                         <span className="text-red-500 ml-1">*</span>

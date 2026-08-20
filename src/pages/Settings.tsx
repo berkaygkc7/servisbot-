@@ -18,6 +18,7 @@ interface SchoolData {
     district: string;
     latitude: number;
     longitude: number;
+    has_shifts?: boolean;
 }
 
 interface TagData {
@@ -166,7 +167,8 @@ const Settings: React.FC = () => {
                     name: formData.name,
                     district: formData.district,
                     latitude: formData.latitude,
-                    longitude: formData.longitude
+                    longitude: formData.longitude,
+                    has_shifts: formData.has_shifts || false
                 }).eq('id', editSchoolId);
                 
                 if (error) throw error;
@@ -177,7 +179,8 @@ const Settings: React.FC = () => {
                     name: formData.name,
                     district: formData.district,
                     latitude: formData.latitude,
-                    longitude: formData.longitude
+                    longitude: formData.longitude,
+                    has_shifts: formData.has_shifts || false
                 }]);
                 
                 if (error) throw error;
@@ -816,6 +819,18 @@ const Settings: React.FC = () => {
                                                 onChange={e => setFormData({ ...formData, district: e.target.value })}
                                             />
                                         </div>
+                                        <div className="flex items-center p-3 border border-slate-200 rounded-xl bg-slate-50 mt-4">
+                                            <input
+                                                type="checkbox"
+                                                id="has_shifts"
+                                                className="w-5 h-5 text-secondary border-slate-300 rounded focus:ring-secondary cursor-pointer"
+                                                checked={formData.has_shifts || false}
+                                                onChange={e => setFormData({ ...formData, has_shifts: e.target.checked })}
+                                            />
+                                            <label htmlFor="has_shifts" className="ml-3 block text-sm font-bold text-slate-700 cursor-pointer">
+                                                Sabahçı / Öğlenci Uygulaması Var
+                                            </label>
+                                        </div>
                                         <button
                                             type="submit"
                                             disabled={isSubmitting}
@@ -854,7 +869,7 @@ const Settings: React.FC = () => {
                                                                 <button
                                                                     onClick={() => {
                                                                         setEditSchoolId(school.id);
-                                                                        setFormData({ name: school.name, district: school.district, latitude: school.latitude, longitude: school.longitude });
+                                                                        setFormData({ name: school.name, district: school.district, latitude: school.latitude, longitude: school.longitude, has_shifts: school.has_shifts });
                                                                         window.scrollTo({ top: 0, behavior: 'smooth' });
                                                                     }}
                                                                     className="text-slate-400 hover:text-blue-600 hover:bg-blue-50 p-1.5 rounded-lg transition-colors"
@@ -875,6 +890,11 @@ const Settings: React.FC = () => {
                                                             <p className="text-xs text-slate-500 flex items-center gap-1 font-medium mb-3">
                                                                 <MapPin size={13} className="text-slate-400" /> {school.district}
                                                             </p>
+                                                        )}
+                                                        {school.has_shifts && (
+                                                            <div className="inline-block px-2 py-1 bg-amber-100 text-amber-700 text-[10px] font-bold rounded mb-3">
+                                                                Sabahçı / Öğlenci
+                                                            </div>
                                                         )}
                                                     </div>
 

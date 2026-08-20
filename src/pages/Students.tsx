@@ -303,7 +303,8 @@ const Students: React.FC = () => {
                 total_debt: s.total_debt,
                 parent_tc: s.parent_tc,
                 login_token: s.login_token,
-                payment_status_this_month: paymentMap.get(s.id) || 'unpaid'
+                payment_status_this_month: paymentMap.get(s.id) || 'unpaid',
+                shift: s.shift
             })) || [];
 
             setStudents(mappedStudents);
