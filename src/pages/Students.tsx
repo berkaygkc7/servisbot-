@@ -430,6 +430,49 @@ const Students: React.FC = () => {
         }
     };
 
+    const handleFixDebts = async () => {
+        if (!window.confirm("Tüm öğrencilerin borçlarını (varsa) yıllık mahalle fiyatlarına göre güncelleyeyim mi? Bu işlem biraz sürebilir.")) return;
+        
+        try {
+            const { data: studentsData } = await supabase.from('students').select('*').in('status', ['active', 'pending']);
+            const { data: rules } = await supabase.from('pricing_rules').select('*');
+            const { data: payments } = await supabase.from('payments').select('*');
+            const { data: companies } = await supabase.from('companies').select('*');
+
+            if (!studentsData || !rules) {
+                alert('Veriler alınamadı.');
+                return;
+            }
+
+            let updateCount = 0;
+            for (const student of studentsData) {
+                if (!student.neighborhood) continue;
+
+                const normNbr = student.neighborhood.toLocaleLowerCase('tr-TR').trim();
+                const rule = rules.find(r => r.school_id === student.school_id && r.school_level?.toLocaleLowerCase('tr-TR').trim() === normNbr);
+
+                if (rule && rule.annual_amount) {
+                    const annualPrice = Number(rule.annual_amount);
+
+                    const studentPayments = (payments || []).filter(p => p.student_id === student.id && (p.status === 'approved' || p.status === 'completed' || !p.status));
+                    const totalPaid = studentPayments.reduce((acc, p) => acc + (Number(p.amount) || 0), 0);
+                    
+                    const newDebt = Math.max(0, annualPrice - totalPaid);
+                    
+                    if (Number(student.total_debt) !== newDebt) {
+                        await supabase.from('students').update({ total_debt: newDebt }).eq('id', student.id);
+                        updateCount++;
+                    }
+                }
+            }
+            alert(`İşlem tamamlandı! ${updateCount} öğrencinin borcu güncellendi.`);
+            fetchStudents();
+        } catch (err: any) {
+            console.error(err);
+            alert('Hata oluştu: ' + err.message);
+        }
+    };
+
     const handleQuickPay = async (student: Student) => {
         if (!profile?.company_id) return;
         
@@ -753,6 +796,13 @@ const Students: React.FC = () => {
                     <p className="text-slate-500">Tüm öğrenci ve personel kayıtlarını yönetin.</p>
                 </div>
                 <div className="flex gap-3 flex-wrap">
+                    <button
+                        onClick={handleFixDebts}
+                        className="flex items-center gap-2 px-4 py-2.5 bg-yellow-500 text-white rounded-xl hover:bg-yellow-600 transition-colors font-medium shadow-sm"
+                    >
+                        <Save size={20} />
+                        Borçları Düzelt
+                    </button>
                     <button
                         onClick={handleDownloadTemplate}
                         className="flex items-center gap-2 px-4 py-2.5 bg-white border border-slate-200 text-slate-600 rounded-xl hover:bg-slate-50 transition-colors font-medium"
