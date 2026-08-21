@@ -165,8 +165,21 @@ const ApplicationForm: React.FC = () => {
         setFormData({ ...formData, [e.target.name]: e.target.value });
     };
 
+    const getFormattedAddress = () => {
+        let n = formData.address_neighborhood.trim();
+        if (n && !n.toLowerCase().includes('mah')) n += ' Mah.';
+        
+        let s = formData.address_street.trim();
+        if (s && !s.toLowerCase().includes('sok') && !s.toLowerCase().includes('cad')) s += ' Sok.';
+        
+        let d = formData.address_door.trim();
+        if (d && !d.toLowerCase().includes('no')) d = 'No: ' + d;
+        
+        return `${formData.address_province}, ${formData.address_district}, ${n}, ${s}, ${d}`.trim();
+    };
+
     const handleSearchAddress = async () => {
-        const fullAddress = `${formData.address_province}, ${formData.address_district}, ${formData.address_neighborhood} Mah., ${formData.address_street}, No: ${formData.address_door}`.trim();
+        const fullAddress = getFormattedAddress();
         if (!fullAddress || !geocodingLibrary) return;
         
         setIsSearchingMap(true);
@@ -206,7 +219,7 @@ const ApplicationForm: React.FC = () => {
 
         let lat = pickerCoordinates ? pickerCoordinates[0] : null;
         let lng = pickerCoordinates ? pickerCoordinates[1] : null;
-        let addressStr = `${formData.address_province}, ${formData.address_district}, ${formData.address_neighborhood} Mah., ${formData.address_street}, No: ${formData.address_door}`.trim();
+        let addressStr = getFormattedAddress();
 
         // Calculate debt from selected neighborhood
         const selectedRule = availableNeighborhoods.find((n: any) => safeRender(n) === formData.neighborhood);
