@@ -380,7 +380,11 @@ const Students: React.FC = () => {
         const compName = compData?.name || '';
         const isHalegul = compName.toLowerCase().includes('halegül') || compName.toLowerCase().includes('halegul');
         const isGuroz = compName.toLowerCase().includes('güroz') || compName.toLowerCase().includes('guroz');
-        const multiplier = (isHalegul || isGuroz) ? 9 : 10;
+        const isOzhamle = compName.toLowerCase().includes('özhamle') || compName.toLowerCase().includes('ozhamle');
+        const schoolObj = schools.find((s: any) => String(s.id) === String(student.school_id));
+        const schoolNameStr = schoolObj ? (schoolObj.name || '').toLowerCase().replace(/ö/g, 'o').replace(/ü/g, 'u').replace(/ı/g, 'i').replace(/ş/g, 's').replace(/ğ/g, 'g').replace(/ç/g, 'c').replace(/\s+/g, '') : '';
+        const isHakanGuvencer = isOzhamle && schoolNameStr.includes('hakanguvencer');
+        const multiplier = isHakanGuvencer ? 11 : (isHalegul || isGuroz) ? 9 : 10;
 
         // If still no monthly price but total_debt exists, derive monthly from total_debt / multiplier
         if (!monthlyPrice && student.total_debt && Number(student.total_debt) > 0) {
@@ -500,7 +504,11 @@ const Students: React.FC = () => {
             const compName = compData?.name || '';
             const isHalegul = compName.toLowerCase().includes('halegül') || compName.toLowerCase().includes('halegul');
             const isGuroz = compName.toLowerCase().includes('güroz') || compName.toLowerCase().includes('guroz');
-            const multiplier = (isHalegul || isGuroz) ? 9 : 10;
+            const isOzhamle = compName.toLowerCase().includes('özhamle') || compName.toLowerCase().includes('ozhamle');
+            const schoolObj = schools.find((s: any) => String(s.id) === String(student.school_id));
+            const schoolNameStr = schoolObj ? (schoolObj.name || '').toLowerCase().replace(/ö/g, 'o').replace(/ü/g, 'u').replace(/ı/g, 'i').replace(/ş/g, 's').replace(/ğ/g, 'g').replace(/ç/g, 'c').replace(/\s+/g, '') : '';
+            const isHakanGuvencer = isOzhamle && schoolNameStr.includes('hakanguvencer');
+            const multiplier = isHakanGuvencer ? 11 : (isHalegul || isGuroz) ? 9 : 10;
 
             let paidAmount = 0;
 
@@ -705,7 +713,11 @@ const Students: React.FC = () => {
                     const { data: compData } = await supabase.from('companies').select('name').eq('id', profile.company_id).single();
                     const isHalegul = (compData?.name || '').toLowerCase().includes('halegül') || (compData?.name || '').toLowerCase().includes('halegul');
                     const isGuroz = (compData?.name || '').toLowerCase().includes('güroz') || (compData?.name || '').toLowerCase().includes('guroz');
-                    const installmentMultiplier = (isHalegul || isGuroz) ? 9 : 10;
+                    const isOzhamle = (compData?.name || '').toLowerCase().includes('özhamle') || (compData?.name || '').toLowerCase().includes('ozhamle');
+                    const schoolObj = schools.find((s: any) => String(s.id) === String(formData.school_id));
+                    const schoolNameStr = schoolObj ? (schoolObj.name || '').toLowerCase().replace(/ö/g, 'o').replace(/ü/g, 'u').replace(/ı/g, 'i').replace(/ş/g, 's').replace(/ğ/g, 'g').replace(/ç/g, 'c').replace(/\s+/g, '') : '';
+                    const isHakanGuvencer = isOzhamle && schoolNameStr.includes('hakanguvencer');
+                    const installmentMultiplier = isHakanGuvencer ? 11 : (isHalegul || isGuroz) ? 9 : 10;
                     
                     if (formData.neighborhood) {
                         const filteredRules = getFilteredNeighborhoodRules(formData.school_id || '');
