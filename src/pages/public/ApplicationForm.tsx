@@ -224,8 +224,10 @@ const ApplicationForm: React.FC = () => {
         // Calculate debt from selected neighborhood
         const selectedRule = availableNeighborhoods.find((n: any) => safeRender(n) === formData.neighborhood);
         const monthlyPrice = selectedRule && typeof selectedRule === 'object' && selectedRule.amount ? parseFloat(selectedRule.amount) : 0;
-        const isHalegul = (companyName || '').toLowerCase().includes('halegül') || (companyName || '').toLowerCase().includes('halegul');
-        const installmentMultiplier = isHalegul ? 9 : 10;
+        const compNameSubmit = (companyName || '').toLowerCase();
+        const isHalegul = compNameSubmit.includes('halegül') || compNameSubmit.includes('halegul');
+        const isGuroz = compNameSubmit.includes('güroz') || compNameSubmit.includes('guroz');
+        const installmentMultiplier = (isHalegul || isGuroz) ? 9 : 10;
         const calculatedTotalDebt = monthlyPrice * installmentMultiplier;
 
         try {

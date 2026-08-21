@@ -379,7 +379,8 @@ const Students: React.FC = () => {
             const { data: compData } = await supabase.from('companies').select('name').eq('id', profile!.company_id).single();
             const compName = compData?.name || '';
             const isHalegul = compName.toLowerCase().includes('halegül') || compName.toLowerCase().includes('halegul');
-            const multiplier = isHalegul ? 9 : 10;
+            const isGuroz = compName.toLowerCase().includes('güroz') || compName.toLowerCase().includes('guroz');
+            const multiplier = (isHalegul || isGuroz) ? 9 : 10;
             monthlyPrice = Math.round(Number(student.total_debt) / multiplier);
         }
 
@@ -450,7 +451,8 @@ const Students: React.FC = () => {
             const { data: compData } = await supabase.from('companies').select('name').eq('id', profile.company_id).single();
             const compName = compData?.name || '';
             const isHalegul = compName.toLowerCase().includes('halegül') || compName.toLowerCase().includes('halegul');
-            const multiplier = isHalegul ? 9 : 10;
+            const isGuroz = compName.toLowerCase().includes('güroz') || compName.toLowerCase().includes('guroz');
+            const multiplier = (isHalegul || isGuroz) ? 9 : 10;
 
             let paidAmount = 0;
 
@@ -651,7 +653,8 @@ const Students: React.FC = () => {
                 if (monthlyPrice > 0 && newStudentData) {
                     const { data: compData } = await supabase.from('companies').select('name').eq('id', profile.company_id).single();
                     const isHalegul = (compData?.name || '').toLowerCase().includes('halegül') || (compData?.name || '').toLowerCase().includes('halegul');
-                    const installmentMultiplier = isHalegul ? 9 : 10;
+                    const isGuroz = (compData?.name || '').toLowerCase().includes('güroz') || (compData?.name || '').toLowerCase().includes('guroz');
+                    const installmentMultiplier = (isHalegul || isGuroz) ? 9 : 10;
                     const calculatedTotalDebt = monthlyPrice * installmentMultiplier;
 
                     const { data: parentAccount, error: accError } = await supabase

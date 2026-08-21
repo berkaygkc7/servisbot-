@@ -1,5 +1,6 @@
 import React from 'react';
 import { Edit, Trash2, MapPin, Eye, CheckCircle, Circle, Printer } from 'lucide-react';
+import { useAuth } from '../../contexts/AuthContext';
 
 export interface Student {
     id: string;
@@ -55,6 +56,7 @@ interface StudentListProps {
 const StudentList: React.FC<StudentListProps> = ({ 
     students, onEdit, onDelete, onShowLocation, onShowDetails, onShowQr, onQuickPay, onApprove, onReject, whatsappTemplate 
 }) => {
+    const { profile } = useAuth();
 
     return (
         <div className="bg-white rounded-2xl border border-slate-100 shadow-sm overflow-hidden">
@@ -204,7 +206,8 @@ const StudentList: React.FC<StudentListProps> = ({
                                         </button>
                                         <button
                                             onClick={() => {
-                                                localStorage.setItem('print_contract_data', JSON.stringify({ student }));
+                                                const companyName = profile?.companies?.company_name || '';
+                                                localStorage.setItem('print_contract_data', JSON.stringify({ student: { ...student, company_name: companyName } }));
                                                 window.open('/print-contract', '_blank');
                                             }}
                                             className="p-2 hover:bg-slate-100 rounded-lg text-slate-400 hover:text-emerald-600 transition-colors"

@@ -383,7 +383,8 @@ const Payments = () => {
                 if (st?.total_debt === null || st?.total_debt === undefined) {
                     const { data: comp } = await supabase.from('companies').select('name').eq('id', profile?.company_id).single();
                     const isHalegul = (comp?.name || '').toLowerCase().includes('halegül') || (comp?.name || '').toLowerCase().includes('halegul');
-                    const multiplier = isHalegul ? 9 : 10;
+                    const isGuroz = (comp?.name || '').toLowerCase().includes('güroz') || (comp?.name || '').toLowerCase().includes('guroz');
+                    const multiplier = (isHalegul || isGuroz) ? 9 : 10;
                     currentDebt = Number(payment.amount) * multiplier;
                 }
 
@@ -557,7 +558,8 @@ const Payments = () => {
 
             const { data: comp } = await supabase.from('companies').select('name').eq('id', profile?.company_id).single();
             const isHalegul = (comp?.name || '').toLowerCase().includes('halegül') || (comp?.name || '').toLowerCase().includes('halegul');
-            const multiplier = isHalegul ? 9 : 10;
+            const isGuroz = (comp?.name || '').toLowerCase().includes('güroz') || (comp?.name || '').toLowerCase().includes('guroz');
+            const multiplier = (isHalegul || isGuroz) ? 9 : 10;
 
             // Group payments by student to handle multiple payments per student correctly
             const studentPaymentMap = new Map<string, number>();
