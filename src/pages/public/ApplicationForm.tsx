@@ -82,7 +82,7 @@ const ApplicationForm: React.FC = () => {
         parentName: '',
         parentTc: '',
         parentPhone: '',
-        address_province: 'Bartın',
+        address_province: '',
         address_district: '',
         address_neighborhood: '',
         address_street: '',
@@ -556,7 +556,7 @@ const ApplicationForm: React.FC = () => {
                             
                             <div className="grid grid-cols-2 gap-3 mb-3">
                                 <div>
-                                    <input required type="text" name="address_province" value={formData.address_province} onChange={handleChange} placeholder="İl (Örn: Bartın)" className="w-full px-4 py-3 border border-slate-200 rounded-xl focus:outline-none focus:ring-2 focus:ring-blue-500/20 focus:border-blue-500 font-medium text-slate-800 transition-colors" disabled={submitting} />
+                                    <input required type="text" name="address_province" value={formData.address_province} onChange={handleChange} placeholder="İl" className="w-full px-4 py-3 border border-slate-200 rounded-xl focus:outline-none focus:ring-2 focus:ring-blue-500/20 focus:border-blue-500 font-medium text-slate-800 transition-colors" disabled={submitting} />
                                 </div>
                                 <div>
                                     <input required type="text" name="address_district" value={formData.address_district} onChange={handleChange} placeholder="İlçe (Örn: Merkez)" className="w-full px-4 py-3 border border-slate-200 rounded-xl focus:outline-none focus:ring-2 focus:ring-blue-500/20 focus:border-blue-500 font-medium text-slate-800 transition-colors" disabled={submitting} />
