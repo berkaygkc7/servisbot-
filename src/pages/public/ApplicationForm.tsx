@@ -331,7 +331,7 @@ const ApplicationForm: React.FC = () => {
     }
 
     const compNameLower = (companyName || '').toLowerCase();
-    const normalizedCompName = compNameLower.replace(/ö/g, 'o').replace(/ü/g, 'u').replace(/ı/g, 'i').replace(/ş/g, 's').replace(/ğ/g, 'g').replace(/ç/g, 'c');
+    const normalizedCompName = compNameLower.replace(/ö/g, 'o').replace(/ü/g, 'u').replace(/ı/g, 'i').replace(/ş/g, 's').replace(/ğ/g, 'g').replace(/ç/g, 'c').replace(/\s+/g, '');
     const isHalegul = normalizedCompName.includes('halegul');
     const isGuroz = normalizedCompName.includes('guroz');
     const isOzhamle = normalizedCompName.includes('ozhamle');
@@ -809,8 +809,8 @@ const ApplicationForm: React.FC = () => {
                                                 
                                                 const selectedSchoolObj = schools.find((s: any) => String(s.id || s) === String(formData.schoolId));
                                                 const selectedSchoolName = selectedSchoolObj ? safeRender(selectedSchoolObj).toLowerCase() : '';
-                                                const normSchoolName = selectedSchoolName.replace(/ö/g, 'o').replace(/ü/g, 'u').replace(/ı/g, 'i').replace(/ş/g, 's').replace(/ğ/g, 'g').replace(/ç/g, 'c');
-                                                const isHakanGuvencer = isOzhamle && normSchoolName.includes('hakan guvencer');
+                                                const normSchoolName = selectedSchoolName.replace(/ö/g, 'o').replace(/ü/g, 'u').replace(/ı/g, 'i').replace(/ş/g, 's').replace(/ğ/g, 'g').replace(/ç/g, 'c').replace(/\s+/g, '');
+                                                const isHakanGuvencer = isOzhamle && normSchoolName.includes('hakanguvencer');
                                                 
                                                 if (isHakanGuvencer) {
                                                     installmentText = '11 (on bir)';

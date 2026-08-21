@@ -29,14 +29,14 @@ const PrintContract: React.FC = () => {
     const companyName = student?.company_name || profile?.companies?.company_name || '...................................................';
     
     const compNameLower = (companyName || '').toLowerCase();
-    const normComp = compNameLower.replace(/ö/g, 'o').replace(/ü/g, 'u').replace(/ı/g, 'i').replace(/ş/g, 's').replace(/ğ/g, 'g').replace(/ç/g, 'c');
+    const normComp = compNameLower.replace(/ö/g, 'o').replace(/ü/g, 'u').replace(/ı/g, 'i').replace(/ş/g, 's').replace(/ğ/g, 'g').replace(/ç/g, 'c').replace(/\s+/g, '');
     const isHalegul = normComp.includes('halegul');
     const isGuroz = normComp.includes('guroz');
     const isOzhamle = normComp.includes('ozhamle');
     
     const selectedSchoolName = (student?.school_name || student?.school || '').toLowerCase();
-    const normSchoolName = selectedSchoolName.replace(/ö/g, 'o').replace(/ü/g, 'u').replace(/ı/g, 'i').replace(/ş/g, 's').replace(/ğ/g, 'g').replace(/ç/g, 'c');
-    const isHakanGuvencer = isOzhamle && normSchoolName.includes('hakan guvencer');
+    const normSchoolName = selectedSchoolName.replace(/ö/g, 'o').replace(/ü/g, 'u').replace(/ı/g, 'i').replace(/ş/g, 's').replace(/ğ/g, 'g').replace(/ç/g, 'c').replace(/\s+/g, '');
+    const isHakanGuvencer = isOzhamle && normSchoolName.includes('hakanguvencer');
     
     let installmentText = isHalegul ? '9 (dokuz)' : '10 (on)'; // default one
     if (isHakanGuvencer) {
