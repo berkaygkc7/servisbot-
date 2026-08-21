@@ -116,7 +116,9 @@ const Vehicles: React.FC = () => {
                 (s.neighborhood || '').toLowerCase().includes(term) ||
                 (s.schools?.name || '').toLowerCase().includes(term)
             );
-            const matchesShift = vehicleShiftFilter === 'all' || s.shift === vehicleShiftFilter;
+            const matchesShift = vehicleShiftFilter === 'all' || 
+                (vehicleShiftFilter === 'sabah' && s.shift === 'Sabahçı') || 
+                (vehicleShiftFilter === 'oglen' && s.shift === 'Öğlenci');
             return matchesSearch && matchesShift;
         });
 
@@ -171,7 +173,9 @@ const Vehicles: React.FC = () => {
                 (s.neighborhood || '').toLowerCase().includes(term) ||
                 (s.schools?.name || '').toLowerCase().includes(term)
             );
-            const matchesShift = vehicleShiftFilter === 'all' || s.shift === vehicleShiftFilter;
+            const matchesShift = vehicleShiftFilter === 'all' || 
+                (vehicleShiftFilter === 'sabah' && s.shift === 'Sabahçı') || 
+                (vehicleShiftFilter === 'oglen' && s.shift === 'Öğlenci');
             return matchesSearch && matchesShift;
         });
 
@@ -610,7 +614,9 @@ const Vehicles: React.FC = () => {
                                                         (s.neighborhood || '').toLowerCase().includes(term) ||
                                                         (s.schools?.name || '').toLowerCase().includes(term)
                                                     );
-                                                    const matchesShift = vehicleShiftFilter === 'all' || s.shift === vehicleShiftFilter;
+                                                    const matchesShift = vehicleShiftFilter === 'all' || 
+                                                        (vehicleShiftFilter === 'sabah' && s.shift === 'Sabahçı') || 
+                                                        (vehicleShiftFilter === 'oglen' && s.shift === 'Öğlenci');
                                                     return matchesSearch && matchesShift;
                                                 })
                                                 .map((s, index) => (
