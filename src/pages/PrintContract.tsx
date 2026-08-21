@@ -28,9 +28,10 @@ const PrintContract: React.FC = () => {
     const { student } = printData;
     const companyName = student?.company_name || profile?.companies?.company_name || '...................................................';
     
-    const compName = (companyName || '').toLowerCase();
-    const isHalegul = compName.includes('halegül') || compName.includes('halegul');
-    const isGuroz = compName.includes('güroz') || compName.includes('guroz');
+    const compNameLower = (companyName || '').toLowerCase();
+    const normComp = compNameLower.replace(/ö/g, 'o').replace(/ü/g, 'u').replace(/ı/g, 'i').replace(/ş/g, 's').replace(/ğ/g, 'g').replace(/ç/g, 'c');
+    const isHalegul = normComp.includes('halegul');
+    const isGuroz = normComp.includes('guroz');
     const installmentText = isHalegul ? '9 (dokuz)' : '10 (on)'; // default one
 
     const displayCompanyName = companyName;
