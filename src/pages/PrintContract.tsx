@@ -1,6 +1,8 @@
 import React, { useEffect, useState } from 'react';
+import { useAuth } from '../contexts/AuthContext';
 
 const PrintContract: React.FC = () => {
+    const { profile } = useAuth();
     const [printData, setPrintData] = useState<any>(null);
 
     useEffect(() => {
@@ -24,7 +26,7 @@ const PrintContract: React.FC = () => {
     }
 
     const { student } = printData;
-    const companyName = student?.company_name || '...................................................';
+    const companyName = student?.company_name || profile?.companies?.company_name || '...................................................';
     
     const compName = (companyName || '').toLowerCase();
     const isHalegul = compName.includes('halegül') || compName.includes('halegul');
