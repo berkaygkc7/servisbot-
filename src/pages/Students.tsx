@@ -25,7 +25,7 @@ const Students: React.FC = () => {
     const [isModalOpen, setIsModalOpen] = useState(false);
     const [editingStudent, setEditingStudent] = useState<Student | null>(null);
     const [formData, setFormData] = useState<Partial<Student>>({});
-    const [schools, setSchools] = useState<{ id: string; name: string }[]>([]);
+    const [schools, setSchools] = useState<{ id: string; name: string; has_shifts?: boolean }[]>([]);
     const [vehicles, setVehicles] = useState<{ id: string; plate_number: string }[]>([]);
     const [pricingRules, setPricingRules] = useState<{ id: string; school_id: string | null; school_level: string; amount: number }[]>([]);
     
@@ -162,8 +162,8 @@ const Students: React.FC = () => {
     }, [profile?.company_id]);
 
     const fetchSchools = async () => {
-        const { data } = await supabase.from('schools').select('id, name');
-        if (data) setSchools(data);
+        const { data } = await supabase.from('schools').select('id, name, has_shifts');
+        if (data) setSchools(data as any);
     };
 
     const fetchVehicles = async () => {
@@ -624,7 +624,8 @@ const Students: React.FC = () => {
                 home_latitude: formData.coordinates ? formData.coordinates[0] : null,
                 home_longitude: formData.coordinates ? formData.coordinates[1] : null,
                 custom_price: formData.custom_price || null,
-                status: formData.status || 'active'
+                status: formData.status || 'active',
+                shift: formData.shift || null
             };
 
             if (editingStudent) {
@@ -637,11 +638,50 @@ const Students: React.FC = () => {
                 if (error) throw error;
             } else {
                 // Create
-                const { error } = await supabase
+                const { data: newStudentData, error } = await supabase
                     .from('students')
-                    .insert([studentData]);
+                    .insert([studentData])
+                    .select('id')
+                    .single();
 
                 if (error) throw error;
+
+                // QR Logic Emulation: Create parent account and installments
+                const monthlyPrice = formData.custom_price || 0;
+                if (monthlyPrice > 0 && newStudentData) {
+                    const { data: compData } = await supabase.from('companies').select('name').eq('id', profile.company_id).single();
+                    const isHalegul = (compData?.name || '').toLowerCase().includes('halegül') || (compData?.name || '').toLowerCase().includes('halegul');
+                    const installmentMultiplier = isHalegul ? 9 : 10;
+                    const calculatedTotalDebt = monthlyPrice * installmentMultiplier;
+
+                    const { data: parentAccount, error: accError } = await supabase
+                        .from('parent_accounts')
+                        .insert([{
+                            company_id: profile.company_id,
+                            student_id: newStudentData.id,
+                            parent_name: formData.parent_name || formData.full_name,
+                            total_debt: calculatedTotalDebt,
+                            paid_amount: 0,
+                            remaining_debt: calculatedTotalDebt
+                        }])
+                        .select('id')
+                        .single();
+
+                    if (!accError && parentAccount) {
+                        const installments = [];
+                        const startDate = new Date();
+                        for (let i = 0; i < installmentMultiplier; i++) {
+                            const dueDate = new Date(startDate.getFullYear(), startDate.getMonth() + i, 15);
+                            installments.push({
+                                parent_account_id: parentAccount.id,
+                                amount: monthlyPrice,
+                                due_date: dueDate.toISOString().split('T')[0],
+                                status: 'pending'
+                            });
+                        }
+                        await supabase.from('parent_installments').insert(installments);
+                    }
+                }
             }
 
             await fetchStudents(); // Refresh list
@@ -951,6 +991,41 @@ const Students: React.FC = () => {
                                         ))}
                                     </select>
                                 </div>
+                                
+                                {schools.find((s: any) => s.id === formData.school_id)?.has_shifts && (
+                                    <div className="col-span-1 sm:col-span-2">
+                                        <label className="block text-sm font-medium text-slate-700 mb-2">Öğrenci Devresi</label>
+                                        <div className="flex gap-4">
+                                            <label className="flex items-center gap-2 cursor-pointer bg-slate-50 px-4 py-2 rounded-lg border border-slate-200">
+                                                <input
+                                                    type="radio"
+                                                    name="shift"
+                                                    value="Sabahçı"
+                                                    checked={formData.shift === 'Sabahçı'}
+                                                    onChange={e => setFormData({ ...formData, shift: e.target.value })}
+                                                    className="w-4 h-4 text-blue-600 focus:ring-blue-500"
+                                                />
+                                                <span className="text-sm font-medium text-slate-700 flex items-center gap-2">
+                                                    🌅 Sabahçı
+                                                </span>
+                                            </label>
+                                            <label className="flex items-center gap-2 cursor-pointer bg-slate-50 px-4 py-2 rounded-lg border border-slate-200">
+                                                <input
+                                                    type="radio"
+                                                    name="shift"
+                                                    value="Öğlenci"
+                                                    checked={formData.shift === 'Öğlenci'}
+                                                    onChange={e => setFormData({ ...formData, shift: e.target.value })}
+                                                    className="w-4 h-4 text-orange-500 focus:ring-orange-400"
+                                                />
+                                                <span className="text-sm font-medium text-slate-700 flex items-center gap-2">
+                                                    🌇 Öğlenci
+                                                </span>
+                                            </label>
+                                        </div>
+                                    </div>
+                                )}
+
                                 <div className="grid grid-cols-2 gap-4">
                                     <div>
                                         <label className="block text-sm font-medium text-slate-700 mb-1">Sınıf</label>
