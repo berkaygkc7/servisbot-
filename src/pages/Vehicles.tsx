@@ -27,6 +27,7 @@ const Vehicles: React.FC = () => {
     const [vehicleStudents, setVehicleStudents] = useState<any[]>([]);
     const [loadingVehicleStudents, setLoadingVehicleStudents] = useState(false);
     const [studentSearchTerm, setStudentSearchTerm] = useState('');
+    const [vehicleShiftFilter, setVehicleShiftFilter] = useState<'all' | 'sabah' | 'oglen'>('all');
 
     // Profile Modal State
     const [isProfileModalOpen, setIsProfileModalOpen] = useState(false);
@@ -109,12 +110,14 @@ const Vehicles: React.FC = () => {
 
         const filtered = vehicleStudents.filter(s => {
             const term = studentSearchTerm.toLowerCase();
-            return (
+            const matchesSearch = (
                 (s.full_name || '').toLowerCase().includes(term) ||
                 (s.parent_name || '').toLowerCase().includes(term) ||
                 (s.neighborhood || '').toLowerCase().includes(term) ||
                 (s.schools?.name || '').toLowerCase().includes(term)
             );
+            const matchesShift = vehicleShiftFilter === 'all' || s.shift === vehicleShiftFilter;
+            return matchesSearch && matchesShift;
         });
 
         const lines = [
@@ -162,12 +165,14 @@ const Vehicles: React.FC = () => {
         // Apply same filters as on screen
         const filteredStudents = vehicleStudents.filter(s => {
             const term = studentSearchTerm.toLowerCase();
-            return (
+            const matchesSearch = (
                 (s.full_name || '').toLowerCase().includes(term) ||
                 (s.parent_name || '').toLowerCase().includes(term) ||
                 (s.neighborhood || '').toLowerCase().includes(term) ||
                 (s.schools?.name || '').toLowerCase().includes(term)
             );
+            const matchesShift = vehicleShiftFilter === 'all' || s.shift === vehicleShiftFilter;
+            return matchesSearch && matchesShift;
         });
 
         // Store in localStorage for the new window to read
@@ -541,15 +546,26 @@ const Vehicles: React.FC = () => {
 
                         {/* Search & Stats Bar */}
                         <div className="p-4 border-b border-slate-100 bg-white flex flex-col sm:flex-row justify-between items-center gap-3">
-                            <div className="relative w-full sm:w-72 no-print">
-                                <Search className="absolute left-3 top-1/2 -translate-y-1/2 text-slate-400" size={16} />
-                                <input
-                                    type="text"
-                                    placeholder="Öğrenci, veli veya okul ara..."
-                                    value={studentSearchTerm}
-                                    onChange={(e) => setStudentSearchTerm(e.target.value)}
-                                    className="w-full pl-9 pr-3 py-2 bg-slate-50 border border-slate-200 rounded-xl text-xs focus:outline-none focus:ring-2 focus:ring-blue-500/20 focus:border-blue-500 transition-all"
-                                />
+                            <div className="flex flex-col sm:flex-row gap-3 w-full sm:w-auto no-print">
+                                <div className="relative w-full sm:w-72">
+                                    <Search className="absolute left-3 top-1/2 -translate-y-1/2 text-slate-400" size={16} />
+                                    <input
+                                        type="text"
+                                        placeholder="Öğrenci, veli veya okul ara..."
+                                        value={studentSearchTerm}
+                                        onChange={(e) => setStudentSearchTerm(e.target.value)}
+                                        className="w-full pl-9 pr-3 py-2 bg-slate-50 border border-slate-200 rounded-xl text-xs focus:outline-none focus:ring-2 focus:ring-blue-500/20 focus:border-blue-500 transition-all"
+                                    />
+                                </div>
+                                <select
+                                    value={vehicleShiftFilter}
+                                    onChange={(e) => setVehicleShiftFilter(e.target.value as any)}
+                                    className="w-full sm:w-40 px-3 py-2 bg-slate-50 border border-slate-200 rounded-xl text-xs focus:outline-none focus:ring-2 focus:ring-blue-500/20 focus:border-blue-500 transition-all text-slate-700 font-medium"
+                                >
+                                    <option value="all">Tüm Öğrenciler</option>
+                                    <option value="sabah">Sadece Sabahçılar</option>
+                                    <option value="oglen">Sadece Öğlenciler</option>
+                                </select>
                             </div>
                             <div className="flex items-center gap-2 text-xs">
                                 <span className="px-3 py-1.5 bg-blue-50 text-blue-700 font-bold rounded-xl border border-blue-100">
@@ -588,12 +604,14 @@ const Vehicles: React.FC = () => {
                                             {vehicleStudents
                                                 .filter(s => {
                                                     const term = studentSearchTerm.toLowerCase();
-                                                    return (
+                                                    const matchesSearch = (
                                                         (s.full_name || '').toLowerCase().includes(term) ||
                                                         (s.parent_name || '').toLowerCase().includes(term) ||
                                                         (s.neighborhood || '').toLowerCase().includes(term) ||
                                                         (s.schools?.name || '').toLowerCase().includes(term)
                                                     );
+                                                    const matchesShift = vehicleShiftFilter === 'all' || s.shift === vehicleShiftFilter;
+                                                    return matchesSearch && matchesShift;
                                                 })
                                                 .map((s, index) => (
                                                     <tr key={s.id} className="hover:bg-slate-50/80 transition-colors">

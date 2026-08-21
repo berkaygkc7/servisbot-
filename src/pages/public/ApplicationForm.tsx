@@ -572,7 +572,7 @@ const ApplicationForm: React.FC = () => {
                                     <input required type="text" name="address_street" value={formData.address_street} onChange={handleChange} placeholder="Sokak / Cadde (Örn: 114. Sokak)" className="w-full px-4 py-3 border border-slate-200 rounded-xl focus:outline-none focus:ring-2 focus:ring-blue-500/20 focus:border-blue-500 font-medium text-slate-800 transition-colors" disabled={submitting} />
                                 </div>
                                 <div className="col-span-1">
-                                    <input required type="text" name="address_door" value={formData.address_door} onChange={handleChange} placeholder="Kapı No (Örn: 5)" className="w-full px-4 py-3 border border-slate-200 rounded-xl focus:outline-none focus:ring-2 focus:ring-blue-500/20 focus:border-blue-500 font-medium text-slate-800 transition-colors" disabled={submitting} />
+                                    <input required type="text" name="address_door" value={formData.address_door} onChange={handleChange} placeholder="Bina No (Örn: 5)" className="w-full px-4 py-3 border border-slate-200 rounded-xl focus:outline-none focus:ring-2 focus:ring-blue-500/20 focus:border-blue-500 font-medium text-slate-800 transition-colors" disabled={submitting} />
                                 </div>
                             </div>
                             
