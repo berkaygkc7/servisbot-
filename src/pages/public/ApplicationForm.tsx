@@ -334,6 +334,7 @@ const ApplicationForm: React.FC = () => {
     const normalizedCompName = compNameLower.replace(/ö/g, 'o').replace(/ü/g, 'u').replace(/ı/g, 'i').replace(/ş/g, 's').replace(/ğ/g, 'g').replace(/ç/g, 'c');
     const isHalegul = normalizedCompName.includes('halegul');
     const isGuroz = normalizedCompName.includes('guroz');
+    const isOzhamle = normalizedCompName.includes('ozhamle');
 
     return (
         <div className="min-h-screen bg-slate-50 py-12 px-4 sm:px-6 flex flex-col items-center">
@@ -804,7 +805,16 @@ const ApplicationForm: React.FC = () => {
                                         <li>
                                             {(() => {
                                                 const installmentMultiplier = isHalegul ? 9 : 10;
-                                                const installmentText = isHalegul ? '9 (dokuz)' : '10 (on)';
+                                                let installmentText = isHalegul ? '9 (dokuz)' : '10 (on)';
+                                                
+                                                const selectedSchoolObj = schools.find((s: any) => (s.id || s) === formData.schoolId);
+                                                const selectedSchoolName = selectedSchoolObj ? safeRender(selectedSchoolObj).toUpperCase() : '';
+                                                const isHakanGuvencer = isOzhamle && selectedSchoolName.includes('HAKAN GÜVENÇER');
+                                                
+                                                if (isHakanGuvencer) {
+                                                    installmentText = '11 (on bir)';
+                                                }
+                                                const displayTaksitS = isHakanGuvencer ? 11 : installmentMultiplier;
                                                 
                                                 const selectedRule = availableNeighborhoods.find((n: any) => safeRender(n) === formData.neighborhood);
                                                 const monthlyPrice = selectedRule && typeof selectedRule === 'object' && selectedRule.amount ? parseFloat(selectedRule.amount) : 0;
@@ -816,7 +826,7 @@ const ApplicationForm: React.FC = () => {
                                                         <p>Servis ücretlerinin ödemesi okuldaki servis yetkilisine yapılır. Başka birine yapılan ödemeler geçerli değildir. İlk taksit en geç okulların açıldığı gün peşin olarak alınmak suretiyle, taksit ödemeleri her ayın 1'i ile 10'u arasında yapılır. Servis ücretleri belirlenip {installmentText} taksit halinde ödenmesi kararlaştırıldığı için toplam sene üzerinden hesaplanmakta olup, ara tatiller, resmi ve milli tatiller ile eğitim öğretime ara verildiği dönemler belirlenen fiyata dahil değildir.</p>
                                                         <div className="font-bold text-blue-900 bg-blue-50/80 border border-blue-200 p-3 rounded-xl mt-2 text-sm">
                                                             {annualPrice > 0 ? (
-                                                                <>Yıllık servis ücreti <span className="text-emerald-700 underline font-black text-base ml-1 mr-1">{Number(annualPrice).toLocaleString('tr-TR')} TL + KDV</span>'dir. <span className="text-xs text-slate-500 font-medium block mt-1">{ruleAnnualPrice !== null && ruleAnnualPrice > 0 ? '(Bu mahalleye özel yıllık fiyat uygulanmıştır)' : `(Aylık ${Number(monthlyPrice).toLocaleString('tr-TR')} TL x ${installmentMultiplier} Taksit)`}</span></>
+                                                                <>Yıllık servis ücreti <span className="text-emerald-700 underline font-black text-base ml-1 mr-1">{Number(annualPrice).toLocaleString('tr-TR')} TL + KDV</span>'dir. <span className="text-xs text-slate-500 font-medium block mt-1">{ruleAnnualPrice !== null && ruleAnnualPrice > 0 ? '(Bu mahalleye özel yıllık fiyat uygulanmıştır)' : `(Aylık ${Number(monthlyPrice).toLocaleString('tr-TR')} TL x ${displayTaksitS} Taksit)`}</span></>
                                                             ) : (
                                                                 <>Yıllık servis ücreti <span className="italic text-slate-500 font-normal mr-1">(Seçilen mahalleye göre otomatik belirlenecektir)</span> TL+KDV'dir.</>
                                                             )}

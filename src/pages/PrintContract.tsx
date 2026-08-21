@@ -32,7 +32,15 @@ const PrintContract: React.FC = () => {
     const normComp = compNameLower.replace(/ö/g, 'o').replace(/ü/g, 'u').replace(/ı/g, 'i').replace(/ş/g, 's').replace(/ğ/g, 'g').replace(/ç/g, 'c');
     const isHalegul = normComp.includes('halegul');
     const isGuroz = normComp.includes('guroz');
-    const installmentText = isHalegul ? '9 (dokuz)' : '10 (on)'; // default one
+    const isOzhamle = normComp.includes('ozhamle');
+    
+    const selectedSchoolName = (student?.school_name || student?.school || '').toUpperCase();
+    const isHakanGuvencer = isOzhamle && selectedSchoolName.includes('HAKAN GÜVENÇER');
+    
+    let installmentText = isHalegul ? '9 (dokuz)' : '10 (on)'; // default one
+    if (isHakanGuvencer) {
+        installmentText = '11 (on bir)';
+    }
 
     const displayCompanyName = companyName;
 
@@ -87,7 +95,7 @@ const PrintContract: React.FC = () => {
                         <li>Servis ücretlerinin Milli Eğitim Bakanlığının öğrencinin okula geleceği gün sayısına göre hesaplanıp ücret belirlenir.</li>
                         <li>Servis ücretleri en fazla 9 eşit taksite bölünerek tahsil edilir.</li>
                         <li>Ücret ödemesi ayın 15 ile en geç 20 si arasında yapılacaktır. Firma yetkilisi veya görevlendirdiği kişi şoföre ödeme yapar. Ankara valiliğinin öğrenciyi servis fiyatlarının tespiti için görevlendirdiği kurum veya kuruluşun açıklayacağı fiyat dikkate alınacaktır. Şayet bahsedilen kuruluş fiyat açıklamadıysa okulun açılış tarihinden itibaren Akaryakıt zammı servis ücretlerine yansıtılacaktır.<br/><br/>
-                        Bir sezonluk ücretimiz KDV dahil ............................................................................................................... TL'dir.</li>
+                        Bir sezonluk ücretimiz KDV dahil <span className="font-bold underline">{student?.total_debt ? Number(student.total_debt).toLocaleString('tr-TR') : '....................................................................................'}</span> TL'dir.</li>
                         <li className="mt-2">Bir öğrenci servise kaydını yaptırdıktan sonra keyfi olarak servisten ayrılamaz.</li>
                         <li>Bayram tatilleri, sömestr tatili ve bunun gibi tatillerde fiyat indirimi yapılmayıp yıllık ücretten düşülmüştür.</li>
                         <li>Bu sözleşmeyi taraflar olarak hazırlayıp, sözleşmeyi temin altına almak için aşağıdaki teminat senedi öğrenci velisi tarafından imzalanmıştır. Öğretim yılı sonunda öğrencinin servis kartında borcu gözükmüyorsa senet firma tarafından iptal edilip veliye iade edilecektir. Bahsedilen sözleşme ........................................................................................................................... tarihleri arasını kapsar.</li>
@@ -100,14 +108,14 @@ const PrintContract: React.FC = () => {
                         <div className="w-1/2">
                             <table className="w-full">
                                 <tbody>
-                                    <tr><td className="w-40 font-bold py-1">OKULU</td><td>: ......................................................................</td></tr>
-                                    <tr><td className="w-40 font-bold py-1">ADI SOYADI</td><td>: ......................................................................</td></tr>
-                                    <tr><td className="w-40 font-bold py-1">VELİNİN ADI SOYADI</td><td>: ......................................................................</td></tr>
-                                    <tr><td className="w-40 font-bold py-1">EV ADRESİ</td><td>: ......................................................................</td></tr>
+                                    <tr><td className="w-40 font-bold py-1">OKULU</td><td>: <span className="font-semibold">{student?.school_name || student?.school || '......................................................................'}</span></td></tr>
+                                    <tr><td className="w-40 font-bold py-1">ADI SOYADI</td><td>: <span className="font-semibold">{student?.full_name || student?.name || '......................................................................'}</span></td></tr>
+                                    <tr><td className="w-40 font-bold py-1">VELİNİN ADI SOYADI</td><td>: <span className="font-semibold">{student?.parent_name || student?.parent || '......................................................................'}</span></td></tr>
+                                    <tr><td className="w-40 font-bold py-1">EV ADRESİ</td><td>: <span className="font-semibold text-xs">{student?.address || '......................................................................'}</span></td></tr>
                                     <tr><td colSpan={2} className="py-1">...........................................................................................................</td></tr>
-                                    <tr><td className="w-40 font-bold py-1">ÖĞRENCİ KİMLİK NO</td><td>: ......................................................................</td></tr>
-                                    <tr><td className="w-40 font-bold py-1">TEL</td><td>: ......................................................................</td></tr>
-                                    <tr><td className="w-40 font-bold py-1">SINIF NO</td><td>: ......................................................................</td></tr>
+                                    <tr><td className="w-40 font-bold py-1">ÖĞRENCİ KİMLİK NO</td><td>: <span className="font-semibold">{student?.parent_tc || '......................................................................'}</span></td></tr>
+                                    <tr><td className="w-40 font-bold py-1">TEL</td><td>: <span className="font-semibold">{student?.parent_phone || student?.phone || '......................................................................'}</span></td></tr>
+                                    <tr><td className="w-40 font-bold py-1">SINIF NO</td><td>: <span className="font-semibold">{student?.grade || '......................................................................'}</span></td></tr>
                                 </tbody>
                             </table>
                         </div>
@@ -154,8 +162,8 @@ const PrintContract: React.FC = () => {
 
                         <div className="flex justify-between mt-6">
                             <div className="w-1/2">
-                                <p>İsim : ...............................................................................................</p>
-                                <p className="mt-2">Adres: ..............................................................................................</p>
+                                <p>İsim : <span className="font-semibold">{student?.parent_name || student?.parent || '...............................................................................................'}</span></p>
+                                <p className="mt-2">Adres: <span className="font-semibold text-xs">{student?.address || '..............................................................................................'}</span></p>
                                 <p>...........................................................................................................</p>
                                 <p className="mt-4 font-bold">KEFİL</p>
                                 <p className="mt-2">Adı ve Adresi : ...................................................................................</p>
@@ -189,13 +197,13 @@ const PrintContract: React.FC = () => {
                 
                 <div className="mb-6 space-y-3">
                     <p><strong>FİRMA ADI:</strong> {displayCompanyName}</p>
-                    <p><strong>ÖĞRENCİNİN ADI SOYADI:</strong> ................................................................</p>
-                    <p><strong>OKULU:</strong> ................................................................</p>
-                    <p><strong>SINIFI:</strong> ................................................................</p>
-                    <p><strong>VELİNİN ADI SOYADI:</strong> ................................................................</p>
-                    <p><strong>VELİNİN TELEFONU:</strong> ................................................................</p>
-                    <p><strong>EV / ALINACAK ADRES:</strong> ................................................................................................................................</p>
-                    <p><strong>YILLIK SERVİS ÜCRETİ:</strong> .................................................... TL + KDV</p>
+                    <p><strong>ÖĞRENCİNİN ADI SOYADI:</strong> <span className="font-semibold">{student?.full_name || student?.name || '................................................................'}</span></p>
+                    <p><strong>OKULU:</strong> <span className="font-semibold">{student?.school_name || student?.school || '................................................................'}</span></p>
+                    <p><strong>SINIFI:</strong> <span className="font-semibold">{student?.grade || '................................................................'}</span></p>
+                    <p><strong>VELİNİN ADI SOYADI:</strong> <span className="font-semibold">{student?.parent_name || student?.parent || '................................................................'}</span></p>
+                    <p><strong>VELİNİN TELEFONU:</strong> <span className="font-semibold">{student?.parent_phone || student?.phone || '................................................................'}</span></p>
+                    <p><strong>EV / ALINACAK ADRES:</strong> <span className="font-semibold">{student?.address || '................................................................................................................................'}</span></p>
+                    <p><strong>YILLIK SERVİS ÜCRETİ:</strong> <span className="font-semibold">{student?.total_debt ? Number(student.total_debt).toLocaleString('tr-TR') : '....................................................'}</span> TL + KDV</p>
                 </div>
 
                 <p className="font-bold mb-3 uppercase underline">KONU: 2026/2027 EĞİTİM VE ÖĞRETİM YILINDA ÖĞRENCİ TAŞIMACILIĞINDA VELİNİN VE TAŞIMACILIĞI ÜSTLENEN FİRMANIN MENFAATLERİNİ KORUMAK AMACIYLA BAHSEDİLEN ÖĞRETİM YILINDA AŞAĞIDA BELİRTİLECEK ŞEKİLDE YAPILACAKTIR.</p>
