@@ -118,6 +118,7 @@ const RoutesPage: React.FC = () => {
     const [selectedStudent, setSelectedStudent] = useState<any | null>(null);
     const [schools, setSchools] = useState<{ id: string; name: string }[]>([]);
     const [activeSchoolFilter, setActiveSchoolFilter] = useState<'all' | string>('all');
+    const [activeShiftFilter, setActiveShiftFilter] = useState<'all' | 'Sabahçı' | 'Öğlenci'>('all');
     const [newRouteSchoolId, setNewRouteSchoolId] = useState<string>('');
     const [newRouteTags, setNewRouteTags] = useState<string[]>([]);
 
@@ -232,7 +233,7 @@ const RoutesPage: React.FC = () => {
             if (vehiclesData) setAvailableVehicles(vehiclesData);
 
             // 2. Fetch Students
-            const { data: studentsData } = await supabase.from('students').select('id, full_name, home_latitude, home_longitude, address, tags, parent_name, parent_phone, grade, blood_group, allergies, registration_date, school_id, schools(name), vehicles(plate_number)');
+            const { data: studentsData } = await supabase.from('students').select('id, full_name, home_latitude, home_longitude, address, tags, parent_name, parent_phone, grade, blood_group, allergies, registration_date, school_id, schools(name), vehicles(plate_number), shift');
             if (studentsData) setAvailableStudents(studentsData as any);
 
             // 2.5 Fetch Tags
@@ -535,7 +536,10 @@ const RoutesPage: React.FC = () => {
                     matchesMainSchool = activeSchoolFilter === 'all' || !!(s.schools && s.schools.name === activeSchoolName);
                 }
 
-                if (matchesTags && matchesNeighborhood && matchesMainSchool && s.home_latitude && s.home_longitude) {
+                // Apply Shift Filter
+                const matchesShift = activeShiftFilter === 'all' || s.shift === activeShiftFilter;
+
+                if (matchesTags && matchesNeighborhood && matchesMainSchool && matchesShift && s.home_latitude && s.home_longitude) {
                     const lng = Number(s.home_longitude);
                     const lat = Number(s.home_latitude);
                     
@@ -1337,6 +1341,21 @@ const RoutesPage: React.FC = () => {
                             {schools.map(school => (
                                 <option key={school.id} value={school.id}>{school.name}</option>
                             ))}
+                        </select>
+                    </div>
+
+                    <div className="h-6 w-px bg-slate-200 hidden sm:block"></div>
+
+                    {/* Shift Filter */}
+                    <div className="flex items-center w-full sm:w-auto">
+                        <select
+                            className="w-full sm:w-auto px-4 py-2 bg-amber-50 border border-amber-200 text-amber-700 rounded-xl focus:outline-none focus:ring-2 focus:ring-amber-500/20 focus:border-amber-500 transition-all text-sm font-bold appearance-none cursor-pointer"
+                            value={activeShiftFilter}
+                            onChange={(e: any) => setActiveShiftFilter(e.target.value)}
+                        >
+                            <option value="all">🌤️ Tüm Devreler</option>
+                            <option value="Sabahçı">🌅 Sadece Sabahçılar</option>
+                            <option value="Öğlenci">🌇 Sadece Öğlenciler</option>
                         </select>
                     </div>
 
