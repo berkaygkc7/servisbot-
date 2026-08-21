@@ -758,9 +758,11 @@ const ApplicationForm: React.FC = () => {
                                 <li>Servis araçlarımızın ulaşım hattı belediye güzergahına göre düzenlenir, tüm öğrencilerin ikamet adresleri düşünülerek servis şirketi tarafından belirlenir. Şirket tarafından belirlenen güzergaha uygun olduğu ölçüde öğrenci ikametinin önünde ya da ikametine yakın bir noktada indirilir.</li>
                                 <li>
                                     {(() => {
-                                        const isHalegul = (companyName || '').toLowerCase().includes('halegül') || (companyName || '').toLowerCase().includes('halegul');
-                                        const installmentMultiplier = isHalegul ? 9 : 10;
-                                        const installmentText = isHalegul ? '9 (dokuz)' : '10 (on)';
+                                        const compName = (companyName || '').toLowerCase();
+                                        const isHalegul = compName.includes('halegül') || compName.includes('halegul');
+                                        const isGuroz = compName.includes('güroz') || compName.includes('guroz');
+                                        const installmentMultiplier = (isHalegul || isGuroz) ? 9 : 10;
+                                        const installmentText = isGuroz ? '1 peşin, 8 eşit taksit toplam 9' : (isHalegul ? '9 (dokuz)' : '10 (on)');
                                         
                                         const selectedRule = availableNeighborhoods.find((n: any) => safeRender(n) === formData.neighborhood);
                                         const monthlyPrice = selectedRule && typeof selectedRule === 'object' && selectedRule.amount ? parseFloat(selectedRule.amount) : 0;

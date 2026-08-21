@@ -1,5 +1,5 @@
 import React from 'react';
-import { Edit, Trash2, MapPin, Eye, CheckCircle, Circle } from 'lucide-react';
+import { Edit, Trash2, MapPin, Eye, CheckCircle, Circle, Printer } from 'lucide-react';
 
 export interface Student {
     id: string;
@@ -201,6 +201,16 @@ const StudentList: React.FC<StudentListProps> = ({
                                             title="Detayları Görüntüle"
                                         >
                                             <Eye size={16} />
+                                        </button>
+                                        <button
+                                            onClick={() => {
+                                                localStorage.setItem('print_contract_data', JSON.stringify({ student }));
+                                                window.open('/print-contract', '_blank');
+                                            }}
+                                            className="p-2 hover:bg-slate-100 rounded-lg text-slate-400 hover:text-emerald-600 transition-colors"
+                                            title="Sözleşmeyi Yazdır"
+                                        >
+                                            <Printer size={16} />
                                         </button>
                                         <button
                                             onClick={() => onEdit(student)}

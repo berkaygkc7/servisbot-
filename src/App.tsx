@@ -24,6 +24,7 @@ const Register = lazy(() => import('./pages/auth/Register'));
 const ApplicationForm = lazy(() => import('./pages/public/ApplicationForm'));
 import { KVKK, PrivacyPolicy, TermsOfService } from './pages/public/LegalPages';
 const PrintPreview = lazy(() => import('./pages/PrintPreview'));
+const PrintContract = lazy(() => import('./pages/PrintContract'));
 
 // Driver Pages
 import DriverLayout from './layouts/DriverLayout';
@@ -150,6 +151,7 @@ function App() {
 
               {/* Print Route (Standalone) */}
               <Route path="/print-preview" element={<ProtectedRoute><PrintPreview /></ProtectedRoute>} />
+              <Route path="/print-contract" element={<ProtectedRoute><PrintContract /></ProtectedRoute>} />
 
               {/* Fallback Catch-All Route */}
               <Route path="*" element={<Navigate to="/" replace />} />
