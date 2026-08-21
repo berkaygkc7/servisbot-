@@ -74,7 +74,7 @@ const ApplicationForm: React.FC = () => {
     const [isTermsModalOpen, setIsTermsModalOpen] = useState(false);
     const [isScrolledToBottom, setIsScrolledToBottom] = useState(false);
     const [companyName, setCompanyName] = useState<string>('');
-    const [schools, setSchools] = useState<{id: string, name: string}[]>([]);
+    const [schools, setSchools] = useState<{id: string, name: string, has_shifts?: boolean}[]>([]);
     const [pricingRules, setPricingRules] = useState<any[]>([]);
 
     const [formData, setFormData] = useState({

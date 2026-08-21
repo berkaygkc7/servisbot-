@@ -74,6 +74,7 @@ interface Student {
     school_id?: string;
     schools?: { name: string };
     vehicles?: { plate_number: string };
+    shift?: string;
 }
 
 const RoutesPage: React.FC = () => {
