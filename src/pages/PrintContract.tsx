@@ -34,8 +34,9 @@ const PrintContract: React.FC = () => {
     const isGuroz = normComp.includes('guroz');
     const isOzhamle = normComp.includes('ozhamle');
     
-    const selectedSchoolName = (student?.school_name || student?.school || '').toUpperCase();
-    const isHakanGuvencer = isOzhamle && selectedSchoolName.includes('HAKAN GÜVENÇER');
+    const selectedSchoolName = (student?.school_name || student?.school || '').toLowerCase();
+    const normSchoolName = selectedSchoolName.replace(/ö/g, 'o').replace(/ü/g, 'u').replace(/ı/g, 'i').replace(/ş/g, 's').replace(/ğ/g, 'g').replace(/ç/g, 'c');
+    const isHakanGuvencer = isOzhamle && normSchoolName.includes('hakan guvencer');
     
     let installmentText = isHalegul ? '9 (dokuz)' : '10 (on)'; // default one
     if (isHakanGuvencer) {

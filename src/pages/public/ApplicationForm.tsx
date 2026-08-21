@@ -807,9 +807,10 @@ const ApplicationForm: React.FC = () => {
                                                 const installmentMultiplier = isHalegul ? 9 : 10;
                                                 let installmentText = isHalegul ? '9 (dokuz)' : '10 (on)';
                                                 
-                                                const selectedSchoolObj = schools.find((s: any) => (s.id || s) === formData.schoolId);
-                                                const selectedSchoolName = selectedSchoolObj ? safeRender(selectedSchoolObj).toUpperCase() : '';
-                                                const isHakanGuvencer = isOzhamle && selectedSchoolName.includes('HAKAN GÜVENÇER');
+                                                const selectedSchoolObj = schools.find((s: any) => String(s.id || s) === String(formData.schoolId));
+                                                const selectedSchoolName = selectedSchoolObj ? safeRender(selectedSchoolObj).toLowerCase() : '';
+                                                const normSchoolName = selectedSchoolName.replace(/ö/g, 'o').replace(/ü/g, 'u').replace(/ı/g, 'i').replace(/ş/g, 's').replace(/ğ/g, 'g').replace(/ç/g, 'c');
+                                                const isHakanGuvencer = isOzhamle && normSchoolName.includes('hakan guvencer');
                                                 
                                                 if (isHakanGuvencer) {
                                                     installmentText = '11 (on bir)';
