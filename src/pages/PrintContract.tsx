@@ -75,7 +75,7 @@ const PrintContract: React.FC = () => {
                 <div className="max-w-4xl mx-auto contract-text pt-16 print:pt-0">
                     <h1 className="text-center font-bold text-xl mb-4 text-red-600">ÖĞRENCİ TAŞIMA SÖZLEŞMESİ</h1>
                     
-                    <p className="mb-4">KONU: 202 ..... - 202 ..... Eğitim ve öğretim yılında öğrenci taşımacılığında veli ve servisçi menfaatlerini korumak amacıyla bahsedilen öğretim yılında aşağıda belirtilen şekilde taşımacılık yapılacaktır.</p>
+                    <p className="mb-4">KONU: 2026/2027 Eğitim ve öğretim yılında öğrenci taşımacılığında veli ve servisçi menfaatlerini korumak amacıyla bahsedilen öğretim yılında aşağıda belirtilen şekilde taşımacılık yapılacaktır.</p>
 
                     <ol className="list-decimal pl-5 mb-4">
                         <li>Servis araçlarımız İçişleri Bakanlığının 21.05.1992 gün ve 21234 sayılı okul servis araçları yönetmeliğine uygun olacaktır. (Öğrenci ferdi kaza sigortası yapılacaktır.)</li>

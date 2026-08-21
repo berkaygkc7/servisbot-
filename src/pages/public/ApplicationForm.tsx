@@ -756,7 +756,7 @@ const ApplicationForm: React.FC = () => {
                             {isGuroz ? (
                                 <>
                                     <h3 className="font-bold text-lg text-red-600 text-center mt-4">ÖĞRENCİ TAŞIMA SÖZLEŞMESİ</h3>
-                                    <p className="font-semibold text-slate-800"><span className="underline">KONU:</span> 202 ..... - 202 ..... Eğitim ve öğretim yılında öğrenci taşımacılığında veli ve servisçi menfaatlerini korumak amacıyla bahsedilen öğretim yılında aşağıda belirtilen şekilde taşımacılık yapılacaktır.</p>
+                                    <p className="font-semibold text-slate-800"><span className="underline">KONU:</span> 2026/2027 Eğitim ve öğretim yılında öğrenci taşımacılığında veli ve servisçi menfaatlerini korumak amacıyla bahsedilen öğretim yılında aşağıda belirtilen şekilde taşımacılık yapılacaktır.</p>
                                     <ol className="list-decimal pl-5 space-y-3 font-medium text-slate-700">
                                         <li>Servis araçlarımız İçişleri Bakanlığının 21.05.1992 gün ve 21234 sayılı okul servis araçları yönetmeliğine uygun olacaktır. (Öğrenci ferdi kaza sigortası yapılacaktır.)</li>
                                         <li>Yıl içinde Ankara Valiliğinin açıkladığı fiyat tarifesi uygulanacaktır.</li>
