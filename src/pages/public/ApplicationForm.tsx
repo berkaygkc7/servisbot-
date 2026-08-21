@@ -224,9 +224,9 @@ const ApplicationForm: React.FC = () => {
         // Calculate debt from selected neighborhood
         const selectedRule = availableNeighborhoods.find((n: any) => safeRender(n) === formData.neighborhood);
         const monthlyPrice = selectedRule && typeof selectedRule === 'object' && selectedRule.amount ? parseFloat(selectedRule.amount) : 0;
-        const compNameSubmit = (companyName || '').toLowerCase();
-        const isHalegul = compNameSubmit.includes('halegül') || compNameSubmit.includes('halegul');
-        const isGuroz = compNameSubmit.includes('güroz') || compNameSubmit.includes('guroz');
+        const normalizedModalComp = (companyName || '').toLowerCase().replace(/ö/g, 'o').replace(/ü/g, 'u').replace(/ı/g, 'i').replace(/ş/g, 's').replace(/ğ/g, 'g').replace(/ç/g, 'c');
+        const isHalegul = normalizedModalComp.includes('halegul');
+        const isGuroz = normalizedModalComp.includes('guroz');
         const installmentMultiplier = (isHalegul || isGuroz) ? 9 : 10;
         const calculatedTotalDebt = monthlyPrice * installmentMultiplier;
 
@@ -330,8 +330,9 @@ const ApplicationForm: React.FC = () => {
     }
 
     const compNameLower = (companyName || '').toLowerCase();
-    const isHalegul = compNameLower.includes('halegül') || compNameLower.includes('halegul');
-    const isGuroz = compNameLower.includes('güroz') || compNameLower.includes('guroz');
+    const normalizedCompName = compNameLower.replace(/ö/g, 'o').replace(/ü/g, 'u').replace(/ı/g, 'i').replace(/ş/g, 's').replace(/ğ/g, 'g').replace(/ç/g, 'c');
+    const isHalegul = normalizedCompName.includes('halegul');
+    const isGuroz = normalizedCompName.includes('guroz');
 
     return (
         <div className="min-h-screen bg-slate-50 py-12 px-4 sm:px-6 flex flex-col items-center">
