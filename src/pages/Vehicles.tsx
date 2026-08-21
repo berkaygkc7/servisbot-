@@ -91,7 +91,7 @@ const Vehicles: React.FC = () => {
         try {
             const { data, error } = await supabase
                 .from('students')
-                .select('id, full_name, parent_name, parent_phone, school_level, grade, neighborhood, address, schools(name)')
+                .select('id, full_name, parent_name, parent_phone, school_level, grade, neighborhood, address, schools(name), shift')
                 .eq('vehicle_id', vehicle.id)
                 .neq('status', 'pending')
                 .order('full_name');
