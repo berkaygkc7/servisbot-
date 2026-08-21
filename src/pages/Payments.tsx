@@ -306,9 +306,9 @@ const Payments = () => {
                         billAmount = rule.amount;
                     } else if (s.total_debt && s.total_debt > 0) {
                         // Divide annual debt by multiplier to get monthly bill amount
-                        const { data: comp2 } = await supabase.from('companies').select('name').eq('id', profile?.company_id).single();
-                        const isH = (comp2?.name || '').toLowerCase().includes('halegül') || (comp2?.name || '').toLowerCase().includes('halegul');
-                        const isOzhamle = (comp2?.name || '').toLowerCase().includes('özhamle') || (comp2?.name || '').toLowerCase().includes('ozhamle');
+                        const { data: comp2 } = await supabase.from('companies').select('company_name').eq('id', profile?.company_id).single();
+                        const isH = (comp2?.company_name || '').toLowerCase().includes('halegül') || (comp2?.company_name || '').toLowerCase().includes('halegul');
+                        const isOzhamle = (comp2?.company_name || '').toLowerCase().includes('özhamle') || (comp2?.company_name || '').toLowerCase().includes('ozhamle');
                         const isHakanGuvencer = isOzhamle && s.schools && (s.schools.name || '').toLowerCase().replace(/ö/g, 'o').replace(/ü/g, 'u').replace(/ı/g, 'i').replace(/ş/g, 's').replace(/ğ/g, 'g').replace(/ç/g, 'c').replace(/\s+/g, '').includes('hakanguvencer');
                         const divMultiplier = isHakanGuvencer ? 11 : (isH ? 9 : 10);
                         billAmount = Math.round(s.total_debt / divMultiplier);
@@ -384,10 +384,10 @@ const Payments = () => {
 
                 // Only initialize debt if it was never set (null/undefined), NOT if it's 0
                 if (st?.total_debt === null || st?.total_debt === undefined) {
-                      const { data: comp } = await supabase.from('companies').select('name').eq('id', profile?.company_id).single();
-                      const isHalegul = (comp?.name || '').toLowerCase().includes('halegül') || (comp?.name || '').toLowerCase().includes('halegul');
-                      const isGuroz = (comp?.name || '').toLowerCase().includes('güroz') || (comp?.name || '').toLowerCase().includes('guroz');
-                      const isOzhamle = (comp?.name || '').toLowerCase().includes('özhamle') || (comp?.name || '').toLowerCase().includes('ozhamle');
+                      const { data: comp } = await supabase.from('companies').select('company_name').eq('id', profile?.company_id).single();
+                      const isHalegul = (comp?.company_name || '').toLowerCase().includes('halegül') || (comp?.company_name || '').toLowerCase().includes('halegul');
+                      const isGuroz = (comp?.company_name || '').toLowerCase().includes('güroz') || (comp?.company_name || '').toLowerCase().includes('guroz');
+                      const isOzhamle = (comp?.company_name || '').toLowerCase().includes('özhamle') || (comp?.company_name || '').toLowerCase().includes('ozhamle');
                       const isHakanGuvencer = isOzhamle && st?.schools && (st.schools.name || '').toLowerCase().replace(/ö/g, 'o').replace(/ü/g, 'u').replace(/ı/g, 'i').replace(/ş/g, 's').replace(/ğ/g, 'g').replace(/ç/g, 'c').replace(/\s+/g, '').includes('hakanguvencer');
                       const multiplier = isHakanGuvencer ? 11 : ((isHalegul || isGuroz) ? 9 : 10);
                       currentDebt = Number(payment.amount) * multiplier;
@@ -561,9 +561,9 @@ const Payments = () => {
 
             if (error) throw error;
 
-            const { data: comp } = await supabase.from('companies').select('name').eq('id', profile?.company_id).single();
-            const isHalegul = (comp?.name || '').toLowerCase().includes('halegül') || (comp?.name || '').toLowerCase().includes('halegul');
-            const isGuroz = (comp?.name || '').toLowerCase().includes('güroz') || (comp?.name || '').toLowerCase().includes('guroz');
+            const { data: comp } = await supabase.from('companies').select('company_name').eq('id', profile?.company_id).single();
+            const isHalegul = (comp?.company_name || '').toLowerCase().includes('halegül') || (comp?.company_name || '').toLowerCase().includes('halegul');
+            const isGuroz = (comp?.company_name || '').toLowerCase().includes('güroz') || (comp?.company_name || '').toLowerCase().includes('guroz');
             const multiplier = (isHalegul || isGuroz) ? 9 : 10;
 
             // Group payments by student to handle multiple payments per student correctly

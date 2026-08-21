@@ -376,8 +376,8 @@ const Students: React.FC = () => {
             }
         }
 
-        const { data: compData } = await supabase.from('companies').select('name').eq('id', profile!.company_id).single();
-        const compName = compData?.name || '';
+        const { data: compData } = await supabase.from('companies').select('company_name').eq('id', profile!.company_id).single();
+        const compName = compData?.company_name || '';
         const isHalegul = compName.toLowerCase().includes('halegül') || compName.toLowerCase().includes('halegul');
         const isGuroz = compName.toLowerCase().includes('güroz') || compName.toLowerCase().includes('guroz');
         const isOzhamle = compName.toLowerCase().includes('özhamle') || compName.toLowerCase().includes('ozhamle');
@@ -500,8 +500,8 @@ const Students: React.FC = () => {
             const existing = existingList && existingList.length > 0 ? existingList[0] : null;
 
             // Query company name from DB for accurate multiplier
-            const { data: compData } = await supabase.from('companies').select('name').eq('id', profile.company_id).single();
-            const compName = compData?.name || '';
+            const { data: compData } = await supabase.from('companies').select('company_name').eq('id', profile.company_id).single();
+            const compName = compData?.company_name || '';
             const isHalegul = compName.toLowerCase().includes('halegül') || compName.toLowerCase().includes('halegul');
             const isGuroz = compName.toLowerCase().includes('güroz') || compName.toLowerCase().includes('guroz');
             const isOzhamle = compName.toLowerCase().includes('özhamle') || compName.toLowerCase().includes('ozhamle');
@@ -710,10 +710,10 @@ const Students: React.FC = () => {
                 let annualPrice: number | null = null;
                 
                 if (newStudentData) {
-                    const { data: compData } = await supabase.from('companies').select('name').eq('id', profile.company_id).single();
-                    const isHalegul = (compData?.name || '').toLowerCase().includes('halegül') || (compData?.name || '').toLowerCase().includes('halegul');
-                    const isGuroz = (compData?.name || '').toLowerCase().includes('güroz') || (compData?.name || '').toLowerCase().includes('guroz');
-                    const isOzhamle = (compData?.name || '').toLowerCase().includes('özhamle') || (compData?.name || '').toLowerCase().includes('ozhamle');
+                    const { data: compData } = await supabase.from('companies').select('company_name').eq('id', profile.company_id).single();
+                    const isHalegul = (compData?.company_name || '').toLowerCase().includes('halegül') || (compData?.company_name || '').toLowerCase().includes('halegul');
+                    const isGuroz = (compData?.company_name || '').toLowerCase().includes('güroz') || (compData?.company_name || '').toLowerCase().includes('guroz');
+                    const isOzhamle = (compData?.company_name || '').toLowerCase().includes('özhamle') || (compData?.company_name || '').toLowerCase().includes('ozhamle');
                     const schoolObj = schools.find((s: any) => String(s.id) === String(formData.school_id));
                     const schoolNameStr = schoolObj ? (schoolObj.name || '').toLowerCase().replace(/ö/g, 'o').replace(/ü/g, 'u').replace(/ı/g, 'i').replace(/ş/g, 's').replace(/ğ/g, 'g').replace(/ç/g, 'c').replace(/\s+/g, '') : '';
                     const isHakanGuvencer = isOzhamle && schoolNameStr.includes('hakanguvencer');
