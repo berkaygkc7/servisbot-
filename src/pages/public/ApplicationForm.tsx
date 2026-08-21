@@ -329,6 +329,10 @@ const ApplicationForm: React.FC = () => {
         );
     }
 
+    const compNameLower = (companyName || '').toLowerCase();
+    const isHalegul = compNameLower.includes('halegül') || compNameLower.includes('halegul');
+    const isGuroz = compNameLower.includes('güroz') || compNameLower.includes('guroz');
+
     return (
         <div className="min-h-screen bg-slate-50 py-12 px-4 sm:px-6 flex flex-col items-center">
             
@@ -748,52 +752,88 @@ const ApplicationForm: React.FC = () => {
                         >
                             <p className="font-semibold text-slate-700">Lütfen aşağıdaki metni dikkatlice okuyunuz. "Okudum ve Onaylıyorum" seçeneğini işaretleyerek aşağıdaki şartları kabul etmiş sayılırsınız.</p>
                             
-                            <h3 className="font-bold text-lg text-slate-800 text-center mt-4">ÖĞRENCİ SERVİS KAYIT SÖZLEŞMESİ</h3>
+                            {isGuroz ? (
+                                <>
+                                    <h3 className="font-bold text-lg text-red-600 text-center mt-4">ÖĞRENCİ TAŞIMA SÖZLEŞMESİ</h3>
+                                    <p className="font-semibold text-slate-800"><span className="underline">KONU:</span> 202 ..... - 202 ..... Eğitim ve öğretim yılında öğrenci taşımacılığında veli ve servisçi menfaatlerini korumak amacıyla bahsedilen öğretim yılında aşağıda belirtilen şekilde taşımacılık yapılacaktır.</p>
+                                    <ol className="list-decimal pl-5 space-y-3 font-medium text-slate-700">
+                                        <li>Servis araçlarımız İçişleri Bakanlığının 21.05.1992 gün ve 21234 sayılı okul servis araçları yönetmeliğine uygun olacaktır. (Öğrenci ferdi kaza sigortası yapılacaktır.)</li>
+                                        <li>Yıl içinde Ankara Valiliğinin açıkladığı fiyat tarifesi uygulanacaktır.</li>
+                                        <li>Servis konusunda velinin muhatabı ilgili firmadır. Firma servis şoförünü herhangi bir sebeple dahil işten ayırabilir. Bu durumda velinin aksini iddia etmesi söz konusu değildir.</li>
+                                        <li>Öğrencinin servisteki hal ve hareketleri bir öğrenciye yakışır şekilde olacaktır. Yaptığı suçun durumuna göre firma servisteki disiplini sağlamak için öğrenciyi okul idaresine bildirmek zorundadır.</li>
+                                        <li>Servis araçlarımız belediye güzergahında dolaşıp öğrenciyi ikamet adresine en yakın yerde indirir. Bu durumlarda ancak öğrencinin evi servis güzergahına ters düşmüyorsa öğrenciyi kapısında bırakır. Güzergaha ters düşüyorsa(zaman kaybı ve diğer çocukları fazla dolaştırma gibi) durumlar varsa evine en uygun yerde indirilir.</li>
+                                        <li>Servis ücretlerinin Milli Eğitim Bakanlığının öğrencinin okula geleceği gün sayısına göre hesaplanıp ücret belirlenir.</li>
+                                        <li>Servis ücretleri en fazla 9 eşit taksite bölünerek tahsil edilir.</li>
+                                        <li>
+                                            Ücret ödemesi ayın 15 ile en geç 20 si arasında yapılacaktır. Firma yetkilisi veya görevlendirdiği kişi şoföre ödeme yapar. Ankara valiliğinin öğrenciyi servis fiyatlarının tespiti için görevlendirdiği kurum veya kuruluşun açıklayacağı fiyat dikkate alınacaktır. Şayet bahsedilen kuruluş fiyat açıklamadıysa okulun açılış tarihinden itibaren Akaryakıt zammı servis ücretlerine yansıtılacaktır.
+                                            {(() => {
+                                                const selectedRule = availableNeighborhoods.find((n: any) => safeRender(n) === formData.neighborhood);
+                                                const monthlyPrice = selectedRule && typeof selectedRule === 'object' && selectedRule.amount ? parseFloat(selectedRule.amount) : 0;
+                                                const ruleAnnualPrice = selectedRule && typeof selectedRule === 'object' && selectedRule.annual_amount ? parseFloat(selectedRule.annual_amount) : null;
+                                                const annualPrice = ruleAnnualPrice !== null && ruleAnnualPrice > 0 ? ruleAnnualPrice : monthlyPrice * 9;
 
-                            <p className="font-semibold text-slate-800"><span className="underline">KONU:</span> 2026/2027 Eğitim ve öğretim yılında öğrenci taşımacılığında velinin ve taşımacılığı üstlenen firmanın menfaatlerini korumak amacıyla bahsedilen öğretim yılında aşağıda belirtilecek şekilde yapılacaktır.</p>
+                                                return (
+                                                    <div className="font-bold text-blue-900 bg-blue-50/80 border border-blue-200 p-3 rounded-xl mt-2 text-sm">
+                                                        {annualPrice > 0 ? (
+                                                            <>Bir sezonluk ücretimiz KDV dahil <span className="text-emerald-700 underline font-black text-base ml-1 mr-1">{Number(annualPrice).toLocaleString('tr-TR')} TL</span>'dir. <span className="text-xs text-slate-500 font-medium block mt-1">(Aylık {Number(monthlyPrice).toLocaleString('tr-TR')} TL x 9 Taksit)</span></>
+                                                        ) : (
+                                                            <>Bir sezonluk ücretimiz KDV dahil <span className="italic text-slate-500 font-normal mr-1">(Seçilen mahalleye göre otomatik belirlenecektir)</span> TL'dir.</>
+                                                        )}
+                                                    </div>
+                                                );
+                                            })()}
+                                        </li>
+                                        <li>Bir öğrenci servise kaydını yaptırdıktan sonra keyfi olarak servisten ayrılamaz.</li>
+                                        <li>Bayram tatilleri, sömestr tatili ve bunun gibi tatillerde fiyat indirimi yapılmayıp yıllık ücretten düşülmüştür.</li>
+                                        <li>Bu sözleşmeyi taraflar olarak hazırlayıp, sözleşmeyi temin altına almak için aşağıdaki teminat senedi öğrenci velisi tarafından imzalanmıştır. Öğretim yılı sonunda öğrencinin servis kartında borcu gözükmüyorsa senet firma tarafından iptal edilip veliye iade edilecektir.</li>
+                                    </ol>
+                                    <p className="mt-4 font-semibold text-slate-700">Bu sözleşme 12 maddeden olup, ihtilaf vukuunda Sincan mahkemeleri yetkilidir.</p>
+                                </>
+                            ) : (
+                                <>
+                                    <h3 className="font-bold text-lg text-slate-800 text-center mt-4">ÖĞRENCİ SERVİS KAYIT SÖZLEŞMESİ</h3>
+                                    <p className="font-semibold text-slate-800"><span className="underline">KONU:</span> 2026/2027 Eğitim ve öğretim yılında öğrenci taşımacılığında velinin ve taşımacılığı üstlenen firmanın menfaatlerini korumak amacıyla bahsedilen öğretim yılında aşağıda belirtilecek şekilde yapılacaktır.</p>
+                                    <ol className="list-decimal pl-5 space-y-3 font-medium text-slate-700">
+                                        <li>Servis araçlarımız İçişleri Bakanlığı'nın 28.08.2007 tarih 26627 sayılı okul servis araçları yönetmeliğine uygundur.</li>
+                                        <li>Servis araçları öğrenciyi aldığı durağa 15 dakika gecikmesi halinde öğrenci ya da öğrenci velisi okul servis yetkilisini arayıp servis aracı hakkında bilgi alır. Servis yetkilisinin aracın gelemeyeceğini bildirmesi durumunda güzergah üzerindeki diğer servis öğrencilerini almak suretiyle taksi ile okula gelebilir. Bu durumda taksi ücreti servis yetkilisi tarafından karşılanır. Öğrencinin kendi kusuruyla servisi kaçırması durumunda sorumluluk öğrenciye aittir.</li>
+                                        <li>Servis konusunda velinin muhatabı firmadır. Veli veya öğrenci servis hakkında şikayet ve isteklerini (servis güzergahı, durağı, saati, vb. konularda) servis yetkilisine iletmelidir. Servis şoförü bu konularda yetkili değildir.</li>
+                                        <li>Öğrencinin servisteki hal ve hareketleri bir öğrenciye yakışır, diğer öğrenciler ve servis şoförünü rahatsız etmeyecek şekilde olmalıdır. Araçta alkol, sigara vb. bağımlılık yaratıcı ve kullanımı yasak olan maddelerin kullanımı kesinlikle yasaktır. Bu kurallara aykırılık tespit edilmesi halinde yetkili makamlara bildirilmekle birlikte öğrencinin servisle ilişkisi kesilir. Kalan borç miktarı muaccel olur.</li>
+                                        <li>Servis araçlarımızın ulaşım hattı belediye güzergahına göre düzenlenir, tüm öğrencilerin ikamet adresleri düşünülerek servis şirketi tarafından belirlenir. Şirket tarafından belirlenen güzergaha uygun olduğu ölçüde öğrenci ikametinin önünde ya da ikametine yakın bir noktada indirilir.</li>
+                                        <li>
+                                            {(() => {
+                                                const installmentMultiplier = isHalegul ? 9 : 10;
+                                                const installmentText = isHalegul ? '9 (dokuz)' : '10 (on)';
+                                                
+                                                const selectedRule = availableNeighborhoods.find((n: any) => safeRender(n) === formData.neighborhood);
+                                                const monthlyPrice = selectedRule && typeof selectedRule === 'object' && selectedRule.amount ? parseFloat(selectedRule.amount) : 0;
+                                                const ruleAnnualPrice = selectedRule && typeof selectedRule === 'object' && selectedRule.annual_amount ? parseFloat(selectedRule.annual_amount) : null;
+                                                const annualPrice = ruleAnnualPrice !== null && ruleAnnualPrice > 0 ? ruleAnnualPrice : monthlyPrice * installmentMultiplier;
 
-                            <ol className="list-decimal pl-5 space-y-3 font-medium text-slate-700">
-                                <li>Servis araçlarımız İçişleri Bakanlığı'nın 28.08.2007 tarih 26627 sayılı okul servis araçları yönetmeliğine uygundur.</li>
-                                <li>Servis araçları öğrenciyi aldığı durağa 15 dakika gecikmesi halinde öğrenci ya da öğrenci velisi okul servis yetkilisini arayıp servis aracı hakkında bilgi alır. Servis yetkilisinin aracın gelemeyeceğini bildirmesi durumunda güzergah üzerindeki diğer servis öğrencilerini almak suretiyle taksi ile okula gelebilir. Bu durumda taksi ücreti servis yetkilisi tarafından karşılanır. Öğrencinin kendi kusuruyla servisi kaçırması durumunda sorumluluk öğrenciye aittir.</li>
-                                <li>Servis konusunda velinin muhatabı firmadır. Veli veya öğrenci servis hakkında şikayet ve isteklerini (servis güzergahı, durağı, saati, vb. konularda) servis yetkilisine iletmelidir. Servis şoförü bu konularda yetkili değildir.</li>
-                                <li>Öğrencinin servisteki hal ve hareketleri bir öğrenciye yakışır, diğer öğrenciler ve servis şoförünü rahatsız etmeyecek şekilde olmalıdır. Araçta alkol, sigara vb. bağımlılık yaratıcı ve kullanımı yasak olan maddelerin kullanımı kesinlikle yasaktır. Bu kurallara aykırılık tespit edilmesi halinde yetkili makamlara bildirilmekle birlikte öğrencinin servisle ilişkisi kesilir. Kalan borç miktarı muaccel olur.</li>
-                                <li>Servis araçlarımızın ulaşım hattı belediye güzergahına göre düzenlenir, tüm öğrencilerin ikamet adresleri düşünülerek servis şirketi tarafından belirlenir. Şirket tarafından belirlenen güzergaha uygun olduğu ölçüde öğrenci ikametinin önünde ya da ikametine yakın bir noktada indirilir.</li>
-                                <li>
-                                    {(() => {
-                                        const compName = (companyName || '').toLowerCase();
-                                        const isHalegul = compName.includes('halegül') || compName.includes('halegul');
-                                        const isGuroz = compName.includes('güroz') || compName.includes('guroz');
-                                        const installmentMultiplier = (isHalegul || isGuroz) ? 9 : 10;
-                                        const installmentText = isGuroz ? '1 peşin, 8 eşit taksit toplam 9' : (isHalegul ? '9 (dokuz)' : '10 (on)');
-                                        
-                                        const selectedRule = availableNeighborhoods.find((n: any) => safeRender(n) === formData.neighborhood);
-                                        const monthlyPrice = selectedRule && typeof selectedRule === 'object' && selectedRule.amount ? parseFloat(selectedRule.amount) : 0;
-                                        const ruleAnnualPrice = selectedRule && typeof selectedRule === 'object' && selectedRule.annual_amount ? parseFloat(selectedRule.annual_amount) : null;
-                                        const annualPrice = ruleAnnualPrice !== null && ruleAnnualPrice > 0 ? ruleAnnualPrice : monthlyPrice * installmentMultiplier;
-
-                                        return (
-                                            <>
-                                                <p>Servis ücretlerinin ödemesi okuldaki servis yetkilisine yapılır. Başka birine yapılan ödemeler geçerli değildir. İlk taksit en geç okulların açıldığı gün peşin olarak alınmak suretiyle, taksit ödemeleri her ayın 1'i ile 10'u arasında yapılır. Servis ücretleri belirlenip {installmentText} taksit halinde ödenmesi kararlaştırıldığı için toplam sene üzerinden hesaplanmakta olup, ara tatiller, resmi ve milli tatiller ile eğitim öğretime ara verildiği dönemler belirlenen fiyata dahil değildir.</p>
-                                                <p className="font-bold text-blue-900 bg-blue-50/80 border border-blue-200 p-3 rounded-xl mt-2 text-sm">
-                                                    {annualPrice > 0 ? (
-                                                        <>Yıllık servis ücreti <span className="text-emerald-700 underline font-black text-base ml-1 mr-1">{Number(annualPrice).toLocaleString('tr-TR')} TL + KDV</span>'dir. <span className="text-xs text-slate-500 font-medium block mt-1">{ruleAnnualPrice !== null && ruleAnnualPrice > 0 ? '(Bu mahalleye özel yıllık fiyat uygulanmıştır)' : `(Aylık ${Number(monthlyPrice).toLocaleString('tr-TR')} TL x ${installmentMultiplier} Taksit)`}</span></>
-                                                    ) : (
-                                                        <>Yıllık servis ücreti <span className="italic text-slate-500 font-normal mr-1">(Seçilen mahalleye göre otomatik belirlenecektir)</span> TL+KDV'dir.</>
-                                                    )}
-                                                </p>
-                                            </>
-                                        );
-                                    })()}
-                                    <p className="mt-2">Ödeme günü üzerinden 15 gün geçmiş olmasına rağmen ödeme yapılmadığı takdirde, tüm alacak miktarı muacceliyet kazanmış olacaktır.</p>
-                                </li>
-                                <li>Ücretlendirme Ankara Ticaret Odası ya da Ankara Servisçiler Odası tarafından belirlenen fiyatlar dikkate alınarak servis şirketi tarafından belirlenir. Bahsedilen kuruluşların fiyat açıklamaması durumunda fiyat listesi okulun açılış tarihinden itibaren akaryakıt zammı, önceki yıla ait servis ücretleri, enflasyon artışı, işçilik giderlerindeki artış, tarife değişikliği göz önünde bulundurularak servis şirketi tarafından yapılacaktır. Enflasyon artışı nedeniyle sene içerisinde tarafların anlaştığı fiyatlarda artış ve güncelleme yapılabilir. Bu değişiklikler velilerin telefonlarına yazılı bildirim olarak gönderilecektir. Servis şirketinin sene içerisinde akaryakıt ve diğer giderlere gelen zamlar nedeniyle servis ücretinde değişiklik yapma hakkı saklı tutulmaktadır.</li>
-                                <li>Servis araçları sene başında serviste bulunan boş yer ve kayıt olan öğrenci sayısına göre belirlendiği için servis şirketi öğrencinin servise kaydını tüm eğitim öğretim yılı düşünülerek yapmaktadır. Sözleşmede belirtilen eğitim öğretim yılı bitiminden önce öğrencinin servisten ayrılması durumunda velinin</li>
-                                <li>Servis şirketi ile yapılan sözleşmenin veli tarafından, haklı sebebe dayanmadan, tek taraflı feshedilmesi durumunda tüm alacak muacceliyet kazanır. Mücbir sebepler dışında taşınma, nakil gibi sebepler haklı sebep sayılmamaktadır.</li>
-                                <li>Öğrenci sayısının serviste azalması durumunda şirketin mevcut öğrencileri diğer servis araçları ile birleştirme imkanı bulunmaktadır. Şirketin bu konuda sözleşmede değişiklik yapma hakkı saklıdır.</li>
-                                <li>Bir bölgede servise kayıt olan öğrenci sayısının 12'yi geçmemesi halinde şirket sözleşmeyi tek taraflı olarak feshetme hakkına haizdir. Veli bu durumda hiçbir hak talep etmeyeceğini kabul ederek sözleşmeyi imzalamıştır.</li>
-                                <li>Ödenen servis borçları öğrenci zarfına ve öğrenci ödeme listesine servis yetkilisi tarafından işlenir. Veli ödemelerini öğrenci zarfından takip edecektir. Ödemeler hususunda herhangi bir ihtilafa düşülmesi durumunda firmada bulunan öğrenci ödeme listeleri geçerlidir.</li>
-                                <li>Öğretim yılı sonunda öğrencinin öğrenci zarfında borcu gözükmüyorsa senet yetkili tarafından iptal edilip, veliye iade edilir. İş bu sözleşme iki nüsha olarak tanzim edilmiştir.</li>
-                            </ol>
+                                                return (
+                                                    <>
+                                                        <p>Servis ücretlerinin ödemesi okuldaki servis yetkilisine yapılır. Başka birine yapılan ödemeler geçerli değildir. İlk taksit en geç okulların açıldığı gün peşin olarak alınmak suretiyle, taksit ödemeleri her ayın 1'i ile 10'u arasında yapılır. Servis ücretleri belirlenip {installmentText} taksit halinde ödenmesi kararlaştırıldığı için toplam sene üzerinden hesaplanmakta olup, ara tatiller, resmi ve milli tatiller ile eğitim öğretime ara verildiği dönemler belirlenen fiyata dahil değildir.</p>
+                                                        <div className="font-bold text-blue-900 bg-blue-50/80 border border-blue-200 p-3 rounded-xl mt-2 text-sm">
+                                                            {annualPrice > 0 ? (
+                                                                <>Yıllık servis ücreti <span className="text-emerald-700 underline font-black text-base ml-1 mr-1">{Number(annualPrice).toLocaleString('tr-TR')} TL + KDV</span>'dir. <span className="text-xs text-slate-500 font-medium block mt-1">{ruleAnnualPrice !== null && ruleAnnualPrice > 0 ? '(Bu mahalleye özel yıllık fiyat uygulanmıştır)' : `(Aylık ${Number(monthlyPrice).toLocaleString('tr-TR')} TL x ${installmentMultiplier} Taksit)`}</span></>
+                                                            ) : (
+                                                                <>Yıllık servis ücreti <span className="italic text-slate-500 font-normal mr-1">(Seçilen mahalleye göre otomatik belirlenecektir)</span> TL+KDV'dir.</>
+                                                            )}
+                                                        </div>
+                                                    </>
+                                                );
+                                            })()}
+                                            <p className="mt-2">Ödeme günü üzerinden 15 gün geçmiş olmasına rağmen ödeme yapılmadığı takdirde, tüm alacak miktarı muacceliyet kazanmış olacaktır.</p>
+                                        </li>
+                                        <li>Ücretlendirme Ankara Ticaret Odası ya da Ankara Servisçiler Odası tarafından belirlenen fiyatlar dikkate alınarak servis şirketi tarafından belirlenir. Bahsedilen kuruluşların fiyat açıklamaması durumunda fiyat listesi okulun açılış tarihinden itibaren akaryakıt zammı, önceki yıla ait servis ücretleri, enflasyon artışı, işçilik giderlerindeki artış, tarife değişikliği göz önünde bulundurularak servis şirketi tarafından yapılacaktır. Enflasyon artışı nedeniyle sene içerisinde tarafların anlaştığı fiyatlarda artış ve güncelleme yapılabilir. Bu değişiklikler velilerin telefonlarına yazılı bildirim olarak gönderilecektir. Servis şirketinin sene içerisinde akaryakıt ve diğer giderlere gelen zamlar nedeniyle servis ücretinde değişiklik yapma hakkı saklı tutulmaktadır.</li>
+                                        <li>Servis araçları sene başında serviste bulunan boş yer ve kayıt olan öğrenci sayısına göre belirlendiği için servis şirketi öğrencinin servise kaydını tüm eğitim öğretim yılı düşünülerek yapmaktadır. Sözleşmede belirtilen eğitim öğretim yılı bitiminden önce öğrencinin servisten ayrılması durumunda velinin</li>
+                                        <li>Servis şirketi ile yapılan sözleşmenin veli tarafından, haklı sebebe dayanmadan, tek taraflı feshedilmesi durumunda tüm alacak muacceliyet kazanır. Mücbir sebepler dışında taşınma, nakil gibi sebepler haklı sebep sayılmamaktadır.</li>
+                                        <li>Öğrenci sayısının serviste azalması durumunda şirketin mevcut öğrencileri diğer servis araçları ile birleştirme imkanı bulunmaktadır. Şirketin bu konuda sözleşmede değişiklik yapma hakkı saklıdır.</li>
+                                        <li>Bir bölgede servise kayıt olan öğrenci sayısının 12'yi geçmemesi halinde şirket sözleşmeyi tek taraflı olarak feshetme hakkına haizdir. Veli bu durumda hiçbir hak talep etmeyeceğini kabul ederek sözleşmeyi imzalamıştır.</li>
+                                        <li>Ödenen servis borçları öğrenci zarfına ve öğrenci ödeme listesine servis yetkilisi tarafından işlenir. Veli ödemelerini öğrenci zarfından takip edecektir. Ödemeler hususunda herhangi bir ihtilafa düşülmesi durumunda firmada bulunan öğrenci ödeme listeleri geçerlidir.</li>
+                                        <li>Öğretim yılı sonunda öğrencinin öğrenci zarfında borcu gözükmüyorsa senet yetkili tarafından iptal edilip, veliye iade edilir. İş bu sözleşme iki nüsha olarak tanzim edilmiştir.</li>
+                                    </ol>
+                                </>
+                            )}
                         </div>
                         <div className="p-5 border-t border-slate-100 flex justify-end gap-3 bg-slate-50 rounded-b-2xl">
                             <button 
