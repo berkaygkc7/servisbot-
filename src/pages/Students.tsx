@@ -363,37 +363,42 @@ const Students: React.FC = () => {
     const handleApprove = async (student: Student) => {
         // Determine monthly price: use custom_price if set, otherwise try to find from pricing rules
         let monthlyPrice = student.custom_price ? Number(student.custom_price) : 0;
+        let annualPrice: number | null = null;
         
-        if (!monthlyPrice && student.neighborhood) {
+        if (student.neighborhood) {
             // Look up from pricing rules by neighborhood
             const filteredRules = getFilteredNeighborhoodRules(student.school_id);
             const normNbr = student.neighborhood?.toLocaleLowerCase('tr-TR')?.trim();
             const rule = filteredRules.find(r => r.school_level?.toLocaleLowerCase('tr-TR')?.trim() === normNbr);
-            if (rule && rule.amount) {
-                monthlyPrice = Number(rule.amount);
+            if (rule) {
+                if (!monthlyPrice && rule.amount) monthlyPrice = Number(rule.amount);
+                if (rule.annual_amount) annualPrice = Number(rule.annual_amount);
             }
         }
 
+        const { data: compData } = await supabase.from('companies').select('name').eq('id', profile!.company_id).single();
+        const compName = compData?.name || '';
+        const isHalegul = compName.toLowerCase().includes('halegül') || compName.toLowerCase().includes('halegul');
+        const isGuroz = compName.toLowerCase().includes('güroz') || compName.toLowerCase().includes('guroz');
+        const multiplier = (isHalegul || isGuroz) ? 9 : 10;
+
         // If still no monthly price but total_debt exists, derive monthly from total_debt / multiplier
         if (!monthlyPrice && student.total_debt && Number(student.total_debt) > 0) {
-            const { data: compData } = await supabase.from('companies').select('name').eq('id', profile!.company_id).single();
-            const compName = compData?.name || '';
-            const isHalegul = compName.toLowerCase().includes('halegül') || compName.toLowerCase().includes('halegul');
-            const isGuroz = compName.toLowerCase().includes('güroz') || compName.toLowerCase().includes('guroz');
-            const multiplier = (isHalegul || isGuroz) ? 9 : 10;
             monthlyPrice = Math.round(Number(student.total_debt) / multiplier);
         }
 
+        let newTotalDebt = (annualPrice !== null && annualPrice > 0) ? annualPrice : (monthlyPrice * multiplier);
+
         const priceStr = monthlyPrice > 0
-            ? `${monthlyPrice.toLocaleString('tr-TR')} ₺`
+            ? `${monthlyPrice.toLocaleString('tr-TR')} ₺${annualPrice ? ` (Yıllık: ${annualPrice.toLocaleString('tr-TR')} ₺)` : ''}`
             : 'Fiyat Belirtilmedi';
 
-        if (!window.confirm(`${student.full_name || student.name} isimli öğrencinin başvurusunu onaylamak istiyor musunuz?\n\n💰 Aylık Servis Ücreti: ${priceStr}`)) {
+        if (!window.confirm(`${student.full_name || student.name} isimli öğrencinin başvurusunu onaylamak istiyor musunuz?\n\n💰 Ücret: ${priceStr}`)) {
             return;
         }
 
         try {
-            const updatePayload: any = { status: 'active' };
+            const updatePayload: any = { status: 'active', total_debt: newTotalDebt };
             if (monthlyPrice > 0) {
                 updatePayload.custom_price = monthlyPrice;
             }
@@ -402,7 +407,7 @@ const Students: React.FC = () => {
                 .update(updatePayload)
                 .eq('id', student.id);
             if (error) throw error;
-            alert(`${student.full_name || student.name} (Aylık Ücret: ${priceStr}) başarıyla onaylandı.`);
+            alert(`${student.full_name || student.name} başarıyla onaylandı.`);
             fetchStudents();
         } catch (error) {
             console.error('Error approving student:', error);
@@ -650,12 +655,29 @@ const Students: React.FC = () => {
 
                 // QR Logic Emulation: Create parent account and installments
                 const monthlyPrice = formData.custom_price || 0;
-                if (monthlyPrice > 0 && newStudentData) {
+                let calculatedTotalDebt = 0;
+                let annualPrice: number | null = null;
+                
+                if (newStudentData) {
                     const { data: compData } = await supabase.from('companies').select('name').eq('id', profile.company_id).single();
                     const isHalegul = (compData?.name || '').toLowerCase().includes('halegül') || (compData?.name || '').toLowerCase().includes('halegul');
                     const isGuroz = (compData?.name || '').toLowerCase().includes('güroz') || (compData?.name || '').toLowerCase().includes('guroz');
                     const installmentMultiplier = (isHalegul || isGuroz) ? 9 : 10;
-                    const calculatedTotalDebt = monthlyPrice * installmentMultiplier;
+                    
+                    if (formData.neighborhood) {
+                        const filteredRules = getFilteredNeighborhoodRules(formData.school_id || '');
+                        const normNbr = formData.neighborhood.toLocaleLowerCase('tr-TR').trim();
+                        const rule = filteredRules.find((r: any) => r.school_level?.toLocaleLowerCase('tr-TR')?.trim() === normNbr);
+                        if (rule && rule.annual_amount) {
+                            annualPrice = Number(rule.annual_amount);
+                        }
+                    }
+                    
+                    calculatedTotalDebt = (annualPrice !== null && annualPrice > 0) ? annualPrice : (monthlyPrice * installmentMultiplier);
+
+                    if (monthlyPrice > 0 || calculatedTotalDebt > 0) {
+                        // Also explicitly set total_debt on the student record now that we have calculatedTotalDebt
+                        await supabase.from('students').update({ total_debt: calculatedTotalDebt }).eq('id', newStudentData.id);
 
                     const { data: parentAccount, error: accError } = await supabase
                         .from('parent_accounts')

@@ -224,11 +224,12 @@ const ApplicationForm: React.FC = () => {
         // Calculate debt from selected neighborhood
         const selectedRule = availableNeighborhoods.find((n: any) => safeRender(n) === formData.neighborhood);
         const monthlyPrice = selectedRule && typeof selectedRule === 'object' && selectedRule.amount ? parseFloat(selectedRule.amount) : 0;
+        const ruleAnnualPrice = selectedRule && typeof selectedRule === 'object' && selectedRule.annual_amount ? parseFloat(selectedRule.annual_amount) : null;
         const normalizedModalComp = (companyName || '').toLowerCase().replace(/ö/g, 'o').replace(/ü/g, 'u').replace(/ı/g, 'i').replace(/ş/g, 's').replace(/ğ/g, 'g').replace(/ç/g, 'c');
         const isHalegul = normalizedModalComp.includes('halegul');
         const isGuroz = normalizedModalComp.includes('guroz');
         const installmentMultiplier = (isHalegul || isGuroz) ? 9 : 10;
-        const calculatedTotalDebt = monthlyPrice * installmentMultiplier;
+        const calculatedTotalDebt = (ruleAnnualPrice !== null && ruleAnnualPrice > 0) ? ruleAnnualPrice : (monthlyPrice * installmentMultiplier);
 
         try {
             const { data, error } = await supabase.rpc('submit_student_application', {
