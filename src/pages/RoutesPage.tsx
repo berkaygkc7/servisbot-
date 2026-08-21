@@ -234,7 +234,7 @@ const RoutesPage: React.FC = () => {
             if (vehiclesData) setAvailableVehicles(vehiclesData);
 
             // 2. Fetch Students
-            const { data: studentsData } = await supabase.from('students').select('id, full_name, home_latitude, home_longitude, address, tags, parent_name, parent_phone, grade, blood_group, allergies, registration_date, school_id, schools(name), vehicles(plate_number), shift');
+            const { data: studentsData } = await supabase.from('students').select('id, full_name, home_latitude, home_longitude, address, tags, parent_name, parent_phone, grade, blood_group, allergies, registration_date, school_id, schools(name), vehicles(plate_number), shift').neq('status', 'pending');
             if (studentsData) setAvailableStudents(studentsData as any);
 
             // 2.5 Fetch Tags
