@@ -588,7 +588,7 @@ const ApplicationForm: React.FC = () => {
                                                 onClick={() => setIsMapUnlocked(true)}
                                                 className="bg-slate-800/90 hover:bg-slate-900 text-white px-4 py-2 rounded-lg font-semibold text-sm shadow-xl flex items-center gap-2 transition-transform transform hover:scale-105 cursor-pointer"
                                             >
-                                                <MapPin size={16} /> Haritada İnce Ayar Yap (Kilidi Aç)
+                                                <MapPin size={16} /> Pimi Elimle Düzeltmek İstiyorum
                                             </button>
                                         </div>
                                     )}
