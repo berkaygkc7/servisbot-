@@ -309,7 +309,7 @@ const Payments = () => {
                         const { data: comp2 } = await supabase.from('companies').select('company_name').eq('id', profile?.company_id).single();
                         const isH = (comp2?.company_name || '').toLowerCase().includes('halegül') || (comp2?.company_name || '').toLowerCase().includes('halegul');
                         const isOzhamle = (comp2?.company_name || '').toLowerCase().includes('özhamle') || (comp2?.company_name || '').toLowerCase().includes('ozhamle');
-                        const isHakanGuvencer = isOzhamle && s.schools && (s.schools.name || '').toLowerCase().replace(/ö/g, 'o').replace(/ü/g, 'u').replace(/ı/g, 'i').replace(/ş/g, 's').replace(/ğ/g, 'g').replace(/ç/g, 'c').replace(/\s+/g, '').includes('hakanguvencer');
+                        const isHakanGuvencer = isOzhamle && (s as any).schools && ((s as any).schools?.name || '').toLowerCase().replace(/ö/g, 'o').replace(/ü/g, 'u').replace(/ı/g, 'i').replace(/ş/g, 's').replace(/ğ/g, 'g').replace(/ç/g, 'c').replace(/\s+/g, '').includes('hakanguvencer');
                         const divMultiplier = isHakanGuvencer ? 11 : (isH ? 9 : 10);
                         billAmount = Math.round(s.total_debt / divMultiplier);
                     } else {
@@ -388,7 +388,7 @@ const Payments = () => {
                       const isHalegul = (comp?.company_name || '').toLowerCase().includes('halegül') || (comp?.company_name || '').toLowerCase().includes('halegul');
                       const isGuroz = (comp?.company_name || '').toLowerCase().includes('güroz') || (comp?.company_name || '').toLowerCase().includes('guroz');
                       const isOzhamle = (comp?.company_name || '').toLowerCase().includes('özhamle') || (comp?.company_name || '').toLowerCase().includes('ozhamle');
-                      const isHakanGuvencer = isOzhamle && st?.schools && (st.schools.name || '').toLowerCase().replace(/ö/g, 'o').replace(/ü/g, 'u').replace(/ı/g, 'i').replace(/ş/g, 's').replace(/ğ/g, 'g').replace(/ç/g, 'c').replace(/\s+/g, '').includes('hakanguvencer');
+                      const isHakanGuvencer = isOzhamle && (st as any)?.schools && ((st as any).schools?.name || '').toLowerCase().replace(/ö/g, 'o').replace(/ü/g, 'u').replace(/ı/g, 'i').replace(/ş/g, 's').replace(/ğ/g, 'g').replace(/ç/g, 'c').replace(/\s+/g, '').includes('hakanguvencer');
                       const multiplier = isHakanGuvencer ? 11 : ((isHalegul || isGuroz) ? 9 : 10);
                       currentDebt = Number(payment.amount) * multiplier;
                 }
