@@ -36,9 +36,12 @@ const PrintContract: React.FC = () => {
     
     const selectedSchoolName = (student?.school_name || student?.school || '').toLowerCase();
     const normSchoolName = selectedSchoolName.replace(/ö/g, 'o').replace(/ü/g, 'u').replace(/ı/g, 'i').replace(/ş/g, 's').replace(/ğ/g, 'g').replace(/ç/g, 'c').replace(/\s+/g, '');
-    const isHakanGuvencer = isOzhamle && normSchoolName.includes('hakanguvencer');
+    // Güvençer tespiti sadece okul adına göre yapılıyor (şirket adı yüklenmemiş olsa bile çalışsın)
+    const isHakanGuvencer = normSchoolName.includes('hakanguvencer') || normSchoolName.includes('guvencer');
     
-    let installmentText = isHalegul ? '9 (dokuz)' : '10 (on)'; // default one
+    console.log('[PrintContract] school_name:', student?.school_name, '| normSchoolName:', normSchoolName, '| isHakanGuvencer:', isHakanGuvencer, '| isOzhamle:', isOzhamle, '| companyName:', companyName);
+    
+    let installmentText = isHalegul ? '9 (dokuz)' : '10 (on)'; // default
     if (isHakanGuvencer) {
         installmentText = '11 (on bir)';
     }
