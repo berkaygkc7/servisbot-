@@ -124,11 +124,19 @@ const PaymentList: React.FC<PaymentListProps> = ({ payments, selectedIds, onTogg
                                             </div>
                                              {(() => {
                                                  const rawDebt = payment.student?.total_debt;
-                                                 if (rawDebt === null || rawDebt === undefined || Number(rawDebt) <= 0) return null;
-                                                 const debtVal = Number(rawDebt);
+                                                 let debtVal: number | null = null;
+                                                 if (rawDebt !== null && rawDebt !== undefined && Number(rawDebt) > 0) {
+                                                     debtVal = Number(rawDebt);
+                                                 } else if (payment.student?.custom_price && Number(payment.student.custom_price) > 0) {
+                                                     debtVal = Number(payment.student.custom_price) * 10;
+                                                 }
+                                                 if (!debtVal || debtVal <= 0) return null;
                                                  return (
-                                                     <div className="mt-1 text-[11px] font-semibold text-slate-600 bg-slate-100/90 px-2.5 py-0.5 rounded-md border border-slate-200 w-fit">
-                                                         Kalan Borç: <span className="font-bold text-slate-900">{debtVal.toLocaleString('tr-TR')} ₺</span>
+                                                     <div className="bg-slate-50 border border-slate-200/80 rounded-xl px-2.5 py-1 mt-1 w-fit shadow-2xs">
+                                                         <div className="text-[10px] font-semibold text-slate-500">Kalan Borç:</div>
+                                                         <div className="text-xs font-black text-slate-800 tracking-tight">
+                                                             {debtVal.toLocaleString('tr-TR')} ₺
+                                                         </div>
                                                      </div>
                                                  );
                                              })()}

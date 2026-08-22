@@ -346,7 +346,14 @@ const Students: React.FC = () => {
 
     const handleEditClick = (student: Student) => {
         setEditingStudent(student);
-        setFormData({ ...student });
+        const installCount = getFormInstallmentCount(student.school_id);
+        const initialAnnual = (student.total_debt !== undefined && student.total_debt !== null)
+            ? Number(student.total_debt)
+            : (student.custom_price ? Number(student.custom_price) * installCount : undefined);
+        setFormData({ 
+            ...student,
+            annual_fee: initialAnnual
+        } as any);
         setPickerCoordinates(student.coordinates && student.coordinates[0] !== 0 ? student.coordinates : null);
 
         // Determine method based on existing data
@@ -679,7 +686,43 @@ const Students: React.FC = () => {
         }
 
         try {
-            const studentData = {
+            const monthlyPrice = formData.custom_price || 0;
+            // Kullanıcının manuel girdiği yıllık tutar önceliklidir
+            const manualAnnualFee = (formData as any).annual_fee ? Number((formData as any).annual_fee) : null;
+            let calculatedTotalDebt = 0;
+            let annualPrice: number | null = null;
+
+            const { data: compData } = await supabase.from('companies').select('company_name').eq('id', profile.company_id).single();
+            const isHalegul = (compData?.company_name || '').toLowerCase().includes('halegül') || (compData?.company_name || '').toLowerCase().includes('halegul');
+            const isGuroz = (compData?.company_name || '').toLowerCase().includes('güroz') || (compData?.company_name || '').toLowerCase().includes('guroz');
+            const isOzhamle = (compData?.company_name || '').toLowerCase().includes('özhamle') || (compData?.company_name || '').toLowerCase().includes('ozhamle');
+            const schoolObj = schools.find((s: any) => String(s.id) === String(formData.school_id));
+            const schoolNameStr = schoolObj ? (schoolObj.name || '').toLowerCase().replace(/ö/g, 'o').replace(/ü/g, 'u').replace(/ı/g, 'i').replace(/ş/g, 's').replace(/ğ/g, 'g').replace(/ç/g, 'c').replace(/\s+/g, '') : '';
+            const isHakanGuvencer = isOzhamle && schoolNameStr.includes('hakanguvencer');
+            const installmentMultiplier = isHakanGuvencer ? 11 : (isHalegul || isGuroz) ? 9 : 10;
+            
+            if (!manualAnnualFee && formData.neighborhood) {
+                // Yalnızca manuel yıllık tutar girilmemişse mahalle kuralına bak
+                const filteredRules = getFilteredNeighborhoodRules(formData.school_id || '');
+                const normNbr = formData.neighborhood.toLocaleLowerCase('tr-TR').trim();
+                const rule = filteredRules.find((r: any) => r.school_level?.toLocaleLowerCase('tr-TR')?.trim() === normNbr);
+                if (rule && rule.annual_amount) {
+                    annualPrice = Number(rule.annual_amount);
+                }
+            }
+
+            // Öncelik sırası: 1) Manuel yıllık tutar, 2) Mahalle yıllık kuralı, 3) Mevcut total_debt (varsa düzenleme anında), 4) Aylık × taksit
+            if (manualAnnualFee && manualAnnualFee > 0) {
+                calculatedTotalDebt = manualAnnualFee;
+            } else if (annualPrice !== null && annualPrice > 0) {
+                calculatedTotalDebt = annualPrice;
+            } else if (editingStudent && formData.total_debt !== undefined && formData.total_debt !== null) {
+                calculatedTotalDebt = Number(formData.total_debt);
+            } else {
+                calculatedTotalDebt = monthlyPrice * installmentMultiplier;
+            }
+
+            const studentData: any = {
                 company_id: profile.company_id,
                 full_name: formData.full_name,
                 parent_name: formData.parent_name,
@@ -696,6 +739,7 @@ const Students: React.FC = () => {
                 home_latitude: formData.coordinates ? formData.coordinates[0] : null,
                 home_longitude: formData.coordinates ? formData.coordinates[1] : null,
                 custom_price: formData.custom_price || null,
+                total_debt: calculatedTotalDebt > 0 ? calculatedTotalDebt : null,
                 status: formData.status || 'active',
                 shift: formData.shift || null
             };
@@ -718,63 +762,33 @@ const Students: React.FC = () => {
 
                 if (error) throw error;
 
-                // QR Logic Emulation: Create parent account and installments
-                const monthlyPrice = formData.custom_price || 0;
-                let calculatedTotalDebt = 0;
-                let annualPrice: number | null = null;
-                
-                if (newStudentData) {
-                    const { data: compData } = await supabase.from('companies').select('company_name').eq('id', profile.company_id).single();
-                    const isHalegul = (compData?.company_name || '').toLowerCase().includes('halegül') || (compData?.company_name || '').toLowerCase().includes('halegul');
-                    const isGuroz = (compData?.company_name || '').toLowerCase().includes('güroz') || (compData?.company_name || '').toLowerCase().includes('guroz');
-                    const isOzhamle = (compData?.company_name || '').toLowerCase().includes('özhamle') || (compData?.company_name || '').toLowerCase().includes('ozhamle');
-                    const schoolObj = schools.find((s: any) => String(s.id) === String(formData.school_id));
-                    const schoolNameStr = schoolObj ? (schoolObj.name || '').toLowerCase().replace(/ö/g, 'o').replace(/ü/g, 'u').replace(/ı/g, 'i').replace(/ş/g, 's').replace(/ğ/g, 'g').replace(/ç/g, 'c').replace(/\s+/g, '') : '';
-                    const isHakanGuvencer = isOzhamle && schoolNameStr.includes('hakanguvencer');
-                    const installmentMultiplier = isHakanGuvencer ? 11 : (isHalegul || isGuroz) ? 9 : 10;
-                    
-                    if (formData.neighborhood) {
-                        const filteredRules = getFilteredNeighborhoodRules(formData.school_id || '');
-                        const normNbr = formData.neighborhood.toLocaleLowerCase('tr-TR').trim();
-                        const rule = filteredRules.find((r: any) => r.school_level?.toLocaleLowerCase('tr-TR')?.trim() === normNbr);
-                        if (rule && rule.annual_amount) {
-                            annualPrice = Number(rule.annual_amount);
+                if (newStudentData && (monthlyPrice > 0 || calculatedTotalDebt > 0)) {
+                    const { data: parentAccount, error: accError } = await supabase
+                        .from('parent_accounts')
+                        .insert([{
+                            company_id: profile.company_id,
+                            student_id: newStudentData.id,
+                            parent_name: formData.parent_name || formData.full_name,
+                            total_debt: calculatedTotalDebt,
+                            paid_amount: 0,
+                            remaining_debt: calculatedTotalDebt
+                        }])
+                        .select('id')
+                        .single();
+
+                    if (!accError && parentAccount) {
+                        const installments = [];
+                        const startDate = new Date();
+                        for (let i = 0; i < installmentMultiplier; i++) {
+                            const dueDate = new Date(startDate.getFullYear(), startDate.getMonth() + i, 15);
+                            installments.push({
+                                parent_account_id: parentAccount.id,
+                                amount: monthlyPrice,
+                                due_date: dueDate.toISOString().split('T')[0],
+                                status: 'pending'
+                            });
                         }
-                    }
-                    
-                    calculatedTotalDebt = (annualPrice !== null && annualPrice > 0) ? annualPrice : (monthlyPrice * installmentMultiplier);
-
-                    if (monthlyPrice > 0 || calculatedTotalDebt > 0) {
-                        // Also explicitly set total_debt on the student record now that we have calculatedTotalDebt
-                        await supabase.from('students').update({ total_debt: calculatedTotalDebt }).eq('id', newStudentData.id);
-
-                        const { data: parentAccount, error: accError } = await supabase
-                            .from('parent_accounts')
-                            .insert([{
-                                company_id: profile.company_id,
-                                student_id: newStudentData.id,
-                                parent_name: formData.parent_name || formData.full_name,
-                                total_debt: calculatedTotalDebt,
-                                paid_amount: 0,
-                                remaining_debt: calculatedTotalDebt
-                            }])
-                            .select('id')
-                            .single();
-
-                        if (!accError && parentAccount) {
-                            const installments = [];
-                            const startDate = new Date();
-                            for (let i = 0; i < installmentMultiplier; i++) {
-                                const dueDate = new Date(startDate.getFullYear(), startDate.getMonth() + i, 15);
-                                installments.push({
-                                    parent_account_id: parentAccount.id,
-                                    amount: monthlyPrice,
-                                    due_date: dueDate.toISOString().split('T')[0],
-                                    status: 'pending'
-                                });
-                            }
-                            await supabase.from('parent_installments').insert(installments);
-                        }
+                        await supabase.from('parent_installments').insert(installments);
                     }
                 }
             }
@@ -1069,19 +1083,23 @@ const Students: React.FC = () => {
                                             const matchedRule = filteredRules.find(r => r.school_level === formData.neighborhood);
                                             const installCount = getFormInstallmentCount(newSchoolId);
                                             let newPrice = formData.custom_price;
+                                            let newAnnual = (formData as any).annual_fee;
                                             if (matchedRule) {
                                                 if (matchedRule.annual_amount) {
+                                                    newAnnual = Number(matchedRule.annual_amount);
                                                     newPrice = Math.round(Number(matchedRule.annual_amount) / installCount);
                                                 } else if (matchedRule.amount) {
                                                     newPrice = Number(matchedRule.amount);
+                                                    newAnnual = newPrice * installCount;
                                                 }
                                             }
                                             setFormData({
                                                 ...formData,
                                                 school_id: newSchoolId,
                                                 neighborhood: matchedRule ? formData.neighborhood : '',
-                                                custom_price: newPrice
-                                            });
+                                                custom_price: newPrice,
+                                                annual_fee: newAnnual
+                                            } as any);
                                         }}
                                     >
                                         <option value="">Okul Seçiniz</option>
@@ -1160,18 +1178,22 @@ const Students: React.FC = () => {
                                                 const matchedRule = filteredRules.find(r => r.school_level === selectedNbr);
                                                 const installCount = getFormInstallmentCount(formData.school_id);
                                                 let newPrice = formData.custom_price;
+                                                let newAnnual = (formData as any).annual_fee;
                                                 if (matchedRule) {
                                                     if (matchedRule.annual_amount) {
+                                                        newAnnual = Number(matchedRule.annual_amount);
                                                         newPrice = Math.round(Number(matchedRule.annual_amount) / installCount);
                                                     } else if (matchedRule.amount) {
                                                         newPrice = Number(matchedRule.amount);
+                                                        newAnnual = newPrice * installCount;
                                                     }
                                                 }
                                                 setFormData({
                                                     ...formData,
                                                     neighborhood: selectedNbr,
-                                                    custom_price: newPrice
-                                                });
+                                                    custom_price: newPrice,
+                                                    annual_fee: newAnnual
+                                                } as any);
                                             }}
                                         >
                                             <option value="">Seçiniz (Opsiyonel)</option>
@@ -1195,32 +1217,48 @@ const Students: React.FC = () => {
                                         </select>
                                     </div>
                                     <div className="col-span-1 sm:col-span-2">
-                                        <label className="block text-sm font-medium text-slate-700 mb-1">Özel Fiyatlandırma (₺ / aylık)</label>
+                                        <label className="block text-sm font-bold text-slate-700 mb-1">💰 Yıllık Tutar (₺) — Kalan Borç Olarak Kaydedilir</label>
+                                        <input
+                                            type="number"
+                                            min="0"
+                                            className="w-full px-3 py-2 border border-blue-300 rounded-lg focus:outline-none focus:border-blue-500 focus:ring-2 focus:ring-blue-500/20 font-semibold text-blue-900 bg-blue-50"
+                                            value={(formData as any).annual_fee || ''}
+                                            onChange={e => {
+                                                const annualVal = e.target.value ? Number(e.target.value) : undefined;
+                                                const installCount = getFormInstallmentCount(formData.school_id);
+                                                const monthly = annualVal ? Math.round(annualVal / installCount) : undefined;
+                                                setFormData({ ...formData, custom_price: monthly, annual_fee: annualVal } as any);
+                                            }}
+                                            placeholder="Örn: 10000 — Online kayıt gibi kalan borç gösterilir"
+                                        />
+                                        <label className="block text-sm font-medium text-slate-700 mb-1 mt-3">Aylık Ücret (₺) — Yıllık tutardan otomatik hesaplanır</label>
                                         <input
                                             type="number"
                                             min="0"
                                             className="w-full px-3 py-2 border border-slate-200 rounded-lg focus:outline-none focus:border-secondary"
                                             value={formData.custom_price || ''}
-                                            onChange={e => setFormData({ ...formData, custom_price: e.target.value ? Number(e.target.value) : undefined })}
-                                            placeholder="İsteğe bağlı. Standart fiyat için boş bırakın."
+                                            onChange={e => {
+                                                const monthly = e.target.value ? Number(e.target.value) : undefined;
+                                                const installCount = getFormInstallmentCount(formData.school_id);
+                                                const annual = monthly ? monthly * installCount : undefined;
+                                                setFormData({ ...formData, custom_price: monthly, annual_fee: annual } as any);
+                                            }}
+                                            placeholder="Aylık ücret girilirse yıllık tutar otomatik hesaplanır."
                                         />
                                         {formData.custom_price && formData.custom_price > 0 && (() => {
                                             const installCount = getFormInstallmentCount(formData.school_id);
-                                            const filteredRules = getFilteredNeighborhoodRules(formData.school_id);
-                                            const matchedRule = filteredRules.find(r => r.school_level === formData.neighborhood);
-                                            const annualTotal = matchedRule?.annual_amount
-                                                ? Number(matchedRule.annual_amount)
-                                                : formData.custom_price * installCount;
+                                            const annualFee = (formData as any).annual_fee;
+                                            const annualTotal = annualFee ? Number(annualFee) : formData.custom_price * installCount;
                                             return (
                                                 <div className={`mt-2 px-3 py-2 rounded-lg text-sm font-semibold flex items-center gap-2 ${
                                                     installCount === 11
                                                         ? 'bg-purple-50 border border-purple-200 text-purple-800'
-                                                        : 'bg-blue-50 border border-blue-200 text-blue-800'
+                                                        : 'bg-green-50 border border-green-200 text-green-800'
                                                 }`}>
-                                                    <span>📋</span>
+                                                    <span>✅</span>
                                                     <span>
-                                                        {installCount} ay × {formData.custom_price.toLocaleString('tr-TR')} ₺
-                                                        {' '}= <strong>{annualTotal.toLocaleString('tr-TR')} ₺ yıllık</strong>
+                                                        Kalan Borç: <strong>{annualTotal.toLocaleString('tr-TR')} ₺</strong>
+                                                        {' '}| {installCount} × {formData.custom_price.toLocaleString('tr-TR')} ₺/ay
                                                         {installCount === 11 && <span className="ml-1 text-xs bg-purple-200 text-purple-900 px-1.5 py-0.5 rounded-full">Güvençer 11 Taksit</span>}
                                                     </span>
                                                 </div>

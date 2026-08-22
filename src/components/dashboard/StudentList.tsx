@@ -139,12 +139,27 @@ const StudentList: React.FC<StudentListProps> = ({
                                                 <span className="text-xs font-bold">Bu Ay Ödendi</span>
                                             </div>
                                             {(() => {
-                                                const rawDebt = student.total_debt;
-                                                if (rawDebt === null || rawDebt === undefined || Number(rawDebt) <= 0) return null;
-                                                const debtVal = Number(rawDebt);
+                                                let debtVal: number | null = null;
+                                                if (student.total_debt !== null && student.total_debt !== undefined && Number(student.total_debt) > 0) {
+                                                    debtVal = Number(student.total_debt);
+                                                } else if (student.custom_price && Number(student.custom_price) > 0) {
+                                                    const companyName = (profile as any)?.companies?.company_name || '';
+                                                    const normComp = companyName.toLowerCase().replace(/ö/g, 'o').replace(/ü/g, 'u').replace(/ı/g, 'i').replace(/ş/g, 's').replace(/ğ/g, 'g').replace(/ç/g, 'c').replace(/\s+/g, '');
+                                                    const normSchool = (student.school_name || student.school || '').toLowerCase().replace(/ö/g, 'o').replace(/ü/g, 'u').replace(/ı/g, 'i').replace(/ş/g, 's').replace(/ğ/g, 'g').replace(/ç/g, 'c').replace(/\s+/g, '');
+                                                    const isOzhamle = normComp.includes('ozhamle');
+                                                    const isHalegul = normComp.includes('halegul');
+                                                    const isGuroz = normComp.includes('guroz');
+                                                    const isHakanGuvencer = isOzhamle && normSchool.includes('hakanguvencer');
+                                                    const multiplier = isHakanGuvencer ? 11 : (isHalegul || isGuroz) ? 9 : 10;
+                                                    debtVal = Number(student.custom_price) * multiplier;
+                                                }
+                                                if (!debtVal || debtVal <= 0) return null;
                                                 return (
-                                                    <div className="text-[11px] font-semibold text-slate-600 bg-slate-100/90 px-2 py-0.5 rounded-md border border-slate-200 w-fit">
-                                                        Kalan Borç: <span className="font-bold text-slate-900">{debtVal.toLocaleString('tr-TR')} ₺</span>
+                                                    <div className="bg-slate-50 border border-slate-200/80 rounded-xl px-2.5 py-1 mt-0.5 w-fit shadow-2xs">
+                                                        <div className="text-[10px] font-semibold text-slate-500">Kalan Borç:</div>
+                                                        <div className="text-xs font-black text-slate-800 tracking-tight">
+                                                            {debtVal.toLocaleString('tr-TR')} ₺
+                                                        </div>
                                                     </div>
                                                 );
                                             })()}
@@ -160,12 +175,27 @@ const StudentList: React.FC<StudentListProps> = ({
                                                 <span className="text-xs font-medium">Taksit Bekliyor</span>
                                             </button>
                                             {(() => {
-                                                const rawDebt = student.total_debt;
-                                                if (rawDebt === null || rawDebt === undefined || Number(rawDebt) <= 0) return null;
-                                                const debtVal = Number(rawDebt);
+                                                let debtVal: number | null = null;
+                                                if (student.total_debt !== null && student.total_debt !== undefined && Number(student.total_debt) > 0) {
+                                                    debtVal = Number(student.total_debt);
+                                                } else if (student.custom_price && Number(student.custom_price) > 0) {
+                                                    const companyName = (profile as any)?.companies?.company_name || '';
+                                                    const normComp = companyName.toLowerCase().replace(/ö/g, 'o').replace(/ü/g, 'u').replace(/ı/g, 'i').replace(/ş/g, 's').replace(/ğ/g, 'g').replace(/ç/g, 'c').replace(/\s+/g, '');
+                                                    const normSchool = (student.school_name || student.school || '').toLowerCase().replace(/ö/g, 'o').replace(/ü/g, 'u').replace(/ı/g, 'i').replace(/ş/g, 's').replace(/ğ/g, 'g').replace(/ç/g, 'c').replace(/\s+/g, '');
+                                                    const isOzhamle = normComp.includes('ozhamle');
+                                                    const isHalegul = normComp.includes('halegul');
+                                                    const isGuroz = normComp.includes('guroz');
+                                                    const isHakanGuvencer = isOzhamle && normSchool.includes('hakanguvencer');
+                                                    const multiplier = isHakanGuvencer ? 11 : (isHalegul || isGuroz) ? 9 : 10;
+                                                    debtVal = Number(student.custom_price) * multiplier;
+                                                }
+                                                if (!debtVal || debtVal <= 0) return null;
                                                 return (
-                                                    <div className="text-[11px] font-semibold text-slate-600 bg-slate-100/90 px-2 py-0.5 rounded-md border border-slate-200 w-fit">
-                                                        Kalan Borç: <span className="font-bold text-slate-900">{debtVal.toLocaleString('tr-TR')} ₺</span>
+                                                    <div className="bg-slate-50 border border-slate-200/80 rounded-xl px-2.5 py-1 mt-0.5 w-fit shadow-2xs">
+                                                        <div className="text-[10px] font-semibold text-slate-500">Kalan Borç:</div>
+                                                        <div className="text-xs font-black text-slate-800 tracking-tight">
+                                                            {debtVal.toLocaleString('tr-TR')} ₺
+                                                        </div>
                                                     </div>
                                                 );
                                             })()}
