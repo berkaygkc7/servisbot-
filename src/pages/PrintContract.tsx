@@ -26,8 +26,10 @@ const PrintContract: React.FC = () => {
     }
 
     const { student } = printData;
-    // installment_count: StudentList tarafından yazdır butonunda hesaplanıp localStorage'a yazılır
-    const installmentCountFromData: number | undefined = printData.installment_count;
+    // installment_count: StudentList'teki yazdır butonunda school adına göre hesaplanıp buraya geliyor
+    // Bu değer auth'tan bağımsız olarak doğrudan belirlenir
+    const installmentCountFromData: number = printData.installment_count ?? 10;
+    
     const companyName = student?.company_name || profile?.companies?.company_name || '...................................................';
     
     const compNameLower = (companyName || '').toLowerCase();
@@ -35,20 +37,21 @@ const PrintContract: React.FC = () => {
     const isHalegul = normComp.includes('halegul');
     const isGuroz = normComp.includes('guroz');
     
-    const selectedSchoolName = (student?.school_name || student?.school || '').toLowerCase();
-    const normSchoolName = selectedSchoolName.replace(/ö/g, 'o').replace(/ü/g, 'u').replace(/ı/g, 'i').replace(/ş/g, 's').replace(/ğ/g, 'g').replace(/ç/g, 'c').replace(/\s+/g, '');
-    // Güvençer tespiti: önce localStorage'dan gelen installment_count'a bak, yoksa okul adından tespit et
-    const isHakanGuvencer = installmentCountFromData === 11 || normSchoolName.includes('hakanguvencer') || normSchoolName.includes('guvencer');
+    // Okul adından da Güvençer tespiti (ekstra güvence)
+    const schoolStr = (student?.school_name || student?.school || '').toLowerCase()
+        .replace(/ö/g, 'o').replace(/ü/g, 'u').replace(/ı/g, 'i')
+        .replace(/ş/g, 's').replace(/ğ/g, 'g').replace(/ç/g, 'c').replace(/\s+/g, '');
+    const isHakanGuvencerByName = schoolStr.includes('guvenc') || schoolStr.includes('hakanguvenc');
     
-    console.log('[PrintContract] installment_count:', installmentCountFromData, '| school_name:', student?.school_name, '| normSchoolName:', normSchoolName, '| isHakanGuvencer:', isHakanGuvencer);
+    // ÖNCE localStorage'dan gelen sayıya bak, yoksa okul adından tespit et
+    let installmentCount = installmentCountFromData;
+    if (isHakanGuvencerByName) installmentCount = 11;
     
-    let installmentText = isHalegul ? '9 (dokuz)' : '10 (on)'; // default
-    if (installmentCountFromData === 9 || isHalegul || isGuroz) {
-        installmentText = '9 (dokuz)';
-    }
-    if (isHakanGuvencer || installmentCountFromData === 11) {
-        installmentText = '11 (on bir)';
-    }
+    console.log('[PrintContract] installment_count from localStorage:', installmentCountFromData, '| schoolStr:', schoolStr, '| isHakanGuvencerByName:', isHakanGuvencerByName, '| final installmentCount:', installmentCount);
+    
+    let installmentText = '10 (on)'; // default
+    if (installmentCount === 9 || isHalegul || isGuroz) installmentText = '9 (dokuz)';
+    if (installmentCount === 11 || isHakanGuvencerByName) installmentText = '11 (on bir)';
 
 
     const displayCompanyName = companyName;
