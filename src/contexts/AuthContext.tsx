@@ -25,6 +25,8 @@ export interface UserProfile {
         address?: string;
         phone?: string;
         subscription_status?: string;
+        registration_enabled?: boolean;
+        registration_disabled_message?: string;
     };
 }
 
@@ -151,7 +153,7 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
                 // 2. Fetch company info (Separate simple query)
                 const { data: companyData } = await supabase
                     .from('companies')
-                    .select('company_name, city, public_registration_token, logo_url, whatsapp_template, tax_office, tax_number, address, phone, subscription_status')
+                    .select('company_name, city, public_registration_token, logo_url, whatsapp_template, tax_office, tax_number, address, phone, subscription_status, registration_enabled, registration_disabled_message')
                     .eq('id', userData.company_id)
                     .single();
 
@@ -195,7 +197,7 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
                             (err as any).code = 'PGRST116';
                             throw err;
                         }
-                        const { data: companyData } = await supabase.from('companies').select('company_name, city, public_registration_token, logo_url, whatsapp_template, tax_office, tax_number, address, phone').eq('id', userData.company_id).single();
+                        const { data: companyData } = await supabase.from('companies').select('company_name, city, public_registration_token, logo_url, whatsapp_template, tax_office, tax_number, address, phone, registration_enabled, registration_disabled_message').eq('id', userData.company_id).single();
 
                         const profileData = { ...userData, companies: companyData } as UserProfile;
                         console.log("Profile found on retry:", profileData);

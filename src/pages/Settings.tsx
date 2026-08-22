@@ -74,6 +74,12 @@ const Settings: React.FC = () => {
     const [address, setAddress] = useState(profile?.companies?.address || '');
     const [phone, setPhone] = useState(profile?.companies?.phone || '');
     const [whatsappTemplate, setWhatsappTemplate] = useState(profile?.companies?.whatsapp_template || '');
+    const [registrationEnabled, setRegistrationEnabled] = useState<boolean>(
+        profile?.companies?.registration_enabled !== false
+    );
+    const [registrationDisabledMsg, setRegistrationDisabledMsg] = useState(
+        profile?.companies?.registration_disabled_message || 'Kayıt formu şu an kapatılmıştır. Bilgi için firmamızla iletişime geçiniz.'
+    );
 
     // Submit States
     const [isSubmitting, setIsSubmitting] = useState(false);
@@ -102,6 +108,8 @@ const Settings: React.FC = () => {
             setAddress(profile.companies.address || '');
             setPhone(profile.companies.phone || '');
             setWhatsappTemplate(profile.companies.whatsapp_template || '');
+            setRegistrationEnabled(profile.companies.registration_enabled !== false);
+            setRegistrationDisabledMsg(profile.companies.registration_disabled_message || 'Kayıt formu şu an kapatılmıştır. Bilgi için firmamızla iletişime geçiniz.');
         }
     }, [profile?.companies]);
 
@@ -118,7 +126,9 @@ const Settings: React.FC = () => {
                 tax_number: taxNumber,
                 address,
                 phone,
-                whatsapp_template: whatsappTemplate
+                whatsapp_template: whatsappTemplate,
+                registration_enabled: registrationEnabled,
+                registration_disabled_message: registrationDisabledMsg
             }).eq('id', profile.company_id);
             if (error) throw error;
             alert('Firma ayarları başarıyla güncellendi. Sayfa yenilendiğinde değişiklikler yansıyacaktır.');
@@ -766,6 +776,43 @@ const Settings: React.FC = () => {
                                                 <Loader2 size={18} className="animate-spin" /> Token verisi yükleniyor... Lütfen sayfayı yenileyiniz.
                                             </div>
                                         )}
+
+                                        {/* -------- QR KAYIT AÇMA/KAPAMA -------- */}
+                                        <div className="mt-6 pt-6 border-t border-slate-200">
+                                            <h4 className="text-sm font-bold text-slate-700 mb-3 flex items-center gap-2">
+                                                <span className={`w-2 h-2 rounded-full ${registrationEnabled ? 'bg-green-500' : 'bg-red-500'}`}></span>
+                                                Kayıt Formu Durumu
+                                            </h4>
+                                            <div className="flex items-center justify-between p-4 rounded-xl border border-slate-200 bg-slate-50 mb-3">
+                                                <div>
+                                                    <p className="text-sm font-semibold text-slate-800">{registrationEnabled ? '"Formunuz Aktif — Veliler başvurabilir' : '⛔ Form Kapatık — Veliler başvuramaz'}</p>
+                                                    <p className="text-xs text-slate-500 mt-0.5">QR kodu okutulduğunda form {registrationEnabled ? 'açılır' : 'kapatık mesajı gösterilir'}</p>
+                                                </div>
+                                                <button
+                                                    type="button"
+                                                    onClick={() => setRegistrationEnabled(!registrationEnabled)}
+                                                    className={`relative w-12 h-6 rounded-full transition-colors duration-200 focus:outline-none ${registrationEnabled ? 'bg-green-500' : 'bg-slate-300'}`}
+                                                >
+                                                    <span className={`absolute top-1 w-4 h-4 rounded-full bg-white shadow-sm transition-all duration-200 ${registrationEnabled ? 'left-7' : 'left-1'}`}></span>
+                                                </button>
+                                            </div>
+
+                                            {!registrationEnabled && (
+                                                <div className="animate-in fade-in slide-in-from-top-2 duration-300">
+                                                    <label className="block text-xs font-bold text-slate-600 mb-1">QR Okunduğunda Görünecek Mesaj</label>
+                                                    <textarea
+                                                        rows={3}
+                                                        className="w-full px-3 py-2 border border-slate-200 rounded-xl text-sm text-slate-700 resize-none focus:outline-none focus:border-red-400 focus:ring-2 focus:ring-red-400/20 bg-white"
+                                                        value={registrationDisabledMsg}
+                                                        onChange={e => setRegistrationDisabledMsg(e.target.value)}
+                                                        placeholder="Örn: Kayıt formumuz şu an kapatılmıştır. Bilgi için 0555 000 00 00 numaralı hattımızı arayabilirsiniz."
+                                                    />
+                                                    <p className="text-[10px] text-slate-400 mt-1">⚠️ Bu mesaj veli QR kodu okuttuktan sonra ekranda görünecektir. Kaydet butonuna basmayı unutmayın.</p>
+                                                </div>
+                                            )}
+
+                                            <p className="text-[10px] text-slate-400 mt-3">ℹ️ Değişiklikleri kaydetmek için sayfanın "Değişiklikleri Kaydet" butonuna tıklayın.</p>
+                                        </div>
                                     </div>
                                 </div>
                             </div>

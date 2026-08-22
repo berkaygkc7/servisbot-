@@ -204,11 +204,15 @@ const StudentList: React.FC<StudentListProps> = ({
                                 </td>
                                 <td className="p-4">
                                     {student.vehicle_plate ? (
-                                        <div className="inline-flex items-center px-2.5 py-1 rounded-lg text-xs font-bold bg-blue-50 text-blue-700 border border-blue-100">
-                                            🚐 {student.vehicle_plate}
+                                        <div className="inline-flex items-center gap-1.5 px-2.5 py-1.5 rounded-lg text-xs font-bold bg-green-50 text-green-700 border border-green-200 shadow-sm">
+                                            <span className="w-2 h-2 rounded-full bg-green-500 shrink-0"></span>
+                                            {student.vehicle_plate}
                                         </div>
                                     ) : (
-                                        <span className="text-xs text-slate-400 italic">Araç Yok</span>
+                                        <div className="inline-flex items-center gap-1.5 px-2.5 py-1.5 rounded-lg text-xs font-bold bg-red-50 text-red-600 border border-red-200 shadow-sm">
+                                            <span className="w-2 h-2 rounded-full bg-red-500 shrink-0 animate-pulse"></span>
+                                            Araç Yok
+                                        </div>
                                     )}
                                 </td>
                                 <td className="p-4 text-right">

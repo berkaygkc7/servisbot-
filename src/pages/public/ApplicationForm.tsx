@@ -76,6 +76,8 @@ const ApplicationForm: React.FC = () => {
     const [companyName, setCompanyName] = useState<string>('');
     const [schools, setSchools] = useState<{id: string, name: string, has_shifts?: boolean}[]>([]);
     const [pricingRules, setPricingRules] = useState<any[]>([]);
+    const [registrationEnabled, setRegistrationEnabled] = useState<boolean>(true);
+    const [disabledMessage, setDisabledMessage] = useState<string>('Kayıt formu şu an kapatılmıştır. Bilgi için firmamızla iletişime geçiniz.');
 
     const [formData, setFormData] = useState({
         studentName: '',
@@ -134,6 +136,13 @@ const ApplicationForm: React.FC = () => {
                     setSchools(data.schools || []);
                     const rules = data.pricing_rules || data.neighborhoods || [];
                     setPricingRules(rules);
+                    // Kayıt formu aktif mi kontrol et
+                    if (data.registration_enabled === false) {
+                        setRegistrationEnabled(false);
+                        if (data.registration_disabled_message) {
+                            setDisabledMessage(data.registration_disabled_message);
+                        }
+                    }
                 } else {
                     setError('Geçersiz veya süresi dolmuş başvuru bağlantısı.');
                 }
@@ -208,6 +217,11 @@ const ApplicationForm: React.FC = () => {
     const handleSubmit = async (e: React.FormEvent) => {
         e.preventDefault();
         if (!token) return;
+
+        if (!registrationEnabled) {
+            setError(disabledMessage);
+            return;
+        }
 
         if (!hasSearchedAddress) {
             setError("Lütfen formu göndermeden önce 'Seçtiğim Adresi Haritada Bul' butonuna basarak konumunuzu doğrulayın.");
@@ -311,7 +325,22 @@ const ApplicationForm: React.FC = () => {
         );
     }
 
+    if (!registrationEnabled) {
+        return (
+            <div className="min-h-screen bg-slate-50 flex items-center justify-center p-4">
+                <div className="bg-white rounded-2xl p-8 shadow-xl max-w-md w-full text-center">
+                    <div className="w-20 h-20 bg-orange-100 text-orange-500 rounded-full flex items-center justify-center mx-auto mb-4">
+                        <AlertCircle size={40} />
+                    </div>
+                    <h2 className="text-xl font-bold text-slate-800 mb-3">{companyName || 'Servis Firması'}</h2>
+                    <p className="text-slate-600 leading-relaxed whitespace-pre-wrap">{disabledMessage}</p>
+                </div>
+            </div>
+        );
+    }
+
     if (submitted) {
+
         return (
             <div className="min-h-screen bg-slate-50 flex items-center justify-center p-4">
                 <div className="bg-white rounded-2xl p-8 shadow-xl max-w-md w-full text-center">
@@ -320,7 +349,7 @@ const ApplicationForm: React.FC = () => {
                     </div>
                     <h2 className="text-2xl font-bold text-slate-800 mb-2">Başvurunuz Alındı</h2>
                     <p className="text-slate-500 mb-6 font-medium">
-                        {companyName} firmasına öğrenci kayıt ön başvurunuz başarıyla iletildi. Firma yetkilileri en kısa sürede sizinle iletişime geçecektir.
+                        {companyName} firmasına öğrenci kayıt başvurunuz başarıyla iletildi.
                     </p>
                     <p className="text-xs text-slate-400 mb-6">
                         Güvenle bu sayfayı kapatabilirsiniz.
@@ -791,6 +820,7 @@ const ApplicationForm: React.FC = () => {
                                         <li>Bu sözleşmeyi taraflar olarak hazırlayıp, sözleşmeyi temin altına almak için aşağıdaki teminat senedi öğrenci velisi tarafından imzalanmıştır. Öğretim yılı sonunda öğrencinin servis kartında borcu gözükmüyorsa senet firma tarafından iptal edilip veliye iade edilecektir.</li>
                                     </ol>
                                     <p className="mt-4 font-semibold text-slate-700">Bu sözleşme 12 maddeden olup, ihtilaf vukuunda Sincan mahkemeleri yetkilidir.</p>
+                                    <p className="mt-3 font-bold text-slate-800 text-center border border-slate-300 rounded-xl py-2 px-4 bg-slate-50">⚠️ Bu sözleşme senet niteliği taşır.</p>
                                 </>
                             ) : (
                                 <>
@@ -845,6 +875,7 @@ const ApplicationForm: React.FC = () => {
                                         <li>Ödenen servis borçları öğrenci zarfına ve öğrenci ödeme listesine servis yetkilisi tarafından işlenir. Veli ödemelerini öğrenci zarfından takip edecektir. Ödemeler hususunda herhangi bir ihtilafa düşülmesi durumunda firmada bulunan öğrenci ödeme listeleri geçerlidir.</li>
                                         <li>Öğretim yılı sonunda öğrencinin öğrenci zarfında borcu gözükmüyorsa senet yetkili tarafından iptal edilip, veliye iade edilir. İş bu sözleşme iki nüsha olarak tanzim edilmiştir.</li>
                                     </ol>
+                                    <p className="mt-4 font-bold text-slate-800 text-center border border-slate-300 rounded-xl py-2 px-4 bg-slate-50">⚠️ Bu sözleşme senet niteliği taşır.</p>
                                 </>
                             )}
                         </div>

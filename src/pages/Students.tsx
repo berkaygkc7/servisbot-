@@ -338,7 +338,8 @@ const Students: React.FC = () => {
 
     const handleAddClick = () => {
         setEditingStudent(null);
-        setFormData({ route_status: 'unassigned' });
+        const today = new Date().toISOString().split('T')[0];
+        setFormData({ route_status: 'unassigned', registration_date: today });
         setPickerCoordinates(null);
         setLocationMethod('map'); // Default to map for new
         setIsModalOpen(true);
@@ -741,7 +742,8 @@ const Students: React.FC = () => {
                 custom_price: formData.custom_price || null,
                 total_debt: calculatedTotalDebt > 0 ? calculatedTotalDebt : null,
                 status: formData.status || 'active',
-                shift: formData.shift || null
+                shift: formData.shift || null,
+                parent_tc: (formData as any).parent_tc || null
             };
 
             if (editingStudent) {
@@ -806,26 +808,88 @@ const Students: React.FC = () => {
     const handleDownloadTemplate = () => {
         let exportData;
         if (students && students.length > 0) {
-            exportData = students.map(s => ({
-                "Sınıf": s.grade || '',
-                "Okul Kademesi": s.schoolLevel || '',
-                "Mahalle (Fiyatlandırma)": s.neighborhood || '',
-                "Veli Adı": s.parent_name || '',
-                "Okul": s.school_name || '',
-                "Adres": s.address || '',
-                "Etiketler": s.tags ? s.tags.join(', ') : ''
-            }));
+            exportData = students.map(s => {
+                const addr = (s.address || '').trim();
+                let mahalle = s.neighborhood || '';
+                let sokak = '';
+                let bina = '';
+
+                if (addr) {
+                    const parts = addr.split(',').map(p => p.trim()).filter(Boolean);
+                    
+                    // Mahalle tespiti
+                    const mPart = parts.find(p => /(?:mahallesi|mah\b|mah\.|k\u00f6y\u00fc)/i.test(p));
+                    if (mPart) {
+                        mahalle = mPart;
+                    } else if (!mahalle && parts.length >= 3 && !/(?:sok|cad|blv|no)/i.test(parts[2])) {
+                        mahalle = parts[2];
+                    }
+
+                    // Sokak / Cadde tespiti
+                    const sPart = parts.find(p => /(?:sokak|sok\b|sok\.|cadde|cad\b|cad\.|bulvar|blv\b|blv\.|yolu)/i.test(p));
+                    if (sPart) {
+                        sokak = sPart;
+                    } else if (parts.length >= 4 && !/(?:mah|no)/i.test(parts[3])) {
+                        sokak = parts[3];
+                    }
+
+                    // Bina No tespiti
+                    const bPart = parts.find(p => /(?:no[.:\s]*\d+)/i.test(p));
+                    if (bPart) {
+                        const bMatch = bPart.match(/(?:no[.:\s]*)(\d+[\w\/-]*)/i);
+                        bina = bMatch ? bMatch[1] : bPart.replace(/no[.:\s]*/i, '').trim();
+                    } else if (parts.length >= 5) {
+                        bina = parts[4].replace(/no[.:\s]*/i, '').trim();
+                    } else {
+                        // Regex ile metin içinden ara
+                        const directBMatch = addr.match(/(?:no[.:\s]+)(\d+[\w\/-]*)/i);
+                        if (directBMatch) bina = directBMatch[1];
+                    }
+
+                    // Eğer regex ile sokak bulunamadıysa metinden ara
+                    if (!sokak) {
+                        const directSMatch = addr.match(/([^,]+(?:sokak|sok\.|cadde|cad\.|bulvar|blv\.))/i);
+                        if (directSMatch) sokak = directSMatch[0].trim();
+                    }
+                }
+
+                return {
+                    'Öğrenci Adı Soyadı': s.full_name || s.name || '',
+                    'Veli Adı Soyadı': s.parent_name || s.parent || '',
+                    'Veli Numarası': s.parent_phone || s.phone || '',
+                    'Veli Kimlik No (TC)': (s as any).parent_tc || '',
+                    'Okul': s.school_name || s.school || '',
+                    'Sabahçı / Öğlenci': s.shift || '',
+                    'Mahalle': mahalle,
+                    'Sokak / Cadde': sokak,
+                    'Bina No': bina
+                };
+            });
         } else {
             exportData = [
-                { "Ad Soyad": "Örnek Öğrenci", "Veli": "Örnek Veli", "Telefon": "0555 555 55 55", "Okul": "Atatürk İlkokulu", "Adres": "Örnek Mah. Örnek Sok. No:1", "Etiketler": "Sabah, Lise" },
-                { "Ad Soyad": "Ali Veli", "Veli": "Ayşe Veli", "Telefon": "0544 444 44 44", "Okul": "Cumhuriyet Lisesi", "Adres": "Merkez Mah. Okul Cad. No:5", "Etiketler": "" }
+                {
+                    'Öğrenci Adı Soyadı': 'Örnek Öğrenci',
+                    'Veli Adı Soyadı': 'Örnek Veli',
+                    'Veli Numarası': '0555 555 55 55',
+                    'Veli Kimlik No (TC)': '12345678901',
+                    'Okul': 'Atatürk İlkokulu',
+                    'Sabahçı / Öğlenci': 'Sabahçı',
+                    'Mahalle': 'Merkez Mah.',
+                    'Sokak / Cadde': 'Örnek Sok.',
+                    'Bina No': '5'
+                }
             ];
         }
 
         const ws = XLSX.utils.json_to_sheet(exportData);
+        // Sütun genişliklerini otomatik ayarla
+        const colWidths = Object.keys(exportData[0] || {}).map(key => ({
+            wch: Math.max(key.length, 18)
+        }));
+        ws['!cols'] = colWidths;
         const wb = XLSX.utils.book_new();
-        XLSX.utils.book_append_sheet(wb, ws, "Öğrenciler");
-        XLSX.writeFile(wb, students && students.length > 0 ? "ogrenci_listesi.xlsx" : "ogrenci_sablon.xlsx");
+        XLSX.utils.book_append_sheet(wb, ws, 'Öğrenciler');
+        XLSX.writeFile(wb, students && students.length > 0 ? 'ogrenci_listesi.xlsx' : 'ogrenci_sablon.xlsx');
     };
 
     return (
@@ -1059,6 +1123,17 @@ const Students: React.FC = () => {
                                         value={formData.parent_name || ''}
                                         onChange={e => setFormData({ ...formData, parent_name: e.target.value })}
                                         placeholder="Veli Adı"
+                                    />
+                                </div>
+                                <div>
+                                    <label className="block text-sm font-medium text-slate-700 mb-1">TC Kimlik No</label>
+                                    <input
+                                        type="text"
+                                        maxLength={11}
+                                        className="w-full px-3 py-2 border border-slate-200 rounded-lg focus:outline-none focus:border-secondary"
+                                        value={(formData as any).parent_tc || ''}
+                                        onChange={e => setFormData({ ...formData, parent_tc: e.target.value } as any)}
+                                        placeholder="11 haneli TC Kimlik Numarası"
                                     />
                                 </div>
                                 <div>

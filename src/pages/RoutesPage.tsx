@@ -1775,36 +1775,29 @@ const RoutesPage: React.FC = () => {
                                         <h3 className="text-xs font-bold text-slate-400 uppercase tracking-wider mb-3">Atanan Araç</h3>
 
                                         {selectedRoute?.vehicle_id ? (
-                                            <div className="flex items-start gap-4">
-                                                <div className="w-12 h-12 bg-blue-100 rounded-full flex items-center justify-center text-blue-600">
+                                            <div className="flex items-start gap-4 mb-3">
+                                                <div className="w-12 h-12 bg-green-100 rounded-full flex items-center justify-center text-green-600 shrink-0">
                                                     <Bus size={24} />
                                                 </div>
                                                 <div>
                                                     <div className="font-bold text-slate-900 text-lg">{selectedRoute.vehicle.split(' - ')[0]}</div>
                                                     <div className="text-sm text-slate-500">{selectedRoute.vehicle.split(' - ')[1]}</div>
-                                                    <button
-                                                        className="text-xs text-secondary font-medium mt-2 hover:underline"
-                                                        onClick={() => handleVehicleAssign('')} // Reset logic needed properly, currently just UI hook
-                                                    >
-                                                        Değiştir
-                                                    </button>
+                                                    <div className="text-xs text-green-600 font-semibold mt-1 flex items-center gap-1"><span className="w-2 h-2 rounded-full bg-green-500 inline-block"></span>Araç Atandı</div>
                                                 </div>
                                             </div>
                                         ) : (
-                                            <div>
-                                                <p className="text-sm text-slate-500 mb-3">Henüz bir araç atanmamış.</p>
-                                                <select
-                                                    className="w-full text-sm bg-slate-50 border border-slate-200 rounded-lg px-3 py-2 outline-none focus:border-secondary"
-                                                    onChange={(e) => handleVehicleAssign(e.target.value)}
-                                                    defaultValue=""
-                                                >
-                                                    <option value="" disabled>Araç Seç...</option>
-                                                    {availableVehicles.map(v => (
-                                                        <option key={v.id} value={v.id}>{v.plate_number} - {v.driver_name}</option>
-                                                    ))}
-                                                </select>
-                                            </div>
+                                            <p className="text-sm text-red-500 font-semibold mb-3 flex items-center gap-1.5"><span className="w-2 h-2 rounded-full bg-red-500 animate-pulse inline-block"></span>Henüz bir araç atanmamış.</p>
                                         )}
+                                        <select
+                                            className="w-full text-sm bg-slate-50 border border-slate-200 rounded-lg px-3 py-2 outline-none focus:border-secondary"
+                                            onChange={(e) => handleVehicleAssign(e.target.value)}
+                                            value={selectedRoute?.vehicle_id || ''}
+                                        >
+                                            <option value="">{selectedRoute?.vehicle_id ? 'Araç Kaldır / Değiştir...' : 'Araç Seç...'}</option>
+                                            {availableVehicles.map(v => (
+                                                <option key={v.id} value={v.id}>{v.plate_number} - {v.driver_name}</option>
+                                            ))}
+                                        </select>
 
                                         {selectedRoute && (
                                             <button
@@ -1864,12 +1857,20 @@ const RoutesPage: React.FC = () => {
                                                         {stop.assignedStudentIds.map(studentId => {
                                                             const student = availableStudents.find(s => s.id === studentId);
                                                             if (!student) return null;
+                                                            const hasVehicle = !!(student as any).vehicles?.plate_number;
                                                             return (
-                                                                <div key={student.id} className="flex items-center gap-2 bg-white border border-slate-100 p-2 rounded-lg shadow-sm">
-                                                                    <div className="w-6 h-6 rounded-full bg-slate-100 flex items-center justify-center text-xs font-bold text-slate-600">
+                                                                <div key={student.id} className={`flex items-center gap-2 p-2 rounded-lg shadow-sm border ${hasVehicle ? 'bg-green-50 border-green-200' : 'bg-red-50 border-red-200'}`}>
+                                                                    <div className={`w-6 h-6 rounded-full flex items-center justify-center text-xs font-bold text-white ${hasVehicle ? 'bg-green-500' : 'bg-red-400'}`}>
                                                                         {student.full_name.charAt(0)}
                                                                     </div>
-                                                                    <span className="text-sm text-slate-700">{student.full_name}</span>
+                                                                    <div className="flex-1 min-w-0">
+                                                                        <span className={`text-sm font-medium ${hasVehicle ? 'text-green-800' : 'text-red-700'}`}>{student.full_name}</span>
+                                                                        {hasVehicle ? (
+                                                                            <div className="text-[10px] text-green-600 font-semibold flex items-center gap-1"><span className="w-1.5 h-1.5 rounded-full bg-green-500 inline-block"></span>{(student as any).vehicles.plate_number}</div>
+                                                                        ) : (
+                                                                            <div className="text-[10px] text-red-500 font-semibold flex items-center gap-1"><span className="w-1.5 h-1.5 rounded-full bg-red-500 animate-pulse inline-block"></span>Araç Atanmamış</div>
+                                                                        )}
+                                                                    </div>
                                                                 </div>
                                                             );
                                                         })}
