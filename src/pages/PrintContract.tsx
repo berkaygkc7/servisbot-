@@ -26,25 +26,30 @@ const PrintContract: React.FC = () => {
     }
 
     const { student } = printData;
+    // installment_count: StudentList tarafından yazdır butonunda hesaplanıp localStorage'a yazılır
+    const installmentCountFromData: number | undefined = printData.installment_count;
     const companyName = student?.company_name || profile?.companies?.company_name || '...................................................';
     
     const compNameLower = (companyName || '').toLowerCase();
     const normComp = compNameLower.replace(/ö/g, 'o').replace(/ü/g, 'u').replace(/ı/g, 'i').replace(/ş/g, 's').replace(/ğ/g, 'g').replace(/ç/g, 'c').replace(/\s+/g, '');
     const isHalegul = normComp.includes('halegul');
     const isGuroz = normComp.includes('guroz');
-    const isOzhamle = normComp.includes('ozhamle');
     
     const selectedSchoolName = (student?.school_name || student?.school || '').toLowerCase();
     const normSchoolName = selectedSchoolName.replace(/ö/g, 'o').replace(/ü/g, 'u').replace(/ı/g, 'i').replace(/ş/g, 's').replace(/ğ/g, 'g').replace(/ç/g, 'c').replace(/\s+/g, '');
-    // Güvençer tespiti sadece okul adına göre yapılıyor (şirket adı yüklenmemiş olsa bile çalışsın)
-    const isHakanGuvencer = normSchoolName.includes('hakanguvencer') || normSchoolName.includes('guvencer');
+    // Güvençer tespiti: önce localStorage'dan gelen installment_count'a bak, yoksa okul adından tespit et
+    const isHakanGuvencer = installmentCountFromData === 11 || normSchoolName.includes('hakanguvencer') || normSchoolName.includes('guvencer');
     
-    console.log('[PrintContract] school_name:', student?.school_name, '| normSchoolName:', normSchoolName, '| isHakanGuvencer:', isHakanGuvencer, '| isOzhamle:', isOzhamle, '| companyName:', companyName);
+    console.log('[PrintContract] installment_count:', installmentCountFromData, '| school_name:', student?.school_name, '| normSchoolName:', normSchoolName, '| isHakanGuvencer:', isHakanGuvencer);
     
     let installmentText = isHalegul ? '9 (dokuz)' : '10 (on)'; // default
-    if (isHakanGuvencer) {
+    if (installmentCountFromData === 9 || isHalegul || isGuroz) {
+        installmentText = '9 (dokuz)';
+    }
+    if (isHakanGuvencer || installmentCountFromData === 11) {
         installmentText = '11 (on bir)';
     }
+
 
     const displayCompanyName = companyName;
 

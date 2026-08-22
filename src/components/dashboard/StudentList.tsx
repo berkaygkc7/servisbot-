@@ -207,7 +207,25 @@ const StudentList: React.FC<StudentListProps> = ({
                                         <button
                                             onClick={() => {
                                                 const companyName = profile?.companies?.company_name || '';
-                                                localStorage.setItem('print_contract_data', JSON.stringify({ student: { ...student, company_name: companyName } }));
+                                                // Okul adını normalize et ve taksit sayısını belirle
+                                                const normSchool = (student.school_name || student.school || '')
+                                                    .toLowerCase()
+                                                    .replace(/ö/g, 'o').replace(/ü/g, 'u').replace(/ı/g, 'i')
+                                                    .replace(/ş/g, 's').replace(/ğ/g, 'g').replace(/ç/g, 'c')
+                                                    .replace(/\s+/g, '');
+                                                const normComp = companyName
+                                                    .toLowerCase()
+                                                    .replace(/ö/g, 'o').replace(/ü/g, 'u').replace(/ı/g, 'i')
+                                                    .replace(/ş/g, 's').replace(/ğ/g, 'g').replace(/ç/g, 'c')
+                                                    .replace(/\s+/g, '');
+                                                const isHalegul = normComp.includes('halegul');
+                                                const isGuroz = normComp.includes('guroz');
+                                                const isHakanGuvencer = normSchool.includes('hakanguvencer') || normSchool.includes('guvencer');
+                                                const installment_count = isHakanGuvencer ? 11 : (isHalegul || isGuroz) ? 9 : 10;
+                                                localStorage.setItem('print_contract_data', JSON.stringify({ 
+                                                    student: { ...student, company_name: companyName },
+                                                    installment_count
+                                                }));
                                                 window.open('/print-contract', '_blank');
                                             }}
                                             className="p-2 hover:bg-slate-100 rounded-lg text-slate-400 hover:text-emerald-600 transition-colors"
