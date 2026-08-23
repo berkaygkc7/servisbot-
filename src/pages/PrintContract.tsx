@@ -1,6 +1,5 @@
 import React, { useEffect, useState } from 'react';
 import { useAuth } from '../contexts/AuthContext';
-import ozhamleLogo from '../assets/ozhamle_logo.jpg';
 
 const PrintContract: React.FC = () => {
     const { profile } = useAuth();
@@ -209,12 +208,16 @@ const PrintContract: React.FC = () => {
             <PrintHeader />
 
             <div className="max-w-4xl mx-auto contract-text pt-16 print:pt-0 relative">
-                {isOzhamle && (
-                    <div className="absolute top-0 right-0 w-48">
-                        <img src={ozhamleLogo} alt="Özhamle Turizm" className="w-full h-auto object-contain" />
+                {isOzhamle ? (
+                    <div className="flex justify-between items-center mb-6">
+                        <h2 className="font-bold text-lg flex-1">ÖĞRENCİ SERVİS KAYIT SÖZLEŞMESİ</h2>
+                        <div className="w-56 ml-4 shrink-0">
+                            <img src="/ozhamle_logo_v3.png" alt="Özhamle Turizm" className="w-full h-auto object-contain" style={{ WebkitPrintColorAdjust: 'exact', printColorAdjust: 'exact' }} />
+                        </div>
                     </div>
+                ) : (
+                    <h2 className="text-center font-bold text-lg mb-6">ÖĞRENCİ SERVİS KAYIT SÖZLEŞMESİ</h2>
                 )}
-                <h2 className="text-center font-bold text-lg mb-6">ÖĞRENCİ SERVİS KAYIT SÖZLEŞMESİ</h2>
                 
                 <div className="mb-6 space-y-3">
                     <p><strong>FİRMA ADI:</strong> {displayCompanyName}</p>
