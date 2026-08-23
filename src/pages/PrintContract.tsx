@@ -86,21 +86,21 @@ const PrintContract: React.FC = () => {
             <div className="bg-white min-h-screen text-black font-sans print:p-0 p-8 text-sm">
                 <style>{`
                     @media print {
-                        @page { size: A4 portrait; margin: 10mm; }
+                        @page { size: A4 portrait; margin: 6mm; }
                         body { background: white !important; -webkit-print-color-adjust: exact !important; print-color-adjust: exact !important; }
                         .no-print { display: none !important; }
                     }
-                    .contract-text { font-size: 11px; line-height: 1.4; text-align: justify; }
-                    .contract-text li { margin-bottom: 4px; }
-                    .senet-input { border: 1px solid #000; height: 30px; display: inline-block; width: 100%; }
+                    .contract-text { font-size: 9px; line-height: 1.15; text-align: justify; }
+                    .contract-text li { margin-bottom: 2px; }
+                    .senet-input { border: 1px solid #000; height: 20px; display: inline-block; width: 100%; }
                 `}</style>
                 <PrintHeader />
-                <div className="max-w-4xl mx-auto contract-text pt-16 print:pt-0">
-                    <h1 className="text-center font-bold text-xl mb-4 text-red-600">ÖĞRENCİ TAŞIMA SÖZLEŞMESİ</h1>
+                <div className="max-w-4xl mx-auto contract-text pt-4 print:pt-0">
+                    <h1 className="text-center font-bold text-xl mb-2 text-red-600">ÖĞRENCİ TAŞIMA SÖZLEŞMESİ</h1>
                     
-                    <p className="mb-4">KONU: 2026/2027 Eğitim ve öğretim yılında öğrenci taşımacılığında veli ve servisçi menfaatlerini korumak amacıyla bahsedilen öğretim yılında aşağıda belirtilen şekilde taşımacılık yapılacaktır.</p>
+                    <p className="mb-2">KONU: 2026/2027 Eğitim ve öğretim yılında öğrenci taşımacılığında veli ve servisçi menfaatlerini korumak amacıyla bahsedilen öğretim yılında aşağıda belirtilen şekilde taşımacılık yapılacaktır.</p>
 
-                    <ol className="list-decimal pl-5 mb-4">
+                    <ol className="list-decimal pl-5 mb-2">
                         <li>Servis araçlarımız İçişleri Bakanlığının 21.05.1992 gün ve 21234 sayılı okul servis araçları yönetmeliğine uygun olacaktır. (Öğrenci ferdi kaza sigortası yapılacaktır.)</li>
                         <li>Yıl içinde Ankara Valiliğinin açıkladığı fiyat tarifesi uygulanacaktır.</li>
                         <li>Servis konusunda velinin muhatabı ilgili firmadır. Firma servis şoförünü herhangi bir sebeple dahil işten ayırabilir. Bu durumda velinin aksini iddia etmesi söz konusu değildir.</li>
@@ -115,10 +115,10 @@ const PrintContract: React.FC = () => {
                         <li>Bu sözleşmeyi taraflar olarak hazırlayıp, sözleşmeyi temin altına almak için aşağıdaki teminat senedi öğrenci velisi tarafından imzalanmıştır. Öğretim yılı sonunda öğrencinin servis kartında borcu gözükmüyorsa senet firma tarafından iptal edilip veliye iade edilecektir. Bahsedilen sözleşme ........................................................................................................................... tarihleri arasını kapsar.</li>
                     </ol>
 
-                    <p className="mb-2">Bu sözleşme 12 maddeden olup, ihtilaf vukuunda Sincan mahkemeleri yetkilidir.<br/>
+                    <p className="mb-1">Bu sözleşme 12 maddeden olup, ihtilaf vukuunda Sincan mahkemeleri yetkilidir.<br/>
                     Yukarıdaki tüm maddeleri okudum kabul ediyorum.</p>
 
-                    <div className="flex justify-between items-start mb-6 border-b-2 border-dotted border-gray-400 pb-6">
+                    <div className="flex justify-between items-start mb-3 border-b-2 border-dotted border-gray-400 pb-3">
                         <div className="w-1/2">
                             <table className="w-full">
                                 <tbody>
