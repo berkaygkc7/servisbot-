@@ -194,12 +194,12 @@ const PrintContract: React.FC = () => {
         <div className="bg-white min-h-screen text-black font-serif print:p-0 p-8">
             <style>{`
                 @media print {
-                    @page { size: A4 portrait; margin: 15mm; }
+                    @page { size: A4 portrait; margin: 10mm; }
                     body { background: white !important; -webkit-print-color-adjust: exact !important; print-color-adjust: exact !important; }
                     .no-print { display: none !important; }
                 }
-                .contract-text { font-size: 13px; line-height: 1.5; text-align: justify; }
-                .contract-text li { margin-bottom: 8px; }
+                .contract-text { font-size: 11px; line-height: 1.35; text-align: justify; }
+                .contract-text li { margin-bottom: 4px; }
             `}</style>
 
             <PrintHeader />
