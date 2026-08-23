@@ -36,6 +36,7 @@ const PrintContract: React.FC = () => {
     const normComp = compNameLower.replace(/ö/g, 'o').replace(/ü/g, 'u').replace(/ı/g, 'i').replace(/ş/g, 's').replace(/ğ/g, 'g').replace(/ç/g, 'c').replace(/\s+/g, '');
     const isHalegul = normComp.includes('halegul');
     const isGuroz = normComp.includes('guroz');
+    const isOzhamle = normComp.includes('ozhamle');
     
     // Okul adından da Güvençer tespiti (ekstra güvence)
     const schoolStr = (student?.school_name || student?.school || '').toLowerCase()
@@ -204,7 +205,12 @@ const PrintContract: React.FC = () => {
 
             <PrintHeader />
 
-            <div className="max-w-4xl mx-auto contract-text pt-16 print:pt-0">
+            <div className="max-w-4xl mx-auto contract-text pt-16 print:pt-0 relative">
+                {isOzhamle && (
+                    <div className="absolute top-0 right-0 w-24">
+                        <img src="/ozhamle_logo.png" alt="Özhamle Turizm" className="w-full h-auto object-contain" />
+                    </div>
+                )}
                 <h2 className="text-center font-bold text-lg mb-6">ÖĞRENCİ SERVİS KAYIT SÖZLEŞMESİ</h2>
                 
                 <div className="mb-6 space-y-3">
