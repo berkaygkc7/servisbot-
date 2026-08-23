@@ -1,5 +1,6 @@
 import React, { useEffect, useState } from 'react';
 import { useAuth } from '../contexts/AuthContext';
+import { ozhamleLogo } from '../assets/ozhamleLogo';
 
 const PrintContract: React.FC = () => {
     const { profile } = useAuth();
@@ -212,7 +213,7 @@ const PrintContract: React.FC = () => {
                     <div className="flex justify-between items-center mb-6">
                         <h2 className="font-bold text-lg flex-1">ÖĞRENCİ SERVİS KAYIT SÖZLEŞMESİ</h2>
                         <div className="w-56 ml-4 shrink-0">
-                            <img src="/ozhamle_logo_v3.png" alt="Özhamle Turizm" className="w-full h-auto object-contain" style={{ WebkitPrintColorAdjust: 'exact', printColorAdjust: 'exact' }} />
+                            <img src={ozhamleLogo} alt="Özhamle Turizm" className="w-full h-auto object-contain" style={{ WebkitPrintColorAdjust: 'exact', printColorAdjust: 'exact' }} />
                         </div>
                     </div>
                 ) : (
