@@ -196,23 +196,23 @@ const PrintContract: React.FC = () => {
         <div className="bg-white min-h-screen text-black font-serif print:p-0 p-8">
             <style>{`
                 @media print {
-                    @page { size: A4 portrait; margin: 10mm; }
+                    @page { size: A4 portrait; margin: 6mm; }
                     body { background: white !important; -webkit-print-color-adjust: exact !important; print-color-adjust: exact !important; }
                     .no-print { display: none !important; }
                 }
-                .contract-text { font-size: ${isOzhamle ? '9px' : '11px'}; line-height: ${isOzhamle ? '1.2' : '1.35'}; text-align: justify; }
-                .contract-text li { margin-bottom: ${isOzhamle ? '2px' : '4px'}; }
-                .ozhamle-senet { font-size: 9px; line-height: 1.2; }
+                .contract-text { font-size: ${isOzhamle ? '8px' : '11px'}; line-height: ${isOzhamle ? '1.15' : '1.35'}; text-align: justify; }
+                .contract-text li { margin-bottom: ${isOzhamle ? '1px' : '4px'}; }
+                .ozhamle-senet { font-size: 8px; line-height: 1.1; }
                 .vertical-text { writing-mode: vertical-rl; transform: rotate(180deg); }
             `}</style>
 
             <PrintHeader />
 
-            <div className="max-w-4xl mx-auto contract-text pt-16 print:pt-0 relative">
+            <div className="max-w-4xl mx-auto contract-text pt-4 print:pt-0 relative">
                 {isOzhamle ? (
-                    <div className="flex justify-between items-center mb-6">
-                        <h2 className="font-bold text-lg flex-1">ÖĞRENCİ SERVİS KAYIT SÖZLEŞMESİ</h2>
-                        <div className="w-56 ml-4 shrink-0">
+                    <div className="flex justify-between items-center mb-3">
+                        <h2 className="font-bold text-base flex-1">ÖĞRENCİ SERVİS KAYIT SÖZLEŞMESİ</h2>
+                        <div className="w-40 ml-4 shrink-0">
                             <img src={ozhamleLogo} alt="Özhamle Turizm" className="w-full h-auto object-contain" style={{ WebkitPrintColorAdjust: 'exact', printColorAdjust: 'exact' }} />
                         </div>
                     </div>
@@ -220,7 +220,7 @@ const PrintContract: React.FC = () => {
                     <h2 className="text-center font-bold text-lg mb-6">ÖĞRENCİ SERVİS KAYIT SÖZLEŞMESİ</h2>
                 )}
                 
-                <div className="mb-6 space-y-3">
+                <div className={`mb-4 ${isOzhamle ? 'space-y-1' : 'space-y-3'}`}>
                     <p><strong>FİRMA ADI:</strong> {displayCompanyName}</p>
                     <p><strong>ÖĞRENCİNİN ADI SOYADI:</strong> <span className="font-semibold">{student?.full_name || student?.name || '................................................................'}</span></p>
                     <p><strong>OKULU:</strong> <span className="font-semibold">{student?.school_name || student?.school || '................................................................'}</span></p>
@@ -252,7 +252,7 @@ const PrintContract: React.FC = () => {
                     <li>Öğretim yılı sonunda öğrencinin öğrenci zarfında borcu gözükmüyorsa senet yetkili tarafından iptal edilip, veliye iade edilir. İş bu sözleşme iki nüsha olarak tanzim edilmiştir.</li>
                 </ol>
 
-                <div className="mt-8 flex justify-between px-10">
+                <div className="mt-4 flex justify-between px-10">
                     <div className="text-center">
                         <p className="font-bold">VELİ</p>
                         <p className="text-sm text-slate-500 mt-1">İmza</p>
@@ -264,9 +264,9 @@ const PrintContract: React.FC = () => {
                 </div>
 
                 {isOzhamle && (
-                    <div className="mt-6 border-t border-dashed border-gray-400 pt-4 ozhamle-senet">
+                    <div className="mt-4 border-t border-dashed border-gray-400 pt-2 ozhamle-senet">
                         <div className="w-full max-w-2xl mx-auto">
-                            <table className="w-full text-center font-bold mb-3 border-separate" style={{ borderSpacing: '15px 0' }}>
+                            <table className="w-full text-center font-bold mb-2 border-separate" style={{ borderSpacing: '10px 0' }}>
                                 <thead>
                                     <tr>
                                         <td className="w-1/4 pb-1">ÖDEME GÜNÜ</td>
