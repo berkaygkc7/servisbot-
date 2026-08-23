@@ -552,7 +552,8 @@ const RoutesPage: React.FC = () => {
                         id: s.id, // Removed student- prefix for consistency and reliable matching
                         position: [lng, lat],
                         title: s.full_name,
-                        type: 'student_home'
+                        type: 'student_home',
+                        hasVehicle: !!(s as any).vehicle_id || !!(s as any).vehicles?.plate_number
                     });
                 }
             });
@@ -959,6 +960,54 @@ const RoutesPage: React.FC = () => {
             fetchRoutes();
         } catch (error) {
             console.error('Error assigning vehicle:', error);
+        }
+    };
+
+    // Assign vehicle to a student directly from the map popup card
+    const handleStudentVehicleAssign = async (studentId: string, vehicleId: string) => {
+        try {
+            await supabase.from('students').update({ vehicle_id: vehicleId || null }).eq('id', studentId);
+            // Refresh students data
+            const { data: studentsData } = await supabase.from('students').select('id, full_name, home_latitude, home_longitude, address, tags, parent_name, parent_phone, grade, blood_group, allergies, registration_date, school_id, vehicle_id, schools(name), vehicles(plate_number), shift').neq('status', 'pending');
+            if (studentsData) {
+                setAvailableStudents(studentsData as any);
+                // Update selectedStudent with fresh data
+                const updatedStudent = studentsData.find((s: any) => s.id === studentId);
+                if (updatedStudent) setSelectedStudent(updatedStudent);
+            }
+        } catch (error) {
+            console.error('Error assigning vehicle to student:', error);
+        }
+    };
+
+    // Assign/remove student to/from a route stop from the map popup card
+    const handlePopupStopStudentToggle = async (stopId: string, studentId: string) => {
+        if (!selectedRouteId) return;
+        try {
+            const route = routes.find(r => r.id === selectedRouteId);
+            if (!route) return;
+            const stop = route.stops.find(s => s.id === stopId);
+            if (!stop) return;
+
+            const isAssigned = stop.assignedStudentIds.includes(studentId);
+
+            if (isAssigned) {
+                await supabase.from('student_route_assignments')
+                    .delete()
+                    .match({ student_id: studentId, stop_id: stopId });
+            } else {
+                await supabase.from('student_route_assignments')
+                    .insert({
+                        company_id: profile?.company_id,
+                        student_id: studentId,
+                        route_id: selectedRouteId,
+                        stop_id: stopId,
+                        type: 'pickup'
+                    });
+            }
+            fetchRoutes();
+        } catch (error) {
+            console.error('Error toggling student stop from popup:', error);
         }
     };
 
@@ -2134,7 +2183,7 @@ const RoutesPage: React.FC = () => {
 
                     {/* Student Detail Popup / Card */}
                     {selectedStudent && (
-                        <div className="absolute bottom-4 left-4 right-4 md:right-auto md:w-72 bg-white rounded-xl shadow-2xl border border-slate-100 p-3 animate-in slide-in-from-bottom-5 duration-200 z-50 flex flex-col max-h-[60vh]">
+                        <div className="absolute bottom-4 left-4 right-4 md:right-auto md:w-80 bg-white rounded-xl shadow-2xl border border-slate-100 p-3 animate-in slide-in-from-bottom-5 duration-200 z-50 flex flex-col max-h-[70vh]">
                             <div className="flex justify-between items-start mb-2 shrink-0">
                                 <div>
                                     <h3 className="font-bold text-slate-800 text-sm leading-tight">{selectedStudent.full_name}</h3>
@@ -2174,11 +2223,82 @@ const RoutesPage: React.FC = () => {
                                             </span>
                                         )) : <span className="text-[9px] text-slate-400 italic">Etiket Yok</span>}
                                     </div>
-                                    <div className="flex items-center justify-between border-t border-slate-200/50 pt-1.5 mt-1.5">
-                                        <span className="text-slate-500 text-[10px]">Araç:</span>
-                                        <span className="font-bold text-blue-700 text-xs">{selectedStudent.vehicles?.plate_number || 'Atanmadı'}</span>
-                                    </div>
                                 </div>
+
+                                {/* Araç Atama Bölümü */}
+                                <div className={`p-2.5 rounded-lg border ${selectedStudent.vehicles?.plate_number ? 'bg-emerald-50 border-emerald-200' : 'bg-red-50 border-red-200'}`}>
+                                    <div className="flex items-center justify-between mb-1.5">
+                                        <div className="flex items-center gap-1.5">
+                                            <Bus size={12} className={selectedStudent.vehicles?.plate_number ? 'text-emerald-600' : 'text-red-500'} />
+                                            <span className="text-[10px] font-bold text-slate-500 uppercase tracking-wider">Araç</span>
+                                        </div>
+                                        {selectedStudent.vehicles?.plate_number ? (
+                                            <span className="flex items-center gap-1 text-[10px] font-bold text-emerald-700">
+                                                <span className="w-1.5 h-1.5 rounded-full bg-emerald-500 inline-block"></span>
+                                                {selectedStudent.vehicles.plate_number}
+                                            </span>
+                                        ) : (
+                                            <span className="flex items-center gap-1 text-[10px] font-bold text-red-600">
+                                                <span className="w-1.5 h-1.5 rounded-full bg-red-500 animate-pulse inline-block"></span>
+                                                Atanmadı
+                                            </span>
+                                        )}
+                                    </div>
+                                    <select
+                                        className="w-full text-[11px] bg-white border border-slate-200 rounded-lg px-2 py-1.5 outline-none focus:border-blue-500 focus:ring-1 focus:ring-blue-200 font-medium text-slate-700 appearance-none cursor-pointer"
+                                        value={selectedStudent.vehicle_id || ''}
+                                        onChange={(e) => handleStudentVehicleAssign(selectedStudent.id, e.target.value)}
+                                    >
+                                        <option value="">{selectedStudent.vehicle_id ? 'Aracı Kaldır...' : 'Araç Seç...'}</option>
+                                        {availableVehicles.map(v => (
+                                            <option key={v.id} value={v.id}>{v.plate_number} - {v.driver_name}</option>
+                                        ))}
+                                    </select>
+                                    {/* Quick assign from current route's vehicle */}
+                                    {selectedRoute?.vehicle_id && !selectedStudent.vehicle_id && (
+                                        <button
+                                            onClick={() => handleStudentVehicleAssign(selectedStudent.id, selectedRoute.vehicle_id!)}
+                                            className="w-full mt-1.5 py-1.5 px-2 bg-gradient-to-r from-blue-600 to-indigo-600 hover:from-blue-700 hover:to-indigo-700 text-white rounded-lg font-bold text-[10px] flex items-center justify-center gap-1.5 shadow-sm transition-all"
+                                        >
+                                            <Bus size={11} />
+                                            Rotanın Aracını Ata ({selectedRoute.vehicles?.plate_number})
+                                        </button>
+                                    )}
+                                </div>
+
+                                {/* Durağa Atama Bölümü (sadece rota seçiliyken) */}
+                                {selectedRoute && selectedRoute.stops.length > 0 && (
+                                    <div className="bg-blue-50 p-2.5 rounded-lg border border-blue-200">
+                                        <div className="flex items-center gap-1.5 mb-2">
+                                            <MapPin size={12} className="text-blue-600" />
+                                            <span className="text-[10px] font-bold text-blue-700 uppercase tracking-wider">Durağa Ata</span>
+                                            <span className="text-[9px] text-blue-500 font-medium ml-auto">{selectedRoute.name}</span>
+                                        </div>
+                                        <div className="space-y-1 max-h-32 overflow-y-auto custom-scrollbar">
+                                            {selectedRoute.stops.filter(s => s.type !== 'end').map(stop => {
+                                                const isAssignedToStop = stop.assignedStudentIds.includes(selectedStudent.id);
+                                                return (
+                                                    <button
+                                                        key={stop.id}
+                                                        onClick={() => handlePopupStopStudentToggle(stop.id, selectedStudent.id)}
+                                                        className={`w-full flex items-center justify-between p-1.5 rounded-lg text-[11px] transition-all border ${isAssignedToStop
+                                                            ? 'bg-blue-600 text-white border-blue-700 shadow-sm'
+                                                            : 'bg-white text-slate-600 border-slate-200 hover:bg-blue-100 hover:border-blue-300'
+                                                            }`}
+                                                    >
+                                                        <div className="flex items-center gap-1.5">
+                                                            <div className={`w-4 h-4 rounded-full flex items-center justify-center text-[8px] font-bold ${stop.type === 'start' ? 'bg-green-500 text-white' : isAssignedToStop ? 'bg-white text-blue-600' : 'bg-blue-100 text-blue-600'}`}>
+                                                                {stop.type === 'start' ? 'B' : stop.order_index}
+                                                            </div>
+                                                            <span className="font-medium truncate">{stop.name}</span>
+                                                        </div>
+                                                        {isAssignedToStop && <Check size={12} className="shrink-0" />}
+                                                    </button>
+                                                );
+                                            })}
+                                        </div>
+                                    </div>
+                                )}
                             </div>
                         </div>
                     )}

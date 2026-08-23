@@ -11,7 +11,7 @@ interface MapSceneProps {
     routeGeoJson?: any;
     routesGeoJson?: any;
     colorfulRoutesGeoJson?: any;
-    markers?: { id: string | number; position: [number, number]; title: string; type?: 'vehicle' | 'stop' | 'student_home' | 'search_result' }[];
+    markers?: { id: string | number; position: [number, number]; title: string; type?: 'vehicle' | 'stop' | 'student_home' | 'search_result'; hasVehicle?: boolean }[];
     autoCenter?: boolean;
     onMapClick?: (lng: number, lat: number) => void;
     onMarkerClick?: (id: string | number, type?: string) => void;
@@ -378,7 +378,7 @@ const MapScene: React.FC<MapSceneProps> = ({
             label = '🚐';
             html = `<span class="drop-shadow-sm">${label}</span>`;
         } else if (p.type === 'student_home') {
-            bgClass = 'bg-orange-500 border-white border-2';
+            bgClass = p.hasVehicle ? 'bg-emerald-500 border-white border-2' : 'bg-red-500 border-white border-2';
             label = '🏠';
             sizeClass = 'w-6 h-6 text-[10px]';
             html = `<span class="drop-shadow-sm">${label}</span>`;
