@@ -1153,14 +1153,29 @@ const RoutesPage: React.FC = () => {
     const handleStopStudentToggle = async (stopId: string, studentId: string) => {
         if (!selectedRouteId) return;
 
+        const route = routes.find(r => r.id === selectedRouteId);
+        if (!route) return;
+        const stop = route.stops.find(s => s.id === stopId);
+        if (!stop) return;
+
+        const isAssigned = stop.assignedStudentIds.includes(studentId);
+
+        // Optimistic UI Update for instant feedback
+        setRoutes(prev => prev.map(r => {
+            if (r.id !== selectedRouteId) return r;
+            const newStops = r.stops.map(s => {
+                if (s.id !== stopId) return s;
+                return {
+                    ...s,
+                    assignedStudentIds: isAssigned 
+                        ? s.assignedStudentIds.filter(id => id !== studentId)
+                        : [...s.assignedStudentIds, studentId]
+                };
+            });
+            return { ...r, stops: newStops };
+        }));
+
         try {
-            const route = routes.find(r => r.id === selectedRouteId);
-            if (!route) return;
-            const stop = route.stops.find(s => s.id === stopId);
-            if (!stop) return;
-
-            const isAssigned = stop.assignedStudentIds.includes(studentId);
-
             if (isAssigned) {
                 await supabase.from('student_route_assignments')
                     .delete()
@@ -1172,13 +1187,13 @@ const RoutesPage: React.FC = () => {
                         student_id: studentId,
                         route_id: selectedRouteId,
                         stop_id: stopId,
-                        type: 'pickup' // Varsayılan olarak biniş
+                        type: 'pickup'
                     });
             }
-            // Refresh to update UI
-            fetchRoutes();
+            // fetchRoutes(); // We don't need to re-fetch entire routes on every click because we optimistically updated.
         } catch (error) {
             console.error('Error toggling student:', error);
+            fetchRoutes(); // Revert on error
         }
     };
 
@@ -2060,6 +2075,7 @@ const RoutesPage: React.FC = () => {
                                                                         const isAssigned = stop.assignedStudentIds.includes(student.id);
                                                                         return (
                                                                             <button
+                                                                                type="button"
                                                                                 key={student.id}
                                                                                 onClick={() => handleStopStudentToggle(stop.id, student.id)}
                                                                                 className={`w-full flex items-center justify-between p-2 rounded-lg text-sm transition-colors ${isAssigned
@@ -2090,6 +2106,7 @@ const RoutesPage: React.FC = () => {
                                                                 )}
                                                             </div>
                                                             <button
+                                                                type="button"
                                                                 onClick={() => { setAssigningStopId(null); setStudentSearchQuery(''); }}
                                                                 className="w-full mt-3 py-1.5 bg-slate-100 text-slate-600 text-xs font-bold rounded-lg hover:bg-slate-200"
                                                             >
