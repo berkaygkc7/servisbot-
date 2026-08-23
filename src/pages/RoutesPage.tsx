@@ -466,7 +466,7 @@ const RoutesPage: React.FC = () => {
 
     // --- Helpers ---
 
-    const getMarkers = () => {
+    const mapMarkers = useMemo(() => {
         const markers: any[] = [];
 
         // 1. Creation Mode Markers
@@ -588,7 +588,22 @@ const RoutesPage: React.FC = () => {
         }
 
         return markers;
-    };
+    }, [
+        creationStep,
+        creationMethod,
+        tempPoints,
+        selectedRoute,
+        showStudentLocations,
+        availableStudents,
+        activeTagFilter,
+        selectedNeighborhood,
+        newRouteSchoolId,
+        schools,
+        activeSchoolFilter,
+        activeShiftFilter,
+        liveVehicles,
+        searchResultPin
+    ]);
 
     // --- Handlers: Route Creation ---
 
@@ -1521,7 +1536,7 @@ const RoutesPage: React.FC = () => {
                                 <span>Öğrenci Evleri</span>
                             </div>
                             <span className={`px-1.5 py-0.5 rounded-full text-[10px] ${showStudentLocations ? 'bg-white/20' : 'bg-slate-100 text-slate-500'}`}>
-                                {getMarkers().filter(m => m.type === 'student_home').length} / {availableStudents.length}
+                                {mapMarkers.filter(m => m.type === 'student_home').length} / {availableStudents.length}
                             </span>
                         </button>
 
@@ -2098,7 +2113,7 @@ const RoutesPage: React.FC = () => {
                         className="w-full h-full"
                         routeGeoJson={routeGeoJson}
                         routesGeoJson={(selectedRouteId || creationStep !== 'idle') ? null : multiRoutesGeoJson}
-                        markers={getMarkers()}
+                        markers={mapMarkers}
                         onMapClick={handleMapClick}
                         onMarkerClick={handleMarkerClick}
                         onRouteHover={handleRouteHover}
