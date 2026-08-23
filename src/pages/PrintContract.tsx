@@ -199,15 +199,17 @@ const PrintContract: React.FC = () => {
                     body { background: white !important; -webkit-print-color-adjust: exact !important; print-color-adjust: exact !important; }
                     .no-print { display: none !important; }
                 }
-                .contract-text { font-size: 11px; line-height: 1.35; text-align: justify; }
-                .contract-text li { margin-bottom: 4px; }
+                .contract-text { font-size: ${isOzhamle ? '9px' : '11px'}; line-height: ${isOzhamle ? '1.2' : '1.35'}; text-align: justify; }
+                .contract-text li { margin-bottom: ${isOzhamle ? '2px' : '4px'}; }
+                .ozhamle-senet { font-size: 9px; line-height: 1.2; }
+                .vertical-text { writing-mode: vertical-rl; transform: rotate(180deg); }
             `}</style>
 
             <PrintHeader />
 
             <div className="max-w-4xl mx-auto contract-text pt-16 print:pt-0 relative">
                 {isOzhamle && (
-                    <div className="absolute top-0 right-0 w-24">
+                    <div className="absolute top-0 right-0 w-32 bg-slate-800 p-2 rounded-lg" style={{ WebkitPrintColorAdjust: 'exact', printColorAdjust: 'exact' }}>
                         <img src="/ozhamle_logo.png" alt="Özhamle Turizm" className="w-full h-auto object-contain" />
                     </div>
                 )}
@@ -245,7 +247,7 @@ const PrintContract: React.FC = () => {
                     <li>Öğretim yılı sonunda öğrencinin öğrenci zarfında borcu gözükmüyorsa senet yetkili tarafından iptal edilip, veliye iade edilir. İş bu sözleşme iki nüsha olarak tanzim edilmiştir.</li>
                 </ol>
 
-                <div className="mt-12 flex justify-between px-10">
+                <div className="mt-8 flex justify-between px-10">
                     <div className="text-center">
                         <p className="font-bold">VELİ</p>
                         <p className="text-sm text-slate-500 mt-1">İmza</p>
@@ -255,6 +257,47 @@ const PrintContract: React.FC = () => {
                         <p className="text-sm text-slate-500 mt-1">İmza / Kaşe</p>
                     </div>
                 </div>
+
+                {isOzhamle && (
+                    <div className="mt-6 border-t border-dashed border-gray-400 pt-4 ozhamle-senet">
+                        <div className="w-full max-w-2xl mx-auto">
+                            <table className="w-full text-center font-bold mb-3 border-separate" style={{ borderSpacing: '15px 0' }}>
+                                <thead>
+                                    <tr>
+                                        <td className="w-1/4 pb-1">ÖDEME GÜNÜ</td>
+                                        <td className="w-1/4 pb-1">TÜRK LİRASI</td>
+                                        <td className="w-1/4 pb-1">KURUŞ</td>
+                                        <td className="w-1/4 pb-1">NO</td>
+                                    </tr>
+                                </thead>
+                                <tbody>
+                                    <tr>
+                                        <td><div className="border border-black h-6 w-full"></div></td>
+                                        <td><div className="border border-black h-6 w-full"></div></td>
+                                        <td><div className="border border-black h-6 w-full"></div></td>
+                                        <td><div className="border border-black h-6 w-full"></div></td>
+                                    </tr>
+                                </tbody>
+                            </table>
+                            
+                            <div className="text-justify mb-4 font-medium leading-relaxed px-4">
+                                İşbu emre muharrer senedim............................. mukabilinde ..........................................................................tarihinde bay <span className="font-bold">ÖZHAMLE TURİZM TAŞ. NAK. LTD. ŞTİ.</span> veyahut emruhavale............................................ yukarıda yazılı yalnız ........................................................................................................TL......................................................KR. ödeyeceği......... Bedeli nakden ahzolunmuştur. İşbu bono vadesinde ödenmediği takdirde müteakip bonoların da muacceliyet kesbedeceğini, ihtilaf vukuunda <span className="font-bold">Ankara Batı Adliyeleri</span>'nin selahiyetini şimdiden kabul eylerim.
+                            </div>
+
+                            <div className="flex px-4 items-stretch">
+                                <div className="flex items-center justify-center mr-4">
+                                    <span className="font-bold text-sm vertical-text tracking-widest border-l-2 border-black pl-1">Ödeyecek</span>
+                                </div>
+                                <div className="flex-1 font-medium leading-loose pt-1">
+                                    <p>İsim <span className="inline-block w-4"></span>: <span className="font-semibold text-[10px]">{student?.parent_name || student?.parent || '........................................................................................................'}</span></p>
+                                    <p>Adresi <span className="inline-block w-1"></span>: <span className="font-semibold text-[10px]">{student?.address || '........................................................................................................'}</span></p>
+                                    <p className="pl-14">........................................................................................................</p>
+                                    <p>T.C. KİMLİK NO: <span className="font-semibold text-[10px]">{student?.parent_tc || '........................................................................................................'}</span></p>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                )}
             </div>
         </div>
     );
