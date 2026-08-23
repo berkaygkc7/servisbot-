@@ -73,6 +73,7 @@ interface Student {
     tags?: string[];
     school_id?: string;
     schools?: { name: string };
+    vehicle_id?: string;
     vehicles?: { plate_number: string };
     shift?: string;
 }
@@ -234,7 +235,7 @@ const RoutesPage: React.FC = () => {
             if (vehiclesData) setAvailableVehicles(vehiclesData);
 
             // 2. Fetch Students
-            const { data: studentsData } = await supabase.from('students').select('id, full_name, home_latitude, home_longitude, address, tags, parent_name, parent_phone, grade, blood_group, allergies, registration_date, school_id, schools(name), vehicles(plate_number), shift').neq('status', 'pending');
+            const { data: studentsData } = await supabase.from('students').select('id, full_name, home_latitude, home_longitude, address, tags, parent_name, parent_phone, grade, blood_group, allergies, registration_date, school_id, vehicle_id, schools(name), vehicles(plate_number), shift').neq('status', 'pending');
             if (studentsData) setAvailableStudents(studentsData as any);
 
             // 2.5 Fetch Tags
@@ -958,6 +959,47 @@ const RoutesPage: React.FC = () => {
             fetchRoutes();
         } catch (error) {
             console.error('Error assigning vehicle:', error);
+        }
+    };
+
+    // Bulk assign vehicle to all students on the selected route
+    const handleBulkVehicleAssignToStudents = async () => {
+        if (!selectedRoute || !selectedRoute.vehicle_id) return;
+
+        const allStudentIds = selectedRoute.stops.flatMap(s => s.assignedStudentIds || []);
+        const uniqueStudentIds = [...new Set(allStudentIds)];
+
+        if (uniqueStudentIds.length === 0) {
+            alert('Bu güzergahta henüz öğrenci atanmamış.');
+            return;
+        }
+
+        const unassignedStudentIds = uniqueStudentIds.filter(sid => {
+            const student = availableStudents.find(s => s.id === sid);
+            return !student?.vehicle_id;
+        });
+
+        if (unassignedStudentIds.length === 0) {
+            alert('Tüm öğrencilere zaten araç atanmış!');
+            return;
+        }
+
+        if (!confirm(`${unassignedStudentIds.length} öğrenciye bu aracı atamak istediğinize emin misiniz?`)) return;
+
+        try {
+            setLoading(true);
+            for (const studentId of unassignedStudentIds) {
+                await supabase.from('students').update({ vehicle_id: selectedRoute.vehicle_id }).eq('id', studentId);
+            }
+            // Refresh students data
+            const { data: studentsData } = await supabase.from('students').select('id, full_name, home_latitude, home_longitude, address, tags, parent_name, parent_phone, grade, blood_group, allergies, registration_date, school_id, vehicle_id, schools(name), vehicles(plate_number), shift').neq('status', 'pending');
+            if (studentsData) setAvailableStudents(studentsData as any);
+            await fetchRoutes();
+        } catch (error) {
+            console.error('Error bulk assigning vehicle:', error);
+            alert('Araç atama sırasında hata oluştu.');
+        } finally {
+            setLoading(false);
         }
     };
 
@@ -1798,6 +1840,53 @@ const RoutesPage: React.FC = () => {
                                                 <option key={v.id} value={v.id}>{v.plate_number} - {v.driver_name}</option>
                                             ))}
                                         </select>
+
+                                        {/* Bulk Vehicle Assignment to Students */}
+                                        {selectedRoute?.vehicle_id && (() => {
+                                            const allStudentIds = selectedRoute.stops.flatMap(s => s.assignedStudentIds || []);
+                                            const uniqueStudentIds = [...new Set(allStudentIds)];
+                                            const assignedCount = uniqueStudentIds.filter(sid => {
+                                                const student = availableStudents.find(s => s.id === sid);
+                                                return !!(student as any)?.vehicles?.plate_number;
+                                            }).length;
+                                            const unassignedCount = uniqueStudentIds.length - assignedCount;
+                                            return (
+                                                <div className="mt-4 p-3 bg-slate-50 rounded-xl border border-slate-200">
+                                                    <div className="flex items-center justify-between mb-2">
+                                                        <span className="text-xs font-bold text-slate-500">Öğrenci Araç Durumu</span>
+                                                        <span className="text-xs font-semibold text-slate-400">{uniqueStudentIds.length} öğrenci</span>
+                                                    </div>
+                                                    <div className="flex gap-2 mb-3">
+                                                        <div className="flex-1 flex items-center gap-1.5 px-2.5 py-1.5 bg-green-50 border border-green-200 rounded-lg">
+                                                            <span className="w-2 h-2 rounded-full bg-green-500"></span>
+                                                            <span className="text-xs font-bold text-green-700">{assignedCount}</span>
+                                                            <span className="text-[10px] text-green-600">Atanmış</span>
+                                                        </div>
+                                                        <div className="flex-1 flex items-center gap-1.5 px-2.5 py-1.5 bg-red-50 border border-red-200 rounded-lg">
+                                                            <span className="w-2 h-2 rounded-full bg-red-500 animate-pulse"></span>
+                                                            <span className="text-xs font-bold text-red-700">{unassignedCount}</span>
+                                                            <span className="text-[10px] text-red-600">Atanmamış</span>
+                                                        </div>
+                                                    </div>
+                                                    {unassignedCount > 0 && (
+                                                        <button
+                                                            onClick={handleBulkVehicleAssignToStudents}
+                                                            disabled={loading}
+                                                            className="w-full py-2.5 px-4 bg-gradient-to-r from-blue-600 to-indigo-600 hover:from-blue-700 hover:to-indigo-700 text-white rounded-xl font-bold text-sm flex items-center justify-center gap-2 shadow-md shadow-blue-200 transition-all cursor-pointer disabled:opacity-50"
+                                                        >
+                                                            {loading ? <Loader2 size={16} className="animate-spin" /> : <Bus size={16} />}
+                                                            <span>Tümüne Bu Aracı Ata ({unassignedCount} öğrenci)</span>
+                                                        </button>
+                                                    )}
+                                                    {unassignedCount === 0 && uniqueStudentIds.length > 0 && (
+                                                        <div className="text-xs text-green-600 font-semibold text-center flex items-center justify-center gap-1.5">
+                                                            <Check size={14} />
+                                                            Tüm öğrencilere araç atanmış
+                                                        </div>
+                                                    )}
+                                                </div>
+                                            );
+                                        })()}
 
                                         {selectedRoute && (
                                             <button
