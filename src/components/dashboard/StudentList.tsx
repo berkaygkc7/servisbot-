@@ -1,5 +1,5 @@
 import React from 'react';
-import { Edit, Trash2, MapPin, Eye, CheckCircle, Circle, Printer } from 'lucide-react';
+import { Edit, Trash2, MapPin, Eye, CheckCircle, Circle, Printer, AlertTriangle } from 'lucide-react';
 import { useAuth } from '../../contexts/AuthContext';
 
 export interface Student {
@@ -31,6 +31,7 @@ export interface Student {
     driver_name?: string;
     login_token?: string;
     payment_status_this_month?: string;
+    payment_note?: string;
 
     // UI helpers
     name: string;
@@ -76,7 +77,14 @@ const StudentList: React.FC<StudentListProps> = ({
                         {students.map((student) => (
                             <tr key={student.id} className="hover:bg-slate-50/50 transition-colors group">
                                 <td className="p-4">
-                                    <div className="font-medium text-slate-800">{student.name}</div>
+                                    <div className="flex items-center gap-2">
+                                        <div className="font-medium text-slate-800">{student.name}</div>
+                                        {student.payment_note && (
+                                            <div title={student.payment_note} className="text-amber-500 cursor-help flex-shrink-0 animate-pulse-slow">
+                                                <AlertTriangle size={18} className="fill-amber-100" />
+                                            </div>
+                                        )}
+                                    </div>
                                     {student.tags && student.tags.length > 0 && (
                                         <div className="flex gap-1 mt-1.5 flex-wrap">
                                             {student.tags.map((tag, idx) => (

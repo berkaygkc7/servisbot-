@@ -748,7 +748,8 @@ const Students: React.FC = () => {
                 total_debt: calculatedTotalDebt > 0 ? calculatedTotalDebt : null,
                 status: formData.status || 'active',
                 shift: formData.shift || null,
-                parent_tc: (formData as any).parent_tc || null
+                parent_tc: (formData as any).parent_tc || null,
+                payment_note: (formData as any).payment_note || null
             };
 
             if (editingStudent) {
@@ -1379,6 +1380,19 @@ const Students: React.FC = () => {
                                             value={formData.allergies || ''}
                                             onChange={e => setFormData({ ...formData, allergies: e.target.value })}
                                             placeholder="Alerji veya özel notlar..."
+                                        />
+                                    </div>
+
+                                    <div className="col-span-2">
+                                        <label className="block text-sm font-bold text-amber-700 mb-1 flex items-center gap-1.5">
+                                            <span>⚠️</span> Ödeme Notu
+                                        </label>
+                                        <input
+                                            type="text"
+                                            className="w-full px-3 py-2 border border-amber-200 bg-amber-50 rounded-lg focus:outline-none focus:border-amber-400 focus:ring-2 focus:ring-amber-400/20 text-amber-900 placeholder:text-amber-700/50"
+                                            value={(formData as any).payment_note || ''}
+                                            onChange={e => setFormData({ ...formData, payment_note: e.target.value } as any)}
+                                            placeholder="Örn: 500 TL eksik yatırdı, dikkat edilecek..."
                                         />
                                     </div>
                                 </div>
