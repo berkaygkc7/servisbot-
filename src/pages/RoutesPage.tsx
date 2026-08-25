@@ -530,8 +530,8 @@ const RoutesPage: React.FC = () => {
             });
         }
 
-        // 3. Student Locations (if toggled)
-        if (showStudentLocations) {
+        // 3. Student Locations (if toggled or a specific neighborhood is selected)
+        if (showStudentLocations || selectedNeighborhood !== 'all') {
             availableStudents.forEach(s => {
                 // Apply Tag Filter
                 const matchesTags = activeTagFilter.length === 0 ||
@@ -540,7 +540,13 @@ const RoutesPage: React.FC = () => {
                 // Apply Neighborhood Filter
                 let matchesNeighborhood = true;
                 if (selectedNeighborhood !== 'all') {
-                    matchesNeighborhood = !!(s.address && s.address.toLowerCase().includes(selectedNeighborhood.toLowerCase()));
+                    if (s.neighborhood) {
+                        matchesNeighborhood = s.neighborhood.toLowerCase().includes(selectedNeighborhood.toLowerCase());
+                    } else if (s.address) {
+                        matchesNeighborhood = s.address.toLowerCase().includes(selectedNeighborhood.toLowerCase());
+                    } else {
+                        matchesNeighborhood = false;
+                    }
                 }
 
                 // Apply Main School Filter
