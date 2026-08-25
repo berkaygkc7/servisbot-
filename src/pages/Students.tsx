@@ -1,6 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import { useLocation, useNavigate } from 'react-router-dom';
-import { Plus, Search, Filter, X, Download, Trash2, Loader2, MapPin, Tag as TagIcon, Check, Smartphone, Save } from 'lucide-react';
+import { Plus, Search, Filter, X, Download, Trash2, Loader2, MapPin, Tag as TagIcon, Check, Smartphone, Save, AlertTriangle } from 'lucide-react';
 import * as XLSX from 'xlsx';
 import { format } from 'date-fns';
 import { tr } from 'date-fns/locale';
@@ -240,6 +240,8 @@ const Students: React.FC = () => {
             // Filter logic
             if (activeFilter === 'pending') {
                 query = query.eq('status', 'pending');
+            } else if (activeFilter === 'with_notes') {
+                query = query.not('payment_note', 'is', null).neq('payment_note', '');
             } else if (activeFilter === 'all') {
                 query = query.neq('status', 'pending');
             } else {
@@ -1042,6 +1044,17 @@ const Students: React.FC = () => {
                         <span className="relative inline-flex rounded-full h-2 w-2 bg-amber-500"></span>
                     </span>
                     Onay Bekleyenler ({pendingCount})
+                </button>
+
+                <button
+                    onClick={() => setActiveFilter(activeFilter === 'with_notes' ? 'all' : 'with_notes')}
+                    className={`shrink-0 px-4 py-2 rounded-xl text-sm font-bold flex items-center gap-2 transition-colors ${activeFilter === 'with_notes'
+                        ? 'bg-amber-500 text-white shadow-md shadow-amber-100'
+                        : 'bg-amber-50 text-amber-600 hover:bg-amber-100 border border-amber-200'
+                        }`}
+                >
+                    <AlertTriangle size={16} />
+                    Ödeme Notu Olanlar
                 </button>
             </div>
 
