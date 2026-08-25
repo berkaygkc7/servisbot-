@@ -159,11 +159,24 @@ const ApplicationForm: React.FC = () => {
 
     const availableNeighborhoods = React.useMemo(() => {
         if (!pricingRules || pricingRules.length === 0) return [];
-        if (formData.schoolId) {
-            const schoolSpecificRules = pricingRules.filter((r: any) => r.school_id === formData.schoolId);
-            if (schoolSpecificRules.length > 0) return schoolSpecificRules;
+        
+        const generalRules = pricingRules.filter((r: any) => !r.school_id);
+        
+        if (!formData.schoolId) {
+            return generalRules.length > 0 ? generalRules : pricingRules;
         }
-        return pricingRules.filter((r: any) => !r.school_id);
+        
+        const schoolSpecificRules = pricingRules.filter((r: any) => r.school_id === formData.schoolId);
+        
+        // Combine them: School-specific rules take precedence over general rules with the same neighborhood name
+        const combinedRules = [...schoolSpecificRules];
+        generalRules.forEach((gr: any) => {
+            if (!schoolSpecificRules.some((sr: any) => sr.school_level === gr.school_level)) {
+                combinedRules.push(gr);
+            }
+        });
+        
+        return combinedRules.length > 0 ? combinedRules : pricingRules;
     }, [pricingRules, formData.schoolId]);
 
     const handleChange = (e: React.ChangeEvent<HTMLInputElement | HTMLTextAreaElement>) => {

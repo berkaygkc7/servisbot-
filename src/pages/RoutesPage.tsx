@@ -68,6 +68,7 @@ interface Student {
     home_latitude: number;
     home_longitude: number;
     address?: string;
+    neighborhood?: string;
     parent_name?: string;
     parent_phone?: string;
     tags?: string[];
@@ -99,16 +100,25 @@ const RoutesPage: React.FC = () => {
     const [fitBoundsTrigger, setFitBoundsTrigger] = useState(0);
     const [liveVehicles, setLiveVehicles] = useState<{ id: string; position: [number, number]; title: string }[]>([]);
     const [showStudentLocations, setShowStudentLocations] = useState(false); // New Toggle
+    const [hideOtherRoutes, setHideOtherRoutes] = useState(false); // New Toggle for hiding other routes
     const [selectedNeighborhood, setSelectedNeighborhood] = useState<string>('all');
     
     // Extract unique neighborhoods from students' addresses
     const neighborhoods = useMemo(() => {
         const mh = new Set<string>();
         availableStudents.forEach(s => {
-            if (s.address) {
-                // Match anything like "X Mah.", "X Mahallesi", "X Köyü"
-                const match = s.address.match(/([^,\d]+(Mahallesi|Mah\.|Mah|Köyü))/i);
-                if (match) mh.add(match[0].trim());
+            if (s.neighborhood) {
+                mh.add(s.neighborhood.trim());
+            } else if (s.address) {
+                const parts = s.address.split(',').map(p => p.trim()).filter(Boolean);
+                const mPart = parts.find(p => /(?:mahallesi|mah\b|mah\.|k\u00f6y\u00fc|mh\b|mh\.)/i.test(p));
+                if (mPart) {
+                    mh.add(mPart);
+                } else {
+                    // Fallback regex
+                    const match = s.address.match(/([^,\d]+(?:Mahallesi|Mah\.|Mah\b|Köyü|Mh\.|Mh\b))/i);
+                    if (match) mh.add(match[0].trim());
+                }
             }
         });
         return Array.from(mh).sort();
@@ -235,7 +245,7 @@ const RoutesPage: React.FC = () => {
             if (vehiclesData) setAvailableVehicles(vehiclesData);
 
             // 2. Fetch Students
-            const { data: studentsData } = await supabase.from('students').select('id, full_name, home_latitude, home_longitude, address, tags, parent_name, parent_phone, grade, blood_group, allergies, registration_date, school_id, vehicle_id, schools(name), vehicles(plate_number), shift').neq('status', 'pending');
+            const { data: studentsData } = await supabase.from('students').select('id, full_name, home_latitude, home_longitude, address, neighborhood, tags, parent_name, parent_phone, grade, blood_group, allergies, registration_date, school_id, vehicle_id, schools(name), vehicles(plate_number), shift').neq('status', 'pending');
             if (studentsData) setAvailableStudents(studentsData as any);
 
             // 2.5 Fetch Tags
@@ -375,7 +385,7 @@ const RoutesPage: React.FC = () => {
 
     // Derived Route GeoJSON for Tag Highlighting (Multiple Routes)
     useEffect(() => {
-        if (routes.length === 0) {
+        if (routes.length === 0 || (hideOtherRoutes && selectedRouteId)) {
             setMultiRoutesGeoJson(null);
             return;
         }
@@ -399,18 +409,25 @@ const RoutesPage: React.FC = () => {
             let isHighlighted = true; // Not faint by default
             let matchesFilters = true;
 
-            if (activeTagFilter.length > 0) {
+            // Apply School filter
+            if (activeSchoolFilter !== 'all' && route.school_id !== activeSchoolFilter) {
+                matchesFilters = false;
+            }
+
+            if (activeTagFilter.length > 0 && matchesFilters) {
                 const allAssignedIds = route.stops?.flatMap(s => s.assignedStudentIds || []) || [];
-                matchesFilters = availableStudents.some(s =>
+                let tagMatch = availableStudents.some(s =>
                     allAssignedIds.includes(s.id) &&
                     s.tags &&
                     activeTagFilter.some(tag => s.tags?.includes(tag))
                 );
 
                 // ALSO check route's own tags!
-                if (!matchesFilters && route.tags) {
-                    matchesFilters = activeTagFilter.some(tag => route.tags?.includes(tag));
+                if (!tagMatch && route.tags) {
+                    tagMatch = activeTagFilter.some(tag => route.tags?.includes(tag));
                 }
+
+                if (!tagMatch) matchesFilters = false;
             }
 
             if (!matchesFilters) return [];
@@ -443,7 +460,7 @@ const RoutesPage: React.FC = () => {
         } else {
             setMultiRoutesGeoJson(null);
         }
-    }, [routes, availableStudents, activeTagFilter, selectedRouteId]);
+    }, [routes, availableStudents, activeTagFilter, selectedRouteId, activeSchoolFilter, hideOtherRoutes]);
 
     // Focus on searched student from Global Search
     useEffect(() => {
@@ -1537,6 +1554,21 @@ const RoutesPage: React.FC = () => {
                     {availableTags.length > 0 && <div className="h-6 w-px bg-slate-200 hidden sm:block"></div>}
 
                     <div className="flex flex-col sm:flex-row gap-3">
+                        {/* Hide Other Routes Toggle */}
+                        <button
+                            onClick={() => setHideOtherRoutes(!hideOtherRoutes)}
+                            className={`w-full sm:w-auto px-4 py-2 rounded-xl text-sm font-bold border transition-all flex items-center justify-between sm:justify-start gap-2 ${hideOtherRoutes
+                                ? 'bg-indigo-500 text-white border-indigo-600 shadow-md shadow-indigo-200/50'
+                                : 'bg-white text-slate-600 border-slate-200 hover:bg-slate-50'
+                                }`}
+                            title="Seçili olmayan diğer rotaları haritada gizle"
+                        >
+                            <div className="flex items-center gap-2">
+                                <MapIcon size={16} />
+                                <span>Diğer Rotaları Gizle</span>
+                            </div>
+                        </button>
+
                         {/* Student Homes Toggle */}
                         <button
                             onClick={() => setShowStudentLocations(!showStudentLocations)}

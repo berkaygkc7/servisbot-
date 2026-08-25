@@ -201,19 +201,24 @@ const Students: React.FC = () => {
     };
 
     const getFilteredNeighborhoodRules = (selectedSchoolId?: string) => {
+        const generalRules = pricingRules.filter(r => !r.school_id);
+        
         if (!selectedSchoolId) {
-            const generalRules = pricingRules.filter(r => !r.school_id);
             return generalRules.length > 0 ? generalRules : pricingRules;
         }
 
         const schoolRules = pricingRules.filter(r => r.school_id === selectedSchoolId);
-        // Sadece seçilen okula ait tanımlanmış özel kurallar varsa YALNIZCA onları getir
-        if (schoolRules.length > 0) {
-            return schoolRules;
-        }
+        
+        // Okula özel kurallar ve genel kuralları birleştir (Aynı mahalle varsa okula özel olan geçerli olur)
+        const combinedRules = [...schoolRules];
+        generalRules.forEach(gr => {
+            if (!schoolRules.some(sr => sr.school_level === gr.school_level)) {
+                combinedRules.push(gr);
+            }
+        });
 
-        // Seçilen okula özel kural tanımlanmamışsa genel kuralları göster
-        return pricingRules.filter(r => !r.school_id);
+        // Eğer hiçbir kural bulunamadıysa tüm kuralları döndür
+        return combinedRules.length > 0 ? combinedRules : pricingRules;
     };
 
     const fetchStudents = async () => {

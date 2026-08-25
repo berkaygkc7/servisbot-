@@ -38,6 +38,7 @@ const PrintContract: React.FC = () => {
     const isHalegul = normComp.includes('halegul');
     const isGuroz = normComp.includes('guroz');
     const isOzhamle = normComp.includes('ozhamle');
+    const isServispark = normComp.includes('servispark');
     
     // Okul adından da Güvençer tespiti (ekstra güvence)
     const schoolStr = (student?.school_name || student?.school || '').toLowerCase()
@@ -80,6 +81,123 @@ const PrintContract: React.FC = () => {
             </div>
         </div>
     );
+
+    if (isServispark) {
+        return (
+            <div className="bg-white min-h-screen text-black font-sans print:p-0 p-8 text-sm">
+                <style>{`
+                    @media print {
+                        @page { size: A4 portrait; margin: 6mm; }
+                        body { background: white !important; -webkit-print-color-adjust: exact !important; print-color-adjust: exact !important; }
+                        .no-print { display: none !important; }
+                    }
+                    .contract-text { font-size: 10px; line-height: 1.25; text-align: justify; }
+                    .contract-text li { margin-bottom: 3px; }
+                    .senet-box { border: 2px solid #000; height: 24px; display: inline-block; width: 100%; }
+                    .vertical-text { writing-mode: vertical-rl; transform: rotate(180deg); }
+                `}</style>
+                <PrintHeader />
+                <div className="max-w-4xl mx-auto contract-text pt-4 print:pt-0">
+                    <div className="flex justify-between items-start mb-4">
+                        <div className="w-[55%]">
+                            <div className="flex flex-col text-[#001f3f]">
+                                <div className="flex items-center gap-1">
+                                    <div className="text-5xl font-black italic" style={{ transform: 'scaleX(1.5) skewX(-15deg)', marginRight: '15px' }}>S</div>
+                                    <div className="flex flex-col ml-4">
+                                        <span className="text-4xl font-black tracking-tighter leading-none whitespace-nowrap">SERVİS PARK</span>
+                                        <span className="text-right text-lg font-bold tracking-widest text-blue-900 -mt-1">TURİZM</span>
+                                    </div>
+                                </div>
+                                <div className="font-bold text-xs mt-2">İrtibat : 0545 283 32 55 <span className="ml-4 font-normal text-[10px]">www.servisparkturizm.com</span></div>
+                                <div className="font-bold text-[11px] leading-tight mt-1">SERVİSPARK TAŞIMACILIK TURİZM TİCARET LİMİTED ŞİRKETİ</div>
+                                <div className="text-[10px]">Şeyh Şamil Mh. 137. Cd. A1-3 Eryaman, Etimesgut ANKARA</div>
+                            </div>
+                        </div>
+                        <div className="w-[45%] text-[11px] leading-relaxed">
+                            <table className="w-full">
+                                <tbody>
+                                    <tr><td className="w-28 font-semibold">Öğrencinin Adı Soyadı</td><td>: <span className="font-bold">{student?.full_name || student?.name || '................................................................'}</span></td></tr>
+                                    <tr><td className="w-28 font-semibold">Velisinin Adı Soyadı</td><td>: <span className="font-bold">{student?.parent_name || student?.parent || '................................................................'}</span></td></tr>
+                                    <tr><td className="w-28 font-semibold">Anne/Baba İletişim</td><td>: <span className="font-bold">{student?.parent_phone || student?.phone || '................................................................'}</span></td></tr>
+                                    <tr><td className="w-28 font-semibold align-top">Ev Adresi</td><td>: <span className="font-bold text-[10px] block min-h-[2.5em]">{student?.address || '....................................................................................................................'}</span></td></tr>
+                                    <tr><td className="w-28 font-semibold">Sınıfı</td><td>: <span className="font-bold inline-block w-24">{student?.grade || '.........................'}</span> Kan Grubu: <span className="font-bold">{student?.blood_group || '..................'}</span></td></tr>
+                                    <tr><td className="w-28 font-semibold">Okulu</td><td>: <span className="font-bold">{student?.school_name || student?.school || '................................................................'}</span></td></tr>
+                                </tbody>
+                            </table>
+                        </div>
+                    </div>
+
+                    <div className="flex justify-between items-center mb-2">
+                        <h1 className="text-center font-bold text-xl flex-1 ml-10 tracking-wide">ÖĞRENCİ SERVİS KAYIT SÖZLEŞMESİ</h1>
+                        <div className="text-red-600 font-bold text-xl mr-2">02551</div>
+                    </div>
+
+                    <p className="font-bold mb-2 text-justify">KONU: 2026/2027 Eğitim ve öğretim yılında öğrenci taşımacılığında velinin ve taşımacılığı üstlenen firmanın menfaatlerini korumak amacıyla bahsedilen öğretim yılında aşağıda belirtilecek şekilde yapılacaktır.</p>
+
+                    <ol className="list-decimal pl-5 space-y-[1px] text-justify font-medium">
+                        <li>Servis araçlarımız İçişleri Bakanlığı'nın 28.08.2007 tarih 26627 sayılı okul servis araçları yönetmeliğine uygundur.</li>
+                        <li>Servis araçları öğrenciyi aldığı durağa 15 dakika gecikmesi halinde öğrenci ya da öğrenci velisi okul servis yetkilisini arayıp servis aracı hakkında bilgi alır. Servis yetkilisinin aracın gelemeyeceğini bildirmesi durumunda güzergah üzerindeki diğer servis öğrencilerini almak suretiyle taksi ile okula gelebilir. Bu durumda taksi ücreti servis yetkilisi tarafından karşılanır. Öğrencinin kendi kusuruyla servisi kaçırması durumunda sorumluluk öğrenciye aittir.</li>
+                        <li>Servis konusunda velinin muhatabı firmadır. Veli veya öğrenci servis hakkında şikayet ve isteklerini (servis güzergahı, durağı, saati, vb. konularda) servis yetkilisine iletmelidir. Servis şoförü bu konularda yetkili değildir.</li>
+                        <li>Öğrencinin servisteki hal ve hareketleri bir öğrenciye yakışır, diğer öğrenciler ve servis şoförünü rahatsız etmeyecek şekilde olmalıdır. Araçta alkol, sigara vb. bağımlılık yaratıcı ve kullanımı yasak olan maddelerin kullanımı kesinlikle yasaktır. Bu kurallara aykırılık tespit edilmesi halinde yetkili makamlara bildirilmekle birlikte öğrencinin servisle ilişkisi kesilir. Kalan borç miktarı muaccel olur.</li>
+                        <li>Servis araçlarımızın ulaşım hattı belediye güzergahına göre düzenlenir, tüm öğrencilerin ikamet adresleri düşünülerek servis şirketi tarafından belirlenir. Şirket tarafından belirlenen güzergaha uygun olduğu ölçüde öğrenci ikametinin önünde ya da ikametine yakın bir noktada indirilir.</li>
+                        <li>Servis ücretlerinin ödemesi okuldaki servis yetkilisine yapılır. Başka birine yapılan ödemeler geçerli değildir. İlk taksit en geç okulların açıldığı gün peşin olarak alınmak suretiyle, taksit ödemeleri her ayın 1'i ile 10'u arasında yapılır. Servis ücretleri belirlenip taksitler halinde ödenmesi kararlaştırıldığı için toplam sene üzerinden hesaplanmakta olup, ara tatiller, resmi ve milli tatiller ile eğitim öğretime ara verildiği dönemler belirlenen fiyata dahil değildir.<br/>
+                        Yıllık servis ücreti <span className="underline px-6 font-bold">{student?.total_debt ? Number(student.total_debt).toLocaleString('tr-TR') : '.......................................'}</span> TL+KDV'dir.<br/>
+                        Ödeme günü üzerinden 15 gün geçmiş olmasına rağmen ödeme yapılmadığı takdirde, tüm alacak miktarı muacceliyet kazanmış olacaktır.</li>
+                        <li>Ücretlendirme Ankara Ticaret Odası ya da Ankara Servisçiler Odası tarafından belirlenen fiyatlar dikkate alınarak servis şirketi tarafından belirlenir. Bahsedilen kuruluşların fiyat açıklamaması durumunda fiyat listesi okulun açılış tarihinden itibaren akaryakıt zammı, önceki yıla ait servis ücretleri, enflasyon artışı, işçilik giderlerindeki artış, tarife değişikliği göz önünde bulundurularak servis şirketi tarafından yapılacaktır. Enflasyon artışı nedeniyle sene içerisinde tarafların anlaştığı fiyatlarda artış ve güncelleme yapılabilir. Bu değişiklikler velilerin telefonlarına yazılı bildirim olarak gönderilecektir. Servis şirketinin sene içerisinde akaryakıt ve diğer giderlere gelen zamlar nedeniyle servis ücretinde değişiklik yapma hakkı saklı tutulmaktadır.</li>
+                        <li>Servis araçları sene başında serviste bulunan boş yer ve kayıt olan öğrenci sayısına göre belirlendiği için servis şirketi öğrencinin servise kaydını tüm eğitim öğretim yılı düşünülerek yapmaktadır. Sözleşmede belirtilen eğitim öğretim yılı bitiminden önce öğrencinin servisten ayrılması durumunda velinin cezai şart olarak _____ (5) aylık ücret ödeme yükümlülüğü bulunmaktadır.</li>
+                        <li>Servis şirketi ile yapılan sözleşmenin veli tarafından, haklı sebebe dayanmadan, tek taraflı feshedilmesi durumunda tüm alacak muacceliyet kazanır. Mücbir sebepler dışında taşınma, nakil gibi sebepler haklı sebep sayılmamaktadır.</li>
+                        <li>Öğrenci sayısının serviste azalması durumunda şirketin mevcut öğrencileri diğer servis araçları ile birleştirme imkanı bulunmaktadır. Şirketin bu konuda sözleşmede değişiklik yapma hakkı saklıdır.</li>
+                        <li>Bir bölgede servise kayıt olan öğrenci sayısının 12'yi geçmemesi halinde şirket sözleşmeyi tek taraflı olarak feshetme hakkına haizdir. Veli bu durumda hiçbir hak talep etmeyeceğini kabul ederek sözleşmeyi imzalamıştır.</li>
+                        <li>Ödenen servis borçları öğrenci zarfına ve öğrenci ödeme listesine servis yetkilisi tarafından işlenir. Veli ödemelerini öğrenci zarfından takip edecektir. Ödemeler hususunda herhangi bir ihtilafa düşülmesi durumunda firmada bulunan öğrenci ödeme listeleri geçerlidir.</li>
+                        <li>Öğretim yılı sonunda öğrencinin öğrenci zarfında borcu gözükmüyorsa senet yetkili tarafından iptal edilip, veliye iade edilir.<br/>İş bu sözleşme iki nüsha olarak tanzim edilmiştir.</li>
+                    </ol>
+
+                    <div className="mt-4 border-t-4 border-dotted border-gray-700 pt-5">
+                        <div className="w-full max-w-4xl mx-auto px-6">
+                            <table className="w-full text-center font-bold mb-4 border-separate" style={{ borderSpacing: '30px 0' }}>
+                                <thead>
+                                    <tr>
+                                        <td className="w-1/4 pb-2 text-sm">ÖDEME GÜNÜ</td>
+                                        <td className="w-1/4 pb-2 text-sm">TÜRK LİRASI</td>
+                                        <td className="w-1/4 pb-2 text-sm">KURUŞ</td>
+                                        <td className="w-1/4 pb-2 text-sm">NO</td>
+                                    </tr>
+                                </thead>
+                                <tbody>
+                                    <tr>
+                                        <td><div className="senet-box"></div></td>
+                                        <td><div className="senet-box"></div></td>
+                                        <td><div className="senet-box"></div></td>
+                                        <td><div className="senet-box"></div></td>
+                                    </tr>
+                                </tbody>
+                            </table>
+                            
+                            <div className="text-justify mb-4 font-semibold text-[13px] leading-relaxed pl-10 pr-4 mt-8">
+                                İşbu emre muharrer senedim........................................... mukabilinde .........................................................................................tarihinde<br/>
+                                bay <span className="font-bold">SERVİSPARK TAŞ. TURZ. TİC. LTD. ŞTİ.</span> veyahut emruhavale............................................ yukarıda yazılı yalnız<br/>
+                                ........................................................................................................TL......................................................KR. ödeyeceği......... Bedeli<br/>
+                                malen ahzolunmuştur. İşbu bono vadesinde ödenmediği takdirde müteakip bonoların da muacceliyet<br/>
+                                kesbedeceğini, ihtilaf vukuunda <span className="font-bold">SİNCAN Mahkemeleri</span>'nin selahiyetini şimdiden kabul eylerim.
+                            </div>
+
+                            <div className="flex items-stretch mt-10">
+                                <div className="flex items-center justify-center mr-4 w-12">
+                                    <span className="font-bold text-base vertical-text tracking-widest">Ödeyecek</span>
+                                </div>
+                                <div className="flex-1 font-bold text-[13px] leading-loose pt-1 border-l-[3px] border-black pl-3">
+                                    <p>İsim <span className="inline-block w-4"></span>: <span className="font-semibold">{student?.parent_name || student?.parent || '..............................................................................................................................'}</span></p>
+                                    <p>Adresi <span className="inline-block w-1"></span>: <span className="font-semibold text-[11px]">{student?.address || '..............................................................................................................................'}</span></p>
+                                    <p className="pl-14">..............................................................................................................................</p>
+                                    <p className="mt-2">T.C. KİMLİK NO: <span className="font-semibold">{student?.parent_tc || '................................................................................................................'}</span></p>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        );
+    }
 
     if (isGuroz) {
         return (
