@@ -675,11 +675,13 @@ const Students: React.FC = () => {
 
     const handleLocationSave = () => {
         if (pickerCoordinates) {
-            setFormData({
-                ...formData,
+            setFormData(prev => ({
+                ...prev,
                 coordinates: pickerCoordinates,
-                location: `Konum Seçildi (${pickerCoordinates[0].toFixed(5)}, ${pickerCoordinates[1].toFixed(5)})`
-            });
+                location: (!prev.location || prev.location === 'Veli Uygulamadan Seçecek' || prev.location.startsWith('Konum Seçildi')) 
+                    ? `Konum Seçildi (${pickerCoordinates[0].toFixed(5)}, ${pickerCoordinates[1].toFixed(5)})` 
+                    : prev.location
+            }));
         }
         setIsLocationModalOpen(false);
     };
@@ -731,6 +733,15 @@ const Students: React.FC = () => {
                 calculatedTotalDebt = monthlyPrice * installmentMultiplier;
             }
 
+            const isPaidInAdvance = (formData as any).is_paid_in_advance === true;
+            const finalTotalDebt = isPaidInAdvance ? 0 : calculatedTotalDebt;
+            
+            // Etiketlere Peşin Ödedi ekle (zaten yoksa)
+            let finalTags = formData.tags || [];
+            if (isPaidInAdvance && !finalTags.includes('Peşin Ödedi')) {
+                finalTags = [...finalTags, 'Peşin Ödedi'];
+            }
+
             const studentData: any = {
                 company_id: profile.company_id,
                 full_name: formData.full_name,
@@ -740,7 +751,7 @@ const Students: React.FC = () => {
                 vehicle_id: formData.vehicle_id || null, // Handle vehicle assignment
                 neighborhood: formData.neighborhood || null,
                 address: formData.location || '',
-                tags: formData.tags || [],
+                tags: finalTags,
                 blood_group: formData.blood_group || null,
                 allergies: formData.allergies || null,
                 registration_date: formData.registration_date || null,
@@ -748,12 +759,14 @@ const Students: React.FC = () => {
                 home_latitude: formData.coordinates ? formData.coordinates[0] : null,
                 home_longitude: formData.coordinates ? formData.coordinates[1] : null,
                 custom_price: formData.custom_price || null,
-                total_debt: calculatedTotalDebt > 0 ? calculatedTotalDebt : null,
+                total_debt: finalTotalDebt,
                 status: formData.status || 'active',
                 shift: formData.shift || null,
                 parent_tc: (formData as any).parent_tc || null,
                 payment_note: (formData as any).payment_note || null
             };
+
+            let savedStudentId = editingStudent?.id;
 
             if (editingStudent) {
                 // Update
@@ -772,6 +785,7 @@ const Students: React.FC = () => {
                     .single();
 
                 if (error) throw error;
+                savedStudentId = newStudentData.id;
 
                 if (newStudentData && (monthlyPrice > 0 || calculatedTotalDebt > 0)) {
                     const { data: parentAccount, error: accError } = await supabase
@@ -781,13 +795,13 @@ const Students: React.FC = () => {
                             student_id: newStudentData.id,
                             parent_name: formData.parent_name || formData.full_name,
                             total_debt: calculatedTotalDebt,
-                            paid_amount: 0,
-                            remaining_debt: calculatedTotalDebt
+                            paid_amount: isPaidInAdvance ? calculatedTotalDebt : 0,
+                            remaining_debt: finalTotalDebt
                         }])
                         .select('id')
                         .single();
 
-                    if (!accError && parentAccount) {
+                    if (!accError && parentAccount && !isPaidInAdvance) {
                         const installments = [];
                         const startDate = new Date();
                         for (let i = 0; i < installmentMultiplier; i++) {
@@ -801,6 +815,31 @@ const Students: React.FC = () => {
                         }
                         await supabase.from('parent_installments').insert(installments);
                     }
+                }
+            }
+
+            // Create Payment record if Paid in Advance (only if creating or checking box during edit)
+            if (isPaidInAdvance && calculatedTotalDebt > 0 && savedStudentId) {
+                const { data: existingPayments } = await supabase
+                    .from('payments')
+                    .select('id')
+                    .eq('student_id', savedStudentId)
+                    .eq('payment_method', 'Peşin/Nakit (Kayıt)');
+
+                if (!existingPayments || existingPayments.length === 0) {
+                    const rawMonth = format(new Date(), 'MMMM yyyy', { locale: tr });
+                    const currentMonth = rawMonth.charAt(0).toUpperCase() + rawMonth.slice(1);
+                    
+                    await supabase.from('payments').insert([{
+                        company_id: profile.company_id,
+                        student_id: savedStudentId,
+                        month: currentMonth,
+                        amount: calculatedTotalDebt,
+                        due_date: new Date().toISOString().split('T')[0],
+                        status: 'Ödendi',
+                        payment_method: 'Peşin/Nakit (Kayıt)',
+                        invoice_no: 'PEŞİN-' + Math.floor(Math.random() * 10000)
+                    }]);
                 }
             }
 
@@ -824,41 +863,32 @@ const Students: React.FC = () => {
                 let bina = '';
 
                 if (addr) {
-                    const parts = addr.split(',').map(p => p.trim()).filter(Boolean);
-                    
-                    // Mahalle tespiti
-                    const mPart = parts.find(p => /(?:mahallesi|mah\b|mah\.|k\u00f6y\u00fc)/i.test(p));
-                    if (mPart) {
-                        mahalle = mPart;
-                    } else if (!mahalle && parts.length >= 3 && !/(?:sok|cad|blv|no)/i.test(parts[2])) {
-                        mahalle = parts[2];
+                    // Regex ile mahalle çıkar
+                    const mMatch = addr.match(/(.*?)(?:mahallesi|mah\b|mah\.|k\u00f6y\u00fc)/i);
+                    if (mMatch) {
+                        // Varsa mahalle kuralından geleni ezmesin, ama yoksa bunu kullansın
+                        if (!s.neighborhood) {
+                            mahalle = mMatch[0].trim();
+                        }
+                    } else if (!mahalle && addr.includes(',')) {
+                        mahalle = addr.split(',')[0].trim();
                     }
 
-                    // Sokak / Cadde tespiti
-                    const sPart = parts.find(p => /(?:sokak|sok\b|sok\.|cadde|cad\b|cad\.|bulvar|blv\b|blv\.|yolu)/i.test(p));
-                    if (sPart) {
-                        sokak = sPart;
-                    } else if (parts.length >= 4 && !/(?:mah|no)/i.test(parts[3])) {
-                        sokak = parts[3];
+                    // Sokak çıkar: mMatch'den sonrasına bak
+                    const afterMahalle = mMatch ? addr.substring(mMatch.index! + mMatch[0].length) : addr;
+                    const sMatch = afterMahalle.match(/(.*?)(?:sokak|sok\b|sok\.|cadde|cad\b|cad\.|bulvar|blv\b|blv\.|yolu)/i);
+                    if (sMatch) {
+                        sokak = sMatch[0].replace(/^[,\s]+/, '').trim();
+                    } else if (addr.includes(',')) {
+                        const parts = addr.split(',');
+                        if (parts.length > 2) sokak = parts[1].trim();
                     }
 
-                    // Bina No tespiti
-                    const bPart = parts.find(p => /(?:no[.:\s]*\d+)/i.test(p));
-                    if (bPart) {
-                        const bMatch = bPart.match(/(?:no[.:\s]*)(\d+[\w\/-]*)/i);
-                        bina = bMatch ? bMatch[1] : bPart.replace(/no[.:\s]*/i, '').trim();
-                    } else if (parts.length >= 5) {
-                        bina = parts[4].replace(/no[.:\s]*/i, '').trim();
-                    } else {
-                        // Regex ile metin içinden ara
-                        const directBMatch = addr.match(/(?:no[.:\s]+)(\d+[\w\/-]*)/i);
-                        if (directBMatch) bina = directBMatch[1];
-                    }
-
-                    // Eğer regex ile sokak bulunamadıysa metinden ara
-                    if (!sokak) {
-                        const directSMatch = addr.match(/([^,]+(?:sokak|sok\.|cadde|cad\.|bulvar|blv\.))/i);
-                        if (directSMatch) sokak = directSMatch[0].trim();
+                    // Bina çıkar: sMatch'den sonrasına bak
+                    const afterSokak = sMatch ? afterMahalle.substring(sMatch.index! + sMatch[0].length) : afterMahalle;
+                    const noMatch = afterSokak.match(/(?:no[.:\s]*|kapı[.:\s]*)(\d+[\w\/-]*)/i);
+                    if (noMatch) {
+                        bina = noMatch[1].trim();
                     }
                 }
 
@@ -871,7 +901,8 @@ const Students: React.FC = () => {
                     'Sabahçı / Öğlenci': s.shift || '',
                     'Mahalle': mahalle,
                     'Sokak / Cadde': sokak,
-                    'Bina No': bina
+                    'Bina No': bina,
+                    'Açık Adres': addr !== 'Veli Uygulamadan Seçecek' && !addr.startsWith('Konum Seçildi') ? addr : ''
                 };
             });
         } else {
@@ -1359,6 +1390,36 @@ const Students: React.FC = () => {
                                                 </div>
                                             );
                                         })()}
+
+                                        <div className="mt-4 bg-green-50 border border-green-200 rounded-xl p-4 flex items-start gap-3 shadow-sm">
+                                            <input
+                                                type="checkbox"
+                                                id="is_paid_in_advance"
+                                                className="mt-1 w-5 h-5 text-green-600 rounded focus:ring-green-500 cursor-pointer"
+                                                checked={(formData as any).is_paid_in_advance || formData.tags?.includes('Peşin Ödedi') || false}
+                                                onChange={e => {
+                                                    const isChecked = e.target.checked;
+                                                    setFormData(prev => {
+                                                        const tags = prev.tags || [];
+                                                        return {
+                                                            ...prev, 
+                                                            is_paid_in_advance: isChecked,
+                                                            tags: isChecked 
+                                                                ? [...tags.filter((t: string) => t !== 'Peşin Ödedi'), 'Peşin Ödedi']
+                                                                : tags.filter((t: string) => t !== 'Peşin Ödedi')
+                                                        } as any;
+                                                    });
+                                                }}
+                                            />
+                                            <div>
+                                                <label htmlFor="is_paid_in_advance" className="font-bold text-green-800 block cursor-pointer">
+                                                    Ödemesi Peşin Alındı (Hiç Borcu Yok)
+                                                </label>
+                                                <p className="text-sm text-green-700 mt-1 leading-relaxed">
+                                                    İşaretlenirse öğrencinin borcu <strong className="font-black">0 ₺</strong> olarak kaydedilir ve hesaplanan yıllık tutar otomatik olarak gelir tablosuna <strong className="font-black">Peşin/Nakit (Kayıt)</strong> olarak eklenir. Öğrenci "Peşin Ödedi" etiketi alır.
+                                                </p>
+                                            </div>
+                                        </div>
                                     </div>
                                 </div>
 
@@ -1409,17 +1470,32 @@ const Students: React.FC = () => {
                                             placeholder="Örn: 500 TL eksik yatırdı, dikkat edilecek..."
                                         />
                                     </div>
+                                    
+                                    <div className="col-span-2 mt-2">
+                                        <label className="block text-sm font-medium text-slate-700 mb-1">Açık Adres (Excel Aktarımı İçin)</label>
+                                        <textarea
+                                            className="w-full px-3 py-2 border border-slate-200 rounded-lg focus:outline-none focus:border-secondary min-h-[60px]"
+                                            value={formData.location === 'Veli Uygulamadan Seçecek' || formData.location?.startsWith('Konum Seçildi') ? '' : (formData.location || '')}
+                                            onChange={e => setFormData({ ...formData, location: e.target.value })}
+                                            placeholder="Örn: Atatürk Mah., Lise Cad., No: 12"
+                                        />
+                                        <p className="text-[10px] text-slate-500 mt-1">Excel aktarımında mahalle, sokak ve bina numarasının doğru ayrıştırılabilmesi için adresi virgüllerle ayırarak yazınız.</p>
+                                    </div>
                                 </div>
 
                                 <div>
-                                    <label className="block text-sm font-medium text-slate-700 mb-3">Ev Konumu</label>
+                                    <label className="block text-sm font-medium text-slate-700 mb-3 mt-4">Ev Konumu (Harita)</label>
                                     <div className="space-y-4">
                                         <div className="grid grid-cols-2 gap-3">
                                             <button
                                                 type="button"
                                                 onClick={() => {
                                                     setLocationMethod('parent');
-                                                    setFormData({ ...formData, location: 'Veli Uygulamadan Seçecek', coordinates: undefined });
+                                                    setFormData(prev => ({ 
+                                                        ...prev, 
+                                                        location: (!prev.location || prev.location.startsWith('Konum Seçildi')) ? 'Veli Uygulamadan Seçecek' : prev.location, 
+                                                        coordinates: undefined 
+                                                    }));
                                                 }}
                                                 className={`flex flex-col items-center gap-2 p-4 rounded-xl border transition-all ${locationMethod === 'parent'
                                                     ? 'bg-blue-50 border-blue-500 shadow-md ring-2 ring-blue-500/10'
