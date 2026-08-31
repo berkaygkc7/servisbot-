@@ -49,13 +49,14 @@ interface StudentListProps {
     onShowQr: (student: Student) => void;
     onAddSibling?: (student: Student) => void;
     onQuickPay?: (student: Student) => void;
+    onManualPay?: (student: Student) => void;
     onApprove?: (student: Student) => void;
     onReject?: (student: Student) => void;
     whatsappTemplate?: string;
 }
 
 const StudentList: React.FC<StudentListProps> = ({ 
-    students, onEdit, onDelete, onShowLocation, onShowDetails, onShowQr, onQuickPay, onApprove, onReject, whatsappTemplate 
+    students, onEdit, onDelete, onShowLocation, onShowDetails, onShowQr, onQuickPay, onManualPay, onApprove, onReject, whatsappTemplate 
 }) => {
     const { profile } = useAuth();
 
@@ -146,31 +147,6 @@ const StudentList: React.FC<StudentListProps> = ({
                                                 <CheckCircle size={20} className="fill-emerald-100" />
                                                 <span className="text-xs font-bold">Bu Ay Ödendi</span>
                                             </div>
-                                            {(() => {
-                                                let debtVal: number | null = null;
-                                                if (student.total_debt !== null && student.total_debt !== undefined && Number(student.total_debt) > 0) {
-                                                    debtVal = Number(student.total_debt);
-                                                } else if (student.custom_price && Number(student.custom_price) > 0) {
-                                                    const companyName = (profile as any)?.companies?.company_name || '';
-                                                    const normComp = companyName.toLowerCase().replace(/ö/g, 'o').replace(/ü/g, 'u').replace(/ı/g, 'i').replace(/ş/g, 's').replace(/ğ/g, 'g').replace(/ç/g, 'c').replace(/\s+/g, '');
-                                                    const normSchool = (student.school_name || student.school || '').toLowerCase().replace(/ö/g, 'o').replace(/ü/g, 'u').replace(/ı/g, 'i').replace(/ş/g, 's').replace(/ğ/g, 'g').replace(/ç/g, 'c').replace(/\s+/g, '');
-                                                    const isOzhamle = normComp.includes('ozhamle');
-                                                    const isHalegul = normComp.includes('halegul');
-                                                    const isGuroz = normComp.includes('guroz');
-                                                    const isHakanGuvencer = isOzhamle && normSchool.includes('hakanguvencer');
-                                                    const multiplier = isHakanGuvencer ? 11 : (isHalegul || isGuroz) ? 9 : 10;
-                                                    debtVal = Number(student.custom_price) * multiplier;
-                                                }
-                                                if (!debtVal || debtVal <= 0) return null;
-                                                return (
-                                                    <div className="bg-slate-50 border border-slate-200/80 rounded-xl px-2.5 py-1 mt-0.5 w-fit shadow-2xs">
-                                                        <div className="text-[10px] font-semibold text-slate-500">Kalan Borç:</div>
-                                                        <div className="text-xs font-black text-slate-800 tracking-tight">
-                                                            {debtVal.toLocaleString('tr-TR')} ₺
-                                                        </div>
-                                                    </div>
-                                                );
-                                            })()}
                                         </div>
                                     ) : (
                                         <div className="flex flex-col gap-1">
@@ -181,6 +157,13 @@ const StudentList: React.FC<StudentListProps> = ({
                                             >
                                                 <Circle size={20} className="group-hover:fill-emerald-50 text-slate-400" />
                                                 <span className="text-xs font-medium">Taksit Bekliyor</span>
+                                            </button>
+                                            <button
+                                                onClick={() => onManualPay && onManualPay(student)}
+                                                className="flex items-center gap-1 text-amber-600 hover:text-amber-700 hover:bg-amber-50 transition-colors rounded-lg px-2 py-0.5 text-[11px] font-bold border border-amber-200/60 mt-0.5"
+                                                title="Farklı tutarda ödeme gir"
+                                            >
+                                                💵 Manuel Öde
                                             </button>
                                             {(() => {
                                                 let debtVal: number | null = null;

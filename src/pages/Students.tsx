@@ -634,6 +634,80 @@ const Students: React.FC = () => {
         }
     };
 
+    const handleManualPay = async (student: Student) => {
+        if (!profile?.company_id) return;
+
+        const rawMonth = format(new Date(), 'MMMM yyyy', { locale: tr });
+        const currentMonth = rawMonth.charAt(0).toUpperCase() + rawMonth.slice(1);
+
+        const amountStr = window.prompt(
+            `${student.name} için manuel ödeme tutarı girin (₺):\n\nBu tutar kasaya işlenecek ve kalan borçtan düşülecektir.\nAy: ${currentMonth}`,
+            ''
+        );
+
+        if (amountStr === null || amountStr.trim() === '') return;
+
+        const manualAmount = Number(amountStr.replace(',', '.'));
+        if (isNaN(manualAmount) || manualAmount <= 0) {
+            alert('Geçerli bir tutar giriniz (0\'dan büyük bir sayı).');
+            return;
+        }
+
+        try {
+            // Query company name from DB for accurate multiplier
+            const { data: compData } = await supabase.from('companies').select('company_name').eq('id', profile.company_id).single();
+            const compName = compData?.company_name || '';
+            const isHalegul = compName.toLowerCase().includes('halegül') || compName.toLowerCase().includes('halegul');
+            const isGuroz = compName.toLowerCase().includes('güroz') || compName.toLowerCase().includes('guroz');
+            const isOzhamle = compName.toLowerCase().includes('özhamle') || compName.toLowerCase().includes('ozhamle');
+            const schoolObj = schools.find((s: any) => String(s.id) === String(student.school_id));
+            const schoolNameStr = schoolObj ? (schoolObj.name || '').toLowerCase().replace(/ö/g, 'o').replace(/ü/g, 'u').replace(/ı/g, 'i').replace(/ş/g, 's').replace(/ğ/g, 'g').replace(/ç/g, 'c').replace(/\s+/g, '') : '';
+            const isHakanGuvencer = isOzhamle && schoolNameStr.includes('hakanguvencer');
+            const multiplier = isHakanGuvencer ? 11 : (isHalegul || isGuroz) ? 9 : 10;
+
+            // Create payment record
+            const payload = {
+                company_id: profile.company_id,
+                student_id: student.id,
+                invoice_no: '',
+                month: currentMonth,
+                amount: manualAmount,
+                due_date: new Date().toISOString().split('T')[0],
+                status: 'Ödendi',
+                payment_method: 'Manuel Ödeme'
+            };
+
+            const { error: insertError } = await supabase.from('payments').insert([payload]);
+            if (insertError) throw insertError;
+
+            // Deduct from student's total_debt
+            const { data: st } = await supabase.from('students').select('total_debt, custom_price').eq('id', student.id).single();
+            let currentDebt = Number(st?.total_debt) || 0;
+
+            // Initialize debt if it was never set
+            if (st?.total_debt === null || st?.total_debt === undefined) {
+                const monthlyPrice = Number(st?.custom_price) || Number(student.custom_price) || 0;
+                currentDebt = monthlyPrice * multiplier;
+            }
+
+            const newDebt = Math.max(0, currentDebt - manualAmount);
+            await supabase.from('students').update({ total_debt: newDebt }).eq('id', student.id);
+
+            // Update local state
+            setStudents(prev => prev.map(s => s.id === student.id ? {
+                ...s,
+                payment_status_this_month: 'Ödendi',
+                total_debt: newDebt
+            } : s));
+
+            alert(`${student.name} için ${manualAmount.toLocaleString('tr-TR')} ₺ manuel ödeme başarıyla kaydedildi!\nKalan borç: ${newDebt.toLocaleString('tr-TR')} ₺`);
+            fetchStudents();
+        } catch (error: any) {
+            console.error('Manual pay error:', error);
+            alert(`Manuel ödeme sırasında bir hata oluştu: ${error.message || 'Bilinmeyen Hata'}`);
+        }
+    };
+
     const handleShowLocation = (student: Student) => {
         if (!student.coordinates || (student.coordinates[0] === 0 && student.coordinates[1] === 0)) {
             alert('Bu öğrenci için konum bilgisi (Ev adresi) bulunamadı.');
@@ -1105,6 +1179,7 @@ const Students: React.FC = () => {
                         onShowDetails={handleShowDetails}
                         onShowQr={handleShowQr}
                         onQuickPay={handleQuickPay}
+                        onManualPay={handleManualPay}
                         onApprove={handleApprove}
                         onReject={handleReject}
                         whatsappTemplate={profile?.companies?.whatsapp_template}
