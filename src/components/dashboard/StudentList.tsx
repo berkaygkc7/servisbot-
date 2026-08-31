@@ -166,8 +166,12 @@ const StudentList: React.FC<StudentListProps> = ({
                                                 💵 Manuel Öde
                                             </button>
                                             {(() => {
+                                                // Peşin ödeyenlerde kalan borç gösterme
+                                                const isPesin = student.tags?.includes('Peşin Ödedi');
+                                                if (isPesin) return null;
+
                                                 let debtVal: number | null = null;
-                                                if (student.total_debt !== null && student.total_debt !== undefined && Number(student.total_debt) > 0) {
+                                                if (student.total_debt !== null && student.total_debt !== undefined) {
                                                     debtVal = Number(student.total_debt);
                                                 } else if (student.custom_price && Number(student.custom_price) > 0) {
                                                     const companyName = (profile as any)?.companies?.company_name || '';
@@ -180,7 +184,7 @@ const StudentList: React.FC<StudentListProps> = ({
                                                     const multiplier = isHakanGuvencer ? 11 : (isHalegul || isGuroz) ? 9 : 10;
                                                     debtVal = Number(student.custom_price) * multiplier;
                                                 }
-                                                if (!debtVal || debtVal <= 0) return null;
+                                                if (debtVal === null) return null;
                                                 return (
                                                     <div className="bg-slate-50 border border-slate-200/80 rounded-xl px-2.5 py-1 mt-0.5 w-fit shadow-2xs">
                                                         <div className="text-[10px] font-semibold text-slate-500">Kalan Borç:</div>

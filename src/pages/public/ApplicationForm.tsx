@@ -3,6 +3,7 @@ import { useParams, useNavigate } from 'react-router-dom';
 import { Send, CheckCircle2, User, Phone, MapPin, AlertCircle, Loader2, GraduationCap, School, Building2, Search, Smartphone, X, Users, CreditCard } from 'lucide-react';
 import { supabase } from '../../lib/supabase';
 import { Map, AdvancedMarker, useMapsLibrary } from '@vis.gl/react-google-maps';
+import AddressCombobox, { type AddressOption } from '../../components/shared/AddressCombobox';
 
 function safeRender(val: any): string {
     if (val === null || val === undefined) return '';
@@ -104,6 +105,95 @@ const ApplicationForm: React.FC = () => {
     const [hasSearchedAddress, setHasSearchedAddress] = useState(false);
     const [isMapUnlocked, setIsMapUnlocked] = useState(false);
 
+    // Address Autocomplete States
+    const [provinces, setProvinces] = useState<AddressOption[]>([]);
+    const [districts, setDistricts] = useState<AddressOption[]>([]);
+    const [neighborhoods, setNeighborhoods] = useState<AddressOption[]>([]);
+    const [loadingProvinces, setLoadingProvinces] = useState(false);
+    const [loadingDistricts, setLoadingDistricts] = useState(false);
+    const [loadingNeighborhoods, setLoadingNeighborhoods] = useState(false);
+
+    // Initial fetch for provinces
+    useEffect(() => {
+        const fetchProvinces = async () => {
+            setLoadingProvinces(true);
+            try {
+                const res = await fetch('https://api.turkiyeapi.dev/v1/provinces');
+                const result = await res.json();
+                if (result.status === 'OK' && result.data) {
+                    const sorted = result.data.sort((a: any, b: any) => a.name.localeCompare(b.name, 'tr-TR'));
+                    setProvinces(sorted.map((p: any) => ({ id: p.id, name: p.name })));
+                }
+            } catch (e) {
+                console.error('Failed to fetch provinces', e);
+            } finally {
+                setLoadingProvinces(false);
+            }
+        };
+        fetchProvinces();
+    }, []);
+
+    const handleProvinceChange = async (provName: string | null) => {
+        setFormData(prev => ({ ...prev, address_province: provName || '', address_district: '', address_neighborhood: '' }));
+        setHasSearchedAddress(false);
+        setIsMapUnlocked(false);
+        setDistricts([]);
+        setNeighborhoods([]);
+        
+        if (!provName) return;
+
+        const prov = provinces.find(p => p.name === provName);
+        if (prov) {
+            setLoadingDistricts(true);
+            try {
+                const res = await fetch(`https://api.turkiyeapi.dev/v1/provinces?name=${provName}`);
+                const result = await res.json();
+                if (result.status === 'OK' && result.data && result.data.length > 0) {
+                    const dists = result.data[0].districts;
+                    const sorted = dists.sort((a: any, b: any) => a.name.localeCompare(b.name, 'tr-TR'));
+                    setDistricts(sorted.map((d: any) => ({ id: d.id, name: d.name })));
+                }
+            } catch (e) {
+                console.error('Failed to fetch districts', e);
+            } finally {
+                setLoadingDistricts(false);
+            }
+        }
+    };
+
+    const handleDistrictChange = async (distName: string | null) => {
+        setFormData(prev => ({ ...prev, address_district: distName || '', address_neighborhood: '' }));
+        setHasSearchedAddress(false);
+        setIsMapUnlocked(false);
+        setNeighborhoods([]);
+        
+        if (!distName) return;
+
+        const dist = districts.find(d => d.name === distName);
+        if (dist) {
+            setLoadingNeighborhoods(true);
+            try {
+                const res = await fetch(`https://api.turkiyeapi.dev/v1/districts/${dist.id}`);
+                const result = await res.json();
+                if (result.status === 'OK' && result.data && result.data.neighborhoods) {
+                    const neighs = result.data.neighborhoods;
+                    const sorted = neighs.sort((a: any, b: any) => a.name.localeCompare(b.name, 'tr-TR'));
+                    setNeighborhoods(sorted.map((n: any) => ({ id: n.id, name: n.name })));
+                }
+            } catch (e) {
+                console.error('Failed to fetch neighborhoods', e);
+            } finally {
+                setLoadingNeighborhoods(false);
+            }
+        }
+    };
+
+    const handleNeighborhoodChange = (neighName: string | null) => {
+        setFormData(prev => ({ ...prev, address_neighborhood: neighName || '' }));
+        setHasSearchedAddress(false);
+        setIsMapUnlocked(false);
+    };
+
     // 1. Validate Token and Get Company
     useEffect(() => {
         // Automatically clear any legacy rate limit entries from localStorage
@@ -187,17 +277,44 @@ const ApplicationForm: React.FC = () => {
         setFormData({ ...formData, [e.target.name]: e.target.value });
     };
 
-    const getFormattedAddress = () => {
-        let n = formData.address_neighborhood.trim();
-        if (n && !n.toLowerCase().includes('mah')) n += ' Mah.';
+    const getFormattedAddress = (options: { includeDoor?: boolean, includeStreet?: boolean } = { includeDoor: true, includeStreet: true }) => {
+        const parts = [];
         
+        let n = formData.address_neighborhood.trim();
+        if (n) {
+            if (!n.toLocaleLowerCase('tr-TR').includes('mah')) n += ' Mah.';
+            parts.push(n);
+        }
+
+        let streetDoor = [];
         let s = formData.address_street.trim();
-        if (s && !s.toLowerCase().includes('sok') && !s.toLowerCase().includes('cad')) s += ' Sok.';
+        if (s && options.includeStreet) {
+            const sLower = s.toLocaleLowerCase('tr-TR');
+            if (!sLower.includes('sok') && !sLower.includes('cad') && !sLower.includes('bulvar') && !sLower.includes('küme') && !sLower.includes('meydan')) {
+                s += ' Sok.';
+            }
+            streetDoor.push(s);
+        }
         
         let d = formData.address_door.trim();
-        if (d && !d.toLowerCase().includes('no')) d = 'No: ' + d;
+        if (d && options.includeDoor) {
+            if (!d.toLocaleLowerCase('tr-TR').includes('no')) d = 'No: ' + d;
+            streetDoor.push(d);
+        }
         
-        return `${formData.address_province}, ${formData.address_district}, ${n}, ${s}, ${d}`.trim();
+        if (streetDoor.length > 0) {
+            parts.push(streetDoor.join(' '));
+        }
+        
+        let distProv = [];
+        if (formData.address_district) distProv.push(formData.address_district);
+        if (formData.address_province) distProv.push(formData.address_province);
+        
+        if (distProv.length > 0) {
+            parts.push(distProv.join('/'));
+        }
+        
+        return parts.join(', ');
     };
 
     const handleSearchAddress = async () => {
@@ -207,18 +324,118 @@ const ApplicationForm: React.FC = () => {
         setIsSearchingMap(true);
         try {
             const geocoder = new geocodingLibrary.Geocoder();
-            const response = await geocoder.geocode({ address: fullAddress + ', Turkey' });
-            if (response.results && response.results.length > 0) {
-                const location = response.results[0].geometry.location;
+            
+            const applyResult = (res: any, zoomLevel: number) => {
+                const location = res.geometry.location;
                 const lat = location.lat();
                 const lng = location.lng();
                 setMapCenter([lat, lng]);
-                setMapZoom(17);
+                setMapZoom(zoomLevel);
                 setPickerCoordinates([lat, lng]);
                 setHasSearchedAddress(true);
+            };
+
+            const validateLocation = (res: any) => {
+                if (!res) return false;
+                
+                // If Google says it's a partial match and we are looking for a specific street, it might be hallucinating a nearby street.
+                if (res.partial_match) {
+                    return false;
+                }
+
+                const distLower = (formData.address_district || '').toLocaleLowerCase('tr-TR').trim();
+                const neighLower = (formData.address_neighborhood || '').toLocaleLowerCase('tr-TR').trim();
+                
+                const resAddr = (res.formatted_address || '').toLocaleLowerCase('tr-TR');
+                if (distLower && resAddr.includes(distLower)) return true;
+                if (neighLower && resAddr.includes(neighLower)) return true;
+                
+                if (res.address_components) {
+                    for (const comp of res.address_components) {
+                        const compName = (comp.long_name || '').toLocaleLowerCase('tr-TR');
+                        if (distLower && compName.includes(distLower)) return true;
+                        if (neighLower && compName.includes(neighLower)) return true;
+                    }
+                }
+                return false;
+            };
+
+            // 1. Try Full Address
+            let response = await geocoder.geocode({ address: fullAddress + ', Turkey' }).catch(() => null);
+            let isAccurate = response && response.results && response.results.length > 0 ? validateLocation(response.results[0]) : false;
+            
+            if (isAccurate && response) {
+                applyResult(response.results[0], 17);
+                return;
+            } 
+            
+            // 2. Fallback: Try OpenStreetMap (Nominatim) which has better Turkish street coverage than Google Geocoder
+            try {
+                // Nominatim prefers simple comma separated values without abbreviations
+                const s = formData.address_street.trim();
+                const n = formData.address_neighborhood.trim();
+                const d = formData.address_district.trim();
+                const p = formData.address_province.trim();
+                
+                let osmQueryParts = [];
+                if (s) osmQueryParts.push(s);
+                if (n) osmQueryParts.push(n);
+                if (d) osmQueryParts.push(d);
+                if (p) osmQueryParts.push(p);
+                
+                const queryStr = osmQueryParts.join(', ');
+                
+                const osmRes = await fetch(`https://nominatim.openstreetmap.org/search?q=${encodeURIComponent(queryStr)}&format=json&limit=1&addressdetails=1`, {
+                    headers: { 'Accept-Language': 'tr' }
+                });
+                const osmData = await osmRes.json();
+                if (osmData && osmData.length > 0) {
+                    const lat = parseFloat(osmData[0].lat);
+                    const lng = parseFloat(osmData[0].lon);
+                    const mockRes = {
+                        geometry: {
+                            location: {
+                                lat: () => lat,
+                                lng: () => lng
+                            }
+                        }
+                    };
+                    applyResult(mockRes, 17);
+                    return;
+                }
+            } catch(e) { console.log('OSM Geocode error', e); }
+
+            // 3. Fallback: Try Google Geocoder without Door Number
+            const addressNoDoor = getFormattedAddress({ includeDoor: false, includeStreet: true });
+            let responseNoDoor = await geocoder.geocode({ address: addressNoDoor + ', Turkey' }).catch(() => null);
+            let isNoDoorAccurate = responseNoDoor && responseNoDoor.results && responseNoDoor.results.length > 0 ? validateLocation(responseNoDoor.results[0]) : false;
+
+            if (isNoDoorAccurate && responseNoDoor) {
+                applyResult(responseNoDoor.results[0], 17);
+                return;
+            }
+
+            // 3. Fallback: Try just Neighborhood + District + Province
+            let fallbackN = formData.address_neighborhood.trim();
+            const fallbackAddress = `${fallbackN}, ${formData.address_district}, ${formData.address_province}, Turkey`;
+            let fallbackResponse = await geocoder.geocode({ address: fallbackAddress }).catch(() => null);
+            let fallbackAccurate = fallbackResponse && fallbackResponse.results && fallbackResponse.results.length > 0 ? validateLocation(fallbackResponse.results[0]) : false;
+
+            if (fallbackAccurate && fallbackResponse) {
+                alert('Tam sokak (veya bina no) haritada bulunamadı. Harita mahallenizin merkezine odaklandı, lütfen kırmızı pini tam evinizin üstüne sürükleyin.');
+                applyResult(fallbackResponse.results[0], 15);
+                return;
+            }
+            
+            // 4. Ultimate Fallback: Just Province
+            const provResponse = await geocoder.geocode({ address: `${formData.address_province}, Turkey` }).catch(() => null);
+            if (provResponse && provResponse.results && provResponse.results.length > 0) {
+                alert('Adresiniz haritada tam olarak bulunamadı. Harita şehir merkezine odaklandı, lütfen kaydırarak konumunuzu işaretleyin.');
+                applyResult(provResponse.results[0], 11);
             } else {
                 alert('Adres haritada bulunamadı. Lütfen daha açık yazın veya haritadan kendiniz işaretleyin.');
             }
+
         } catch (error) {
             console.error('Search error:', error);
             alert('Harita araması sırasında bir hata oluştu.');
@@ -607,15 +824,36 @@ const ApplicationForm: React.FC = () => {
                             
                             <div className="grid grid-cols-2 gap-3 mb-3">
                                 <div>
-                                    <input required type="text" name="address_province" value={formData.address_province} onChange={handleChange} placeholder="İl" className="w-full px-4 py-3 border border-slate-200 rounded-xl focus:outline-none focus:ring-2 focus:ring-blue-500/20 focus:border-blue-500 font-medium text-slate-800 transition-colors" disabled={submitting} />
+                                    <AddressCombobox
+                                        options={provinces}
+                                        value={formData.address_province}
+                                        onChange={handleProvinceChange}
+                                        placeholder="İl"
+                                        loading={loadingProvinces}
+                                        disabled={submitting}
+                                    />
                                 </div>
                                 <div>
-                                    <input required type="text" name="address_district" value={formData.address_district} onChange={handleChange} placeholder="İlçe (Örn: Merkez)" className="w-full px-4 py-3 border border-slate-200 rounded-xl focus:outline-none focus:ring-2 focus:ring-blue-500/20 focus:border-blue-500 font-medium text-slate-800 transition-colors" disabled={submitting} />
+                                    <AddressCombobox
+                                        options={districts}
+                                        value={formData.address_district}
+                                        onChange={handleDistrictChange}
+                                        placeholder="İlçe (Örn: Merkez)"
+                                        loading={loadingDistricts}
+                                        disabled={submitting || !formData.address_province}
+                                    />
                                 </div>
                             </div>
                             
                             <div className="mb-3">
-                                <input required type="text" name="address_neighborhood" value={formData.address_neighborhood} onChange={handleChange} placeholder="Mahalle (Örn: Gölbucağı)" className="w-full px-4 py-3 border border-slate-200 rounded-xl focus:outline-none focus:ring-2 focus:ring-blue-500/20 focus:border-blue-500 font-medium text-slate-800 transition-colors" disabled={submitting} />
+                                <AddressCombobox
+                                    options={neighborhoods}
+                                    value={formData.address_neighborhood}
+                                    onChange={handleNeighborhoodChange}
+                                    placeholder="Mahalle (Örn: Gölbucağı)"
+                                    loading={loadingNeighborhoods}
+                                    disabled={submitting || !formData.address_district}
+                                />
                             </div>
 
                             <div className="grid grid-cols-3 gap-3 mb-3">
