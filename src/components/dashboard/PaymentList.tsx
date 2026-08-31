@@ -126,12 +126,16 @@ const PaymentList: React.FC<PaymentListProps> = ({ payments, selectedIds, onTogg
 
                                                  const rawDebt = payment.student?.total_debt;
                                                  let debtVal: number | null = null;
-                                                 if (rawDebt !== null && rawDebt !== undefined && Number(rawDebt) > 0) {
+                                                 
+                                                 if (rawDebt !== null && rawDebt !== undefined) {
+                                                     // Eğer total_debt (kalan borç) 0 ise, onu 0 olarak kabul et ve aşağıda kutucuğu gizle
                                                      debtVal = Number(rawDebt);
                                                  } else if (payment.student?.custom_price && Number(payment.student.custom_price) > 0) {
+                                                     // Eğer borç hiç hesaplanmamışsa (null/undefined), yıllık varsayılan borcu göster (aylık ödeyenler)
                                                      debtVal = Number(payment.student.custom_price) * 10;
                                                  }
-                                                 if (!debtVal || debtVal <= 0) return null;
+                                                 
+                                                 if (debtVal === null || debtVal <= 0) return null;
                                                  return (
                                                      <div className="bg-slate-50 border border-slate-200/80 rounded-xl px-2.5 py-1 mt-1 w-fit shadow-2xs">
                                                          <div className="text-[10px] font-semibold text-slate-500">Kalan Borç:</div>
