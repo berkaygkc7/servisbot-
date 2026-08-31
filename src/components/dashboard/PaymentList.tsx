@@ -123,6 +123,7 @@ const PaymentList: React.FC<PaymentListProps> = ({ payments, selectedIds, onTogg
                                                 </div>
                                             </div>
                                              {(() => {
+
                                                  const rawDebt = payment.student?.total_debt;
                                                  let debtVal: number | null = null;
                                                  if (rawDebt !== null && rawDebt !== undefined && Number(rawDebt) > 0) {
