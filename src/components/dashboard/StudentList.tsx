@@ -102,6 +102,35 @@ const StudentList: React.FC<StudentListProps> = ({
                                             </span>
                                         </div>
                                     )}
+                                    {(() => {
+                                        // Peşin ödeyenlerde kalan borç gösterme
+                                        const isPesin = student.tags?.includes('Peşin Ödedi');
+                                        if (isPesin) return null;
+
+                                        let debtVal: number | null = null;
+                                        if (student.total_debt !== null && student.total_debt !== undefined) {
+                                            debtVal = Number(student.total_debt);
+                                        } else if (student.custom_price && Number(student.custom_price) > 0) {
+                                            const companyName = (profile as any)?.companies?.company_name || '';
+                                            const normComp = companyName.toLowerCase().replace(/ö/g, 'o').replace(/ü/g, 'u').replace(/ı/g, 'i').replace(/ş/g, 's').replace(/ğ/g, 'g').replace(/ç/g, 'c').replace(/\s+/g, '');
+                                            const normSchool = (student.school_name || student.school || '').toLowerCase().replace(/ö/g, 'o').replace(/ü/g, 'u').replace(/ı/g, 'i').replace(/ş/g, 's').replace(/ğ/g, 'g').replace(/ç/g, 'c').replace(/\s+/g, '');
+                                            const isOzhamle = normComp.includes('ozhamle');
+                                            const isHalegul = normComp.includes('halegul');
+                                            const isGuroz = normComp.includes('guroz');
+                                            const isHakanGuvencer = isOzhamle && normSchool.includes('hakanguvencer');
+                                            const multiplier = isHakanGuvencer ? 11 : (isHalegul || isGuroz) ? 9 : 10;
+                                            debtVal = Number(student.custom_price) * multiplier;
+                                        }
+                                        if (debtVal === null) return null;
+                                        return (
+                                            <div className="bg-slate-50 border border-slate-200/80 rounded-xl px-2.5 py-1 mt-1.5 w-fit shadow-2xs">
+                                                <div className="text-[10px] font-semibold text-slate-500">Kalan Borç:</div>
+                                                <div className="text-xs font-black text-slate-800 tracking-tight">
+                                                    {debtVal.toLocaleString('tr-TR')} ₺
+                                                </div>
+                                            </div>
+                                        );
+                                    })()}
                                     <div 
                                         className="mt-2 text-xs font-semibold flex items-center gap-1.5 cursor-pointer hover:opacity-80 transition-opacity"
                                         onClick={() => onShowLocation(student)}
