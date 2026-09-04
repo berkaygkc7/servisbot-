@@ -12,6 +12,7 @@ export interface Vehicle {
     current_longitude?: number;
     driver_id?: string;
     student_count?: number;
+    color?: string;
 }
 
 interface VehicleListProps {
@@ -72,7 +73,18 @@ const VehicleList: React.FC<VehicleListProps> = ({ vehicles, onEdit, onDelete, o
                     <tbody className="divide-y divide-slate-100">
                         {vehicles.map((vehicle) => (
                             <tr key={vehicle.id} className="hover:bg-slate-50/50 transition-colors group">
-                                <td className="p-4 text-slate-800 font-bold">{vehicle.plate}</td>
+                                <td className="p-4">
+                                    <div className="flex items-center gap-2">
+                                        {vehicle.color && (
+                                            <span
+                                                className="w-3.5 h-3.5 rounded-full border-2 border-white shadow-sm shrink-0"
+                                                style={{ backgroundColor: vehicle.color }}
+                                                title={`Araç rengi: ${vehicle.color}`}
+                                            />
+                                        )}
+                                        <span className="text-slate-800 font-bold">{vehicle.plate}</span>
+                                    </div>
+                                </td>
                                 <td className="p-4 text-slate-600">
                                     {vehicle.driver ? vehicle.driver : <span className="text-slate-400 italic text-xs font-normal bg-slate-50 px-2 py-1 rounded-md border border-slate-200/60">Sürücü Atanmadı</span>}
                                 </td>

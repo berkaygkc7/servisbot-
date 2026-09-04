@@ -82,11 +82,10 @@ export const SharedRouteViewer: React.FC = () => {
         if (!stops || stops.length < 2) return;
         
         const sortedStops = [...stops].sort((a, b) => a.order_index - b.order_index);
-        const origin = sortedStops[0];
         const dest = sortedStops[sortedStops.length - 1];
-        const waypoints = sortedStops.slice(1, -1);
+        const waypoints = sortedStops.slice(0, -1);
         
-        let mapsUrl = `https://www.google.com/maps/dir/?api=1&origin=${origin.latitude},${origin.longitude}&destination=${dest.latitude},${dest.longitude}`;
+        let mapsUrl = `https://www.google.com/maps/dir/?api=1&destination=${dest.latitude},${dest.longitude}`;
         
         if (waypoints.length > 0) {
             const wpString = waypoints.map(wp => `${wp.latitude},${wp.longitude}`).join('|');

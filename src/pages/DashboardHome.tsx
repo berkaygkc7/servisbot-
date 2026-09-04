@@ -79,7 +79,7 @@ const DashboardHome: React.FC = () => {
     };
 
     const fetchVehicles = async () => {
-        const { data } = await supabase.from('vehicles').select('*');
+        const { data } = await supabase.from('vehicles').select('id, plate_number, current_latitude, current_longitude, color');
         if (data) setVehicles(data);
     };
 
@@ -117,7 +117,10 @@ const DashboardHome: React.FC = () => {
                 id: s.id,
                 position: [s.home_longitude, s.home_latitude] as [number, number],
                 title: s.full_name,
-                type: 'student_home' as const
+                type: 'student_home' as const,
+                vehicleColor: s.vehicle_id
+                    ? (vehicles as any[]).find((v: any) => v.id === s.vehicle_id)?.color || undefined
+                    : undefined
             }));
 
         const vehicleMarkers = vehicles

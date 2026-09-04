@@ -11,7 +11,7 @@ interface MapSceneProps {
     routeGeoJson?: any;
     routesGeoJson?: any;
     colorfulRoutesGeoJson?: any;
-    markers?: { id: string | number; position: [number, number]; title: string; type?: 'vehicle' | 'stop' | 'student_home' | 'search_result'; hasVehicle?: boolean }[];
+    markers?: { id: string | number; position: [number, number]; title: string; type?: 'vehicle' | 'stop' | 'student_home' | 'search_result'; hasVehicle?: boolean; vehicleColor?: string }[];
     autoCenter?: boolean;
     onMapClick?: (lng: number, lat: number) => void;
     onMarkerClick?: (id: string | number, type?: string) => void;
@@ -315,10 +315,11 @@ const MapSceneController: React.FC<Omit<MapSceneProps, 'className' | 'simulation
     return null;
 };
 
-// Marker Helper
-const CustomHtmlMarker = ({ config, position, title, onClick, onHover }: any) => {
+const CustomHtmlMarker = ({ config, position, title, onClick, onHover, vehicleColor }: any) => {
     // Prevent crashes if position is invalid
     if (!position || isNaN(Number(position[0])) || isNaN(Number(position[1]))) return null;
+
+    const inlineStyle = vehicleColor ? { backgroundColor: vehicleColor, borderColor: 'white' } : {};
 
     return (
         <AdvancedMarker 
@@ -329,7 +330,11 @@ const CustomHtmlMarker = ({ config, position, title, onClick, onHover }: any) =>
             onMouseLeave={() => onHover && onHover(false)}
             zIndex={config.extraClass.includes('z-[999]') ? 999 : 50}
         >
-            <div className={`marker-inner ${config.sizeClass} ${config.bgClass} ${config.extraClass} rounded-full border-2 border-white shadow-xl flex items-center justify-center text-white font-bold cursor-pointer transition-all duration-300 hover:scale-110`} dangerouslySetInnerHTML={{ __html: config.html }} />
+            <div
+                className={`marker-inner ${config.sizeClass} ${vehicleColor ? '' : config.bgClass} ${config.extraClass} rounded-full border-2 border-white shadow-xl flex items-center justify-center text-white font-bold cursor-pointer transition-all duration-300 hover:scale-110`}
+                style={inlineStyle}
+                dangerouslySetInnerHTML={{ __html: config.html }}
+            />
         </AdvancedMarker>
     );
 };
@@ -446,6 +451,7 @@ const MapScene: React.FC<MapSceneProps> = ({
                             config={getMarkerConfig(m)}
                             position={m.position}
                             title={m.title}
+                            vehicleColor={m.type === 'student_home' ? (m as any).vehicleColor : undefined}
                             onClick={() => onMarkerClick && onMarkerClick(m.id, m.type)}
                             onHover={(isHover: boolean) => onMarkerHover && onMarkerHover(isHover ? m.id : null)}
                         />

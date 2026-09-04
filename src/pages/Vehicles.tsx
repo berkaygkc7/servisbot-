@@ -28,6 +28,7 @@ const Vehicles: React.FC = () => {
     const [loadingVehicleStudents, setLoadingVehicleStudents] = useState(false);
     const [studentSearchTerm, setStudentSearchTerm] = useState('');
     const [vehicleShiftFilter, setVehicleShiftFilter] = useState<'all' | 'sabah' | 'oglen'>('all');
+    const [selectedSchoolFilter, setSelectedSchoolFilter] = useState<string>('all');
 
     // Profile Modal State
     const [isProfileModalOpen, setIsProfileModalOpen] = useState(false);
@@ -73,6 +74,7 @@ const Vehicles: React.FC = () => {
                 capacity: v.capacity || 16,
                 status: v.status || 'active',
                 student_count: countMap[v.id] || 0,
+                color: v.color || undefined,
                 location: v.current_latitude && v.current_longitude ? `${v.current_latitude.toFixed(4)}, ${v.current_longitude.toFixed(4)}` : 'Konum Yok',
                 current_latitude: v.current_latitude,
                 current_longitude: v.current_longitude
@@ -87,11 +89,12 @@ const Vehicles: React.FC = () => {
         setIsStudentsModalOpen(true);
         setLoadingVehicleStudents(true);
         setStudentSearchTerm('');
+        setSelectedSchoolFilter('all');
 
         try {
             const { data, error } = await supabase
                 .from('students')
-                .select('id, full_name, parent_name, parent_phone, school_level, grade, neighborhood, address, schools(name), shift')
+                .select('id, full_name, parent_name, parent_phone, school_level, grade, neighborhood, address, schools(id, name), shift')
                 .eq('vehicle_id', vehicle.id)
                 .neq('status', 'pending')
                 .order('full_name');
@@ -119,7 +122,8 @@ const Vehicles: React.FC = () => {
             const matchesShift = vehicleShiftFilter === 'all' || 
                 (vehicleShiftFilter === 'sabah' && s.shift === 'Sabahçı') || 
                 (vehicleShiftFilter === 'oglen' && s.shift === 'Öğlenci');
-            return matchesSearch && matchesShift;
+            const matchesSchool = selectedSchoolFilter === 'all' || s.schools?.id === selectedSchoolFilter;
+            return matchesSearch && matchesShift && matchesSchool;
         });
 
         const lines = [
@@ -176,7 +180,8 @@ const Vehicles: React.FC = () => {
             const matchesShift = vehicleShiftFilter === 'all' || 
                 (vehicleShiftFilter === 'sabah' && s.shift === 'Sabahçı') || 
                 (vehicleShiftFilter === 'oglen' && s.shift === 'Öğlenci');
-            return matchesSearch && matchesShift;
+            const matchesSchool = selectedSchoolFilter === 'all' || s.schools?.id === selectedSchoolFilter;
+            return matchesSearch && matchesShift && matchesSchool;
         });
 
         // Store in localStorage for the new window to read
@@ -294,7 +299,8 @@ const Vehicles: React.FC = () => {
                 driver_phone: selectedDriverObj ? selectedDriverObj.phone : null,
                 driver_id: formData.driver_id || null,
                 capacity: formData.capacity || 16,
-                status: formData.status || 'active'
+                status: formData.status || 'active',
+                color: formData.color || null
             };
 
             if (editingVehicle) {
@@ -449,6 +455,47 @@ const Vehicles: React.FC = () => {
                                     </select>
                                 </div>
                             </div>
+                            {/* Vehicle Color Picker */}
+                            <div>
+                                <label className="block text-sm font-medium text-slate-700 mb-2">Araç Rengi <span className="text-slate-400 font-normal text-xs">(haritada öğrenci markerları bu renkte gösterilir)</span></label>
+                                <div className="flex items-center gap-3">
+                                    <div className="relative">
+                                        <input
+                                            type="color"
+                                            id="vehicle-color-picker"
+                                            value={formData.color || '#3b82f6'}
+                                            onChange={e => setFormData({ ...formData, color: e.target.value })}
+                                            className="w-12 h-10 rounded-lg border border-slate-200 cursor-pointer p-0.5 bg-white"
+                                        />
+                                    </div>
+                                    <div className="flex flex-wrap gap-1.5">
+                                        {['#ef4444','#f97316','#eab308','#22c55e','#3b82f6','#8b5cf6','#ec4899','#06b6d4','#14b8a6','#64748b'].map(c => (
+                                            <button
+                                                key={c}
+                                                type="button"
+                                                onClick={() => setFormData({ ...formData, color: c })}
+                                                className={`w-6 h-6 rounded-full border-2 transition-transform hover:scale-110 ${
+                                                    formData.color === c ? 'border-slate-700 scale-110' : 'border-white shadow-sm'
+                                                }`}
+                                                style={{ backgroundColor: c }}
+                                                title={c}
+                                            />
+                                        ))}
+                                        <button
+                                            type="button"
+                                            onClick={() => setFormData({ ...formData, color: undefined })}
+                                            className="w-6 h-6 rounded-full border-2 border-dashed border-slate-300 flex items-center justify-center text-slate-400 text-[10px] hover:border-slate-500 transition-colors"
+                                            title="Renk Kaldır"
+                                        >×</button>
+                                    </div>
+                                </div>
+                                {formData.color && (
+                                    <div className="mt-2 flex items-center gap-2">
+                                        <span className="w-4 h-4 rounded-full border border-white shadow-sm" style={{ backgroundColor: formData.color }} />
+                                        <span className="text-xs text-slate-500 font-mono">{formData.color}</span>
+                                    </div>
+                                )}
+                            </div>
                             <div className="pt-4 flex gap-3">
                                 <button
                                     type="button"
@@ -548,6 +595,54 @@ const Vehicles: React.FC = () => {
                             </div>
                         </div>
 
+                        {/* School Filter Bar */}
+                        {(() => {
+                            // Araçtaki öğrencilerin okullarını bul
+                            const vehicleSchools = Array.from(
+                                new Map(
+                                    vehicleStudents
+                                        .filter(s => s.schools?.id)
+                                        .map(s => [s.schools.id, s.schools.name])
+                                ).entries()
+                            ).map(([id, name]) => ({ id, name }));
+
+                            if (vehicleSchools.length === 0) return null;
+
+                            return (
+                                <div className="px-4 pt-3 pb-2 border-b border-slate-100 bg-gradient-to-r from-blue-50/60 to-indigo-50/40 no-print">
+                                    <div className="flex items-center gap-2 overflow-x-auto pb-1">
+                                        <span className="text-xs font-semibold text-slate-500 shrink-0 flex items-center gap-1">
+                                            <School size={13} />
+                                            Okul:
+                                        </span>
+                                        <button
+                                            onClick={() => setSelectedSchoolFilter('all')}
+                                            className={`shrink-0 px-3 py-1.5 rounded-full text-xs font-bold transition-all ${
+                                                selectedSchoolFilter === 'all'
+                                                    ? 'bg-blue-600 text-white shadow-sm shadow-blue-200'
+                                                    : 'bg-white text-slate-600 border border-slate-200 hover:border-blue-300 hover:text-blue-600'
+                                            }`}
+                                        >
+                                            Tümü ({vehicleStudents.length})
+                                        </button>
+                                        {vehicleSchools.map(school => (
+                                            <button
+                                                key={school.id}
+                                                onClick={() => setSelectedSchoolFilter(school.id)}
+                                                className={`shrink-0 px-3 py-1.5 rounded-full text-xs font-bold transition-all ${
+                                                    selectedSchoolFilter === school.id
+                                                        ? 'bg-blue-600 text-white shadow-sm shadow-blue-200'
+                                                        : 'bg-white text-slate-600 border border-slate-200 hover:border-blue-300 hover:text-blue-600'
+                                                }`}
+                                            >
+                                                {school.name} ({vehicleStudents.filter(s => s.schools?.id === school.id).length})
+                                            </button>
+                                        ))}
+                                    </div>
+                                </div>
+                            );
+                        })()}
+
                         {/* Search & Stats Bar */}
                         <div className="p-4 border-b border-slate-100 bg-white flex flex-col sm:flex-row justify-between items-center gap-3">
                             <div className="flex flex-col sm:flex-row gap-3 w-full sm:w-auto no-print">
@@ -573,7 +668,7 @@ const Vehicles: React.FC = () => {
                             </div>
                             <div className="flex items-center gap-2 text-xs">
                                 <span className="px-3 py-1.5 bg-blue-50 text-blue-700 font-bold rounded-xl border border-blue-100">
-                                    Toplam: {vehicleStudents.length} Öğrenci
+                                    Toplam: {vehicleStudents.filter(s => selectedSchoolFilter === 'all' || s.schools?.id === selectedSchoolFilter).length} Öğrenci
                                 </span>
                                 <span className="px-3 py-1.5 bg-emerald-50 text-emerald-700 font-bold rounded-xl border border-emerald-100">
                                     Doluluk: %{Math.min(100, Math.round((vehicleStudents.length / (selectedVehicleForStudents.capacity || 1)) * 100))}
@@ -617,7 +712,8 @@ const Vehicles: React.FC = () => {
                                                     const matchesShift = vehicleShiftFilter === 'all' || 
                                                         (vehicleShiftFilter === 'sabah' && s.shift === 'Sabahçı') || 
                                                         (vehicleShiftFilter === 'oglen' && s.shift === 'Öğlenci');
-                                                    return matchesSearch && matchesShift;
+                                                    const matchesSchool = selectedSchoolFilter === 'all' || s.schools?.id === selectedSchoolFilter;
+                                                    return matchesSearch && matchesShift && matchesSchool;
                                                 })
                                                 .map((s, index) => (
                                                     <tr key={s.id} className="hover:bg-slate-50/80 transition-colors">

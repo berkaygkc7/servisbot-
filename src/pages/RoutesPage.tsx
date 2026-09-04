@@ -60,6 +60,7 @@ interface Vehicle {
     id: string;
     plate_number: string;
     driver_name: string;
+    color?: string;
 }
 
 interface Student {
@@ -241,7 +242,7 @@ const RoutesPage: React.FC = () => {
         setLoading(true);
         try {
             // 1. Fetch Vehicles
-            const { data: vehiclesData } = await supabase.from('vehicles').select('id, plate_number, driver_name');
+            const { data: vehiclesData } = await supabase.from('vehicles').select('id, plate_number, driver_name, color');
             if (vehiclesData) setAvailableVehicles(vehiclesData);
 
             // 2. Fetch Students
@@ -571,12 +572,17 @@ const RoutesPage: React.FC = () => {
                     if (isNaN(lng) || isNaN(lat)) return;
                     if (lng === 0 && lat === 0) return;
 
+                    const vehicleColor = (s as any).vehicle_id
+                        ? availableVehicles.find(v => v.id === (s as any).vehicle_id)?.color
+                        : undefined;
+
                     markers.push({
                         id: s.id, // Removed student- prefix for consistency and reliable matching
                         position: [lng, lat],
                         title: s.full_name,
                         type: 'student_home',
-                        hasVehicle: !!(s as any).vehicle_id || !!(s as any).vehicles?.plate_number
+                        hasVehicle: !!(s as any).vehicle_id || !!(s as any).vehicles?.plate_number,
+                        vehicleColor: vehicleColor || undefined
                     });
                 }
             });
@@ -1142,14 +1148,13 @@ const RoutesPage: React.FC = () => {
         let googleMapsUrl = '';
         if (route.stops && route.stops.length >= 2) {
             const sortedStops = [...route.stops].sort((a, b) => a.order_index - b.order_index);
-            const origin = `${sortedStops[0].latitude},${sortedStops[0].longitude}`;
             const destination = `${sortedStops[sortedStops.length - 1].latitude},${sortedStops[sortedStops.length - 1].longitude}`;
             
-            const waypoints = sortedStops.slice(1, -1)
+            const waypoints = sortedStops.slice(0, -1)
                 .map(s => `${s.latitude},${s.longitude}`)
                 .join('|');
 
-            googleMapsUrl = `https://www.google.com/maps/dir/?api=1&origin=${encodeURIComponent(origin)}&destination=${encodeURIComponent(destination)}${waypoints ? `&waypoints=${encodeURIComponent(waypoints)}` : ''}&travelmode=driving`;
+            googleMapsUrl = `https://www.google.com/maps/dir/?api=1&destination=${encodeURIComponent(destination)}${waypoints ? `&waypoints=${encodeURIComponent(waypoints)}` : ''}&travelmode=driving`;
         }
 
         // Compact Stops List
