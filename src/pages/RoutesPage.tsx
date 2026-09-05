@@ -1144,23 +1144,45 @@ const RoutesPage: React.FC = () => {
         const vehicleInfo = route.vehicle ? ` (${route.vehicle})` : '';
         const timeInfo = route.time ? ` - ⏰ ${route.time}` : '';
 
-        // Build Google Maps Navigation URL
-        let googleMapsUrl = '';
-        if (route.stops && route.stops.length >= 2) {
-            const sortedStops = [...route.stops].sort((a, b) => a.order_index - b.order_index);
-            const destination = `${sortedStops[sortedStops.length - 1].latitude},${sortedStops[sortedStops.length - 1].longitude}`;
-            
-            const waypoints = sortedStops.slice(0, -1)
-                .map(s => `${s.latitude},${s.longitude}`)
-                .join('|');
+        // Build Google Maps Navigation URL (Chunked strictly as User requested)
+        const googleMapsUrls: string[] = [];
+        const CHUNK_SIZE = 9; // Her bir Rota, Başlangıç(1) + Ara Duraklar(8) + Bitiş(1) şeklinde (toplam 10 durak) olacak.
 
-            googleMapsUrl = `https://www.google.com/maps/dir/?api=1&destination=${encodeURIComponent(destination)}${waypoints ? `&waypoints=${encodeURIComponent(waypoints)}` : ''}&travelmode=driving`;
+        if (route.stops && route.stops.length > 0) {
+            const sortedStops = [...route.stops].sort((a, b) => a.order_index - b.order_index);
+
+            if (sortedStops.length === 1) {
+                const destination = `${sortedStops[0].latitude},${sortedStops[0].longitude}`;
+                googleMapsUrls.push(`📍 *Rota 1:* \nhttps://www.google.com/maps/dir/?api=1&destination=${encodeURIComponent(destination)}&travelmode=driving`);
+            } else {
+                for (let i = 0; i < sortedStops.length - 1; i += CHUNK_SIZE) {
+                    const chunkStart = i;
+                    // Bir sonraki rotanın başlangıcı, bu rotanın bitişi olacak şekilde ayarlanıyor.
+                    const chunkEnd = Math.min(i + CHUNK_SIZE, sortedStops.length - 1);
+                    const chunkStops = sortedStops.slice(chunkStart, chunkEnd + 1);
+
+                    const origin = `${chunkStops[0].latitude},${chunkStops[0].longitude}`;
+                    const destination = `${chunkStops[chunkStops.length - 1].latitude},${chunkStops[chunkStops.length - 1].longitude}`;
+
+                    const middleStops = chunkStops.slice(1, -1);
+                    const waypoints = middleStops.map(s => `${s.latitude},${s.longitude}`).join('|');
+
+                    const url = `https://www.google.com/maps/dir/?api=1&origin=${encodeURIComponent(origin)}&destination=${encodeURIComponent(destination)}${waypoints ? `&waypoints=${encodeURIComponent(waypoints)}` : ''}&travelmode=driving`;
+                    
+                    const partLabel = sortedStops.length <= CHUNK_SIZE + 1 
+                        ? 'Tüm Rota' 
+                        : `Rota ${googleMapsUrls.length + 1} (Durak ${chunkStart + 1} ➔ ${chunkEnd + 1})`;
+                    
+                    googleMapsUrls.push(`📍 *${partLabel}:*\n${url}`);
+                }
+            }
         }
 
-        // Compact Stops List
+        // Compact Stops List (order_index sırasına göre sıralanmış)
         let stopsText = '';
         if (route.stops && route.stops.length > 0) {
-            stopsText = route.stops.map((stop, index) => {
+            const sortedForText = [...route.stops].sort((a, b) => a.order_index - b.order_index);
+            stopsText = sortedForText.map((stop, index) => {
                 const studentNames = (stop.assignedStudentIds || [])
                     .map(sId => availableStudents.find(st => st.id === sId)?.full_name)
                     .filter(Boolean);
@@ -1172,7 +1194,8 @@ const RoutesPage: React.FC = () => {
 
         const messageText = `🚌 *${routeName}*${vehicleInfo}${timeInfo}\n\n` +
             `📋 *Durak Listesi:*\n${stopsText}\n\n` +
-            `🗺️ *Google Maps Navigasyon:*\n${googleMapsUrl}`;
+            `🗺️ *Google Maps Navigasyon:*\n` +
+            googleMapsUrls.join('\n\n');
 
         // Directly open WhatsApp (no browser share menu)
         window.open(`https://api.whatsapp.com/send?text=${encodeURIComponent(messageText)}`, '_blank');

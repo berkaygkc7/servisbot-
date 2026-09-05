@@ -82,14 +82,19 @@ export const SharedRouteViewer: React.FC = () => {
         if (!stops || stops.length < 2) return;
         
         const sortedStops = [...stops].sort((a, b) => a.order_index - b.order_index);
+
+        // İlk durak = kalkış (origin), son durak = varış (destination)
+        const origin = sortedStops[0];
         const dest = sortedStops[sortedStops.length - 1];
-        const waypoints = sortedStops.slice(0, -1);
+
+        // Aradaki duraklar waypoint (ilk ve son hariç)
+        const middleStops = sortedStops.slice(1, -1);
         
-        let mapsUrl = `https://www.google.com/maps/dir/?api=1&destination=${dest.latitude},${dest.longitude}`;
+        let mapsUrl = `https://www.google.com/maps/dir/?api=1&origin=${encodeURIComponent(`${origin.latitude},${origin.longitude}`)}&destination=${encodeURIComponent(`${dest.latitude},${dest.longitude}`)}`;
         
-        if (waypoints.length > 0) {
-            const wpString = waypoints.map(wp => `${wp.latitude},${wp.longitude}`).join('|');
-            mapsUrl += `&waypoints=${wpString}`;
+        if (middleStops.length > 0) {
+            const wpString = middleStops.map(wp => `${wp.latitude},${wp.longitude}`).join('|');
+            mapsUrl += `&waypoints=${encodeURIComponent(wpString)}`;
         }
         mapsUrl += `&travelmode=driving`;
         

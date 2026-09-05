@@ -305,13 +305,34 @@ const Payments = () => {
                     if (rule && rule.amount) {
                         billAmount = rule.amount;
                     } else if (s.total_debt && s.total_debt > 0) {
-                        // Divide annual debt by multiplier to get monthly bill amount
-                        const { data: comp2 } = await supabase.from('companies').select('company_name').eq('id', profile?.company_id).single();
-                        const isH = (comp2?.company_name || '').toLowerCase().includes('halegül') || (comp2?.company_name || '').toLowerCase().includes('halegul');
-                        const isOzhamle = (comp2?.company_name || '').toLowerCase().includes('özhamle') || (comp2?.company_name || '').toLowerCase().includes('ozhamle');
-                        const isHakanGuvencer = isOzhamle && (s as any).schools && ((s as any).schools?.name || '').toLowerCase().replace(/ö/g, 'o').replace(/ü/g, 'u').replace(/ı/g, 'i').replace(/ş/g, 's').replace(/ğ/g, 'g').replace(/ç/g, 'c').replace(/\s+/g, '').includes('hakanguvencer');
-                        const divMultiplier = isHakanGuvencer ? 11 : (isH ? 9 : 10);
-                        billAmount = Math.round(s.total_debt / divMultiplier);
+                        // Check if the student has any previous payments.
+                        // If they do, total_debt is the REMAINING debt, so dividing it by the multiplier would result in a very small incorrect bill amount.
+                        // Instead, we use the amount from their latest invoice.
+                        const { data: lastPayments } = await supabase
+                            .from('payments')
+                            .select('amount')
+                            .eq('student_id', s.id)
+                            .order('created_at', { ascending: false })
+                            .limit(1);
+
+                        if (lastPayments && lastPayments.length > 0 && lastPayments[0].amount > 0) {
+                            billAmount = lastPayments[0].amount;
+                        } else {
+                            // If no previous payments exist, total_debt is the initial debt, so dividing by multiplier is safe.
+                            const { data: comp2 } = await supabase.from('companies').select('company_name').eq('id', profile?.company_id).single();
+                            const isH = (comp2?.company_name || '').toLowerCase().includes('halegül') || (comp2?.company_name || '').toLowerCase().includes('halegul');
+                            const isOzhamle = (comp2?.company_name || '').toLowerCase().includes('özhamle') || (comp2?.company_name || '').toLowerCase().includes('ozhamle');
+                            // Fallback to fetch schools for name since it's missing in students query
+                            let isHakanGuvencer = false;
+                            if (isOzhamle && s.school_id) {
+                                const { data: schoolData } = await supabase.from('schools').select('name').eq('id', s.school_id).single();
+                                if (schoolData?.name) {
+                                    isHakanGuvencer = schoolData.name.toLowerCase().replace(/ö/g, 'o').replace(/ü/g, 'u').replace(/ı/g, 'i').replace(/ş/g, 's').replace(/ğ/g, 'g').replace(/ç/g, 'c').replace(/\s+/g, '').includes('hakanguvencer');
+                                }
+                            }
+                            const divMultiplier = isHakanGuvencer ? 11 : (isH ? 9 : 10);
+                            billAmount = Math.round(s.total_debt / divMultiplier);
+                        }
                     } else {
                         billAmount = 0;
                     }
