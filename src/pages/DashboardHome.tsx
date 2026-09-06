@@ -97,6 +97,7 @@ const DashboardHome: React.FC = () => {
                 geometry,
                 tags,
                 schools (name),
+                vehicles ( color ),
                 student_route_assignments ( student_id )
             `);
 
@@ -189,7 +190,7 @@ const DashboardHome: React.FC = () => {
 
             if (!matchesFilters) return [];
 
-            const color = ROUTE_COLORS[index % ROUTE_COLORS.length];
+            const color = route.vehicles?.color || ROUTE_COLORS[index % ROUTE_COLORS.length];
 
             return {
                 type: 'Feature',

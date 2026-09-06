@@ -181,12 +181,15 @@ const MapSceneController: React.FC<Omit<MapSceneProps, 'className' | 'simulation
 
         routeData.forEach((f: google.maps.Data.Feature) => routeData.remove(f));
         routeData.addGeoJson(routeGeoJson);
-        routeData.setStyle({
-            strokeColor: '#3b82f6',
-            strokeWeight: 6,
-            strokeOpacity: 0.9,
-            zIndex: 10,
-            clickable: false // Never block map clicks
+        routeData.setStyle((feature: google.maps.Data.Feature) => {
+            const color = (feature.getProperty('color') as string) || '#3b82f6';
+            return {
+                strokeColor: color,
+                strokeWeight: 6,
+                strokeOpacity: 0.9,
+                zIndex: 10,
+                clickable: false // Never block map clicks
+            };
         });
 
     }, [routeData, routeGeoJson, directionsResponse]);

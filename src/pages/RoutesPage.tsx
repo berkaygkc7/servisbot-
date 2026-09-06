@@ -272,7 +272,7 @@ const RoutesPage: React.FC = () => {
             .from('routes')
             .select(`
                 *,
-                vehicles (plate_number, driver_name, driver_phone),
+                vehicles (plate_number, driver_name, driver_phone, color),
                 schools (name),
                 route_stops (*),
                 student_route_assignments (student_id, stop_id)
@@ -433,7 +433,7 @@ const RoutesPage: React.FC = () => {
 
             if (!matchesFilters) return [];
 
-            const color = ROUTE_COLORS[index % ROUTE_COLORS.length];
+            const color = route.vehicles?.color || ROUTE_COLORS[index % ROUTE_COLORS.length];
 
             const validCoords = route.coordinates
                 .filter((c: any) => Array.isArray(c) && c.length >= 2 && !isNaN(Number(c[0])) && !isNaN(Number(c[1])))
@@ -1299,7 +1299,7 @@ const RoutesPage: React.FC = () => {
                     setRouteGeoJson({
                         type: 'Feature',
                         geometry: { type: 'LineString', coordinates: validCoords },
-                        properties: {}
+                        properties: { color: selectedRoute?.vehicles?.color }
                     });
                     setFitBoundsTrigger(prev => prev + 1);
                 }
@@ -1325,7 +1325,7 @@ const RoutesPage: React.FC = () => {
                 setRouteGeoJson({
                     type: 'Feature',
                     geometry: { type: 'LineString', coordinates: result.coordinates },
-                    properties: {}
+                    properties: { color: selectedRoute?.vehicles?.color }
                 });
                 if (creationMethod === 'interactive' && result.directionsResponse) {
                     setDirectionsResponse(result.directionsResponse);
@@ -1406,7 +1406,7 @@ const RoutesPage: React.FC = () => {
                     setRouteGeoJson({
                         type: 'Feature',
                         geometry: { type: 'LineString', coordinates: result.coordinates },
-                        properties: {}
+                        properties: { color: selectedRoute?.vehicles?.color }
                     });
                     setFitBoundsTrigger(prev => prev + 1);
 

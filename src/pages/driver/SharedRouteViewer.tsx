@@ -25,7 +25,7 @@ export const SharedRouteViewer: React.FC = () => {
             // Fetch Route & Stops
             const { data: route } = await supabase
                 .from('routes')
-                .select('*, route_stops(*)')
+                .select('*, route_stops(*), vehicles ( color )')
                 .eq('id', routeId)
                 .single();
                 
@@ -134,7 +134,7 @@ export const SharedRouteViewer: React.FC = () => {
                     routeGeoJson={routeData?.geometry ? {
                         type: 'Feature',
                         geometry: routeData.geometry,
-                        properties: {}
+                        properties: { color: routeData.vehicles?.color }
                     } : null}
                 />
             </div>
