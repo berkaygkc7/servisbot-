@@ -780,7 +780,7 @@ const RoutesPage: React.FC = () => {
                         geometry: { type: 'LineString', coordinates: result.coordinates },
                         properties: {}
                     });
-                    if (creationMethod === 'interactive' && result.directionsResponse) {
+                    if (result.directionsResponse) {
                         setDirectionsResponse(result.directionsResponse);
                     }
                     setIsOptimized(true);
@@ -901,14 +901,7 @@ const RoutesPage: React.FC = () => {
         const deleted = newPoints[_index];
         newPoints.splice(_index, 1);
         
-        // Eğer Start silindiyse (0. index), her şeyi sıfırla
-        if (deleted?.type === 'start') {
-            setTempPoints([]);
-            setCreationStep('start');
-            setRouteGeoJson(null);
-            setDirectionsResponse(undefined);
-            return;
-        }
+        
 
         // Kalan noktalar varsa type'ları düzelt (ilk nokta her zaman 'start', son nokta her zaman 'end')
         if (newPoints.length > 0) {
