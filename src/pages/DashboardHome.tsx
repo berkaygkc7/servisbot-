@@ -16,7 +16,7 @@ const DashboardHome: React.FC = () => {
     const [availableTags, setAvailableTags] = useState<{ id: string; name: string }[]>([]);
     const [activeTagFilter, setActiveTagFilter] = useState<string[]>([]);
     const [schools, setSchools] = useState<{ id: string; name: string }[]>([]);
-    const [activeSchoolFilter, setActiveSchoolFilter] = useState<'all' | string>('all');
+    const [activeSchoolFilter, setActiveSchoolFilter] = useState<string[]>([]);
     const [vehicles, setVehicles] = useState<any[]>([]);
     const [routes, setRoutes] = useState<any[]>([]);
     const [routesGeoJson, setRoutesGeoJson] = useState<any>(null);
@@ -111,7 +111,8 @@ const DashboardHome: React.FC = () => {
                 const hasPosition = s.home_latitude && s.home_longitude;
                 const matchesTags = activeTagFilter.length === 0 ||
                     (s.tags && activeTagFilter.some(tag => s.tags?.includes(tag)));
-                const matchesSchool = activeSchoolFilter === 'all' || s.schools?.name === schools.find(sch => sch.id === activeSchoolFilter)?.name;
+                const matchesSchool = activeSchoolFilter.length === 0 ||
+                    activeSchoolFilter.some(schoolId => s.school_id === schoolId);
                 return hasPosition && matchesTags && matchesSchool;
             })
             .map((s: any) => ({
@@ -134,7 +135,7 @@ const DashboardHome: React.FC = () => {
             }));
 
         setMarkers([...studentMarkers, ...vehicleMarkers]);
-    }, [students, vehicles, activeTagFilter, activeSchoolFilter, schools]);
+    }, [students, vehicles, activeTagFilter, activeSchoolFilter]);
 
     // Trigger bounds fit on school filter change or initial load
     useEffect(() => {
@@ -146,7 +147,7 @@ const DashboardHome: React.FC = () => {
             }, 300);
             return () => clearTimeout(timeoutId);
         }
-    }, [activeSchoolFilter, students.length, routes.length]);
+    }, [activeSchoolFilter.join(','), students.length, routes.length]);
 
     // Derived Route GeoJSON for Tag Highlighting
     useEffect(() => {
@@ -172,13 +173,15 @@ const DashboardHome: React.FC = () => {
             let isHighlighted = true;
             let matchesFilters = true;
 
-            if (activeTagFilter.length > 0 || activeSchoolFilter !== 'all') {
+            if (activeTagFilter.length > 0 || activeSchoolFilter.length > 0) {
                 let routeMatchesTags = true;
                 let routeMatchesSchool = true;
 
-                if (activeSchoolFilter !== 'all') {
-                    const selectedSchoolName = schools.find(sch => sch.id === activeSchoolFilter)?.name;
-                    routeMatchesSchool = route.schools?.name === selectedSchoolName;
+                if (activeSchoolFilter.length > 0) {
+                    routeMatchesSchool = activeSchoolFilter.some(schoolId => {
+                        const selectedSchoolName = schools.find(sch => sch.id === schoolId)?.name;
+                        return route.schools?.name === selectedSchoolName;
+                    });
                 }
 
                 if (activeTagFilter.length > 0) {
@@ -215,7 +218,7 @@ const DashboardHome: React.FC = () => {
         } else {
             setRoutesGeoJson(null);
         }
-    }, [routes, students, activeTagFilter, activeSchoolFilter, schools]);
+    }, [routes, students, activeTagFilter, activeSchoolFilter.join(','), schools]);
 
     const [hoveredRouteId, setHoveredRouteId] = useState<string | null>(null);
     const [hoverPosition, setHoverPosition] = useState<[number, number] | null>(null);
@@ -476,19 +479,56 @@ const DashboardHome: React.FC = () => {
                             </h3>
                             <p className="text-xs text-slate-500 mb-6">Haritadaki rotaları ve öğrencileri filtreleyin. Eşleşen rotalar renkli olarak vurgulanacaktır.</p>
 
-                            {/* School Filter */}
+                            {/* School Filter - Multi Checkbox */}
                             <div className="space-y-3 mb-6">
-                                <label className="text-xs font-bold text-slate-400 uppercase tracking-wider block">Okul Filtresi</label>
-                                <select
-                                    value={activeSchoolFilter}
-                                    onChange={(e) => setActiveSchoolFilter(e.target.value)}
-                                    className="w-full p-2.5 bg-slate-50 border border-slate-200 rounded-xl text-sm font-medium focus:ring-2 focus:ring-secondary/20 focus:border-secondary outline-none transition-all"
-                                >
-                                    <option value="all">Tüm Okullar</option>
-                                    {schools.map(school => (
-                                        <option key={school.id} value={school.id}>{school.name}</option>
-                                    ))}
-                                </select>
+                                <div className="flex items-center justify-between">
+                                    <label className="text-xs font-bold text-slate-400 uppercase tracking-wider block">Okul Filtresi</label>
+                                    {activeSchoolFilter.length > 0 && (
+                                        <button
+                                            onClick={() => setActiveSchoolFilter([])}
+                                            className="text-[10px] text-blue-600 font-bold hover:underline"
+                                        >
+                                            Temizle
+                                        </button>
+                                    )}
+                                </div>
+                                {activeSchoolFilter.length > 0 && (
+                                    <div className="text-[10px] text-slate-500 bg-blue-50 px-2 py-1 rounded-lg border border-blue-100">
+                                        <span className="font-bold text-blue-700">{activeSchoolFilter.length} okul</span> seçili — bu okulların öğrencileri gösteriliyor
+                                    </div>
+                                )}
+                                <div className="space-y-1.5 max-h-56 overflow-y-auto custom-scrollbar pr-1">
+                                    {schools.map(school => {
+                                        const isSelected = activeSchoolFilter.includes(school.id);
+                                        return (
+                                            <label
+                                                key={school.id}
+                                                className={`flex items-center gap-2.5 p-2 rounded-lg border cursor-pointer transition-all select-none ${
+                                                    isSelected
+                                                        ? 'bg-blue-50 border-blue-300 text-blue-800'
+                                                        : 'bg-slate-50 border-slate-200 text-slate-600 hover:bg-slate-100'
+                                                }`}
+                                            >
+                                                <input
+                                                    type="checkbox"
+                                                    checked={isSelected}
+                                                    onChange={() => {
+                                                        if (isSelected) {
+                                                            setActiveSchoolFilter(prev => prev.filter(id => id !== school.id));
+                                                        } else {
+                                                            setActiveSchoolFilter(prev => [...prev, school.id]);
+                                                        }
+                                                    }}
+                                                    className="w-4 h-4 rounded accent-blue-600 shrink-0"
+                                                />
+                                                <span className="text-xs font-semibold leading-tight">{school.name}</span>
+                                            </label>
+                                        );
+                                    })}
+                                    {schools.length === 0 && (
+                                        <p className="text-xs text-slate-400 text-center py-3">Okul bulunamadı</p>
+                                    )}
+                                </div>
                             </div>
 
                             {/* Tag Filter (New Home) */}

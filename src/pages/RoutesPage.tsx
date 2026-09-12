@@ -7,7 +7,7 @@ import { supabase } from '../lib/supabase';
 import { useAuth } from '../contexts/AuthContext'; // Added this import
 import { useMapsLibrary } from '@vis.gl/react-google-maps';
 import {
-    ArrowLeft, Users, UserPlus, Plus, Bus, Navigation, Clock, Check, Loader2, Trash2, MapPin, Tag as TagIcon, Sparkles, Pencil, Home, X, Search, Map as MapIcon, Share2
+    ArrowLeft, Users, UserPlus, Plus, Bus, Navigation, Clock, Check, Loader2, Trash2, MapPin, Tag as TagIcon, Sparkles, Pencil, Home, X, Search, Map as MapIcon, Share2, Maximize, Minimize
 } from 'lucide-react';
 
 // --- Supabase Types (Mapped) ---
@@ -36,7 +36,7 @@ interface RouteDef {
     company_id?: string; // Added company_id
 
     // Joined Data
-    vehicles?: { plate_number: string; driver_name: string; driver_phone: string };
+    vehicles?: { plate_number: string; driver_name: string; driver_phone: string; color?: string };
     schools?: { name: string };
 
     // UI Helpers
@@ -102,24 +102,17 @@ const RoutesPage: React.FC = () => {
     const [liveVehicles, setLiveVehicles] = useState<{ id: string; position: [number, number]; title: string }[]>([]);
     const [showStudentLocations, setShowStudentLocations] = useState(false); // New Toggle
     const [hideOtherRoutes, setHideOtherRoutes] = useState(false); // New Toggle for hiding other routes
-    const [selectedNeighborhood, setSelectedNeighborhood] = useState<string>('all');
+    const [hiddenVehicleIds, setHiddenVehicleIds] = useState<string[]>([]); // Araç gizle filtresi
+    const [isMapFullscreen, setIsMapFullscreen] = useState(false); // Harita tam ekran
+    const [selectedNeighborhoods, setSelectedNeighborhoods] = useState<string[]>([]);
+    const [showNeighborhoodDropdown, setShowNeighborhoodDropdown] = useState(false);
     
-    // Extract unique neighborhoods from students' addresses
+    // Sadece 'neighborhood' alanına girilmiş mahalleler (adres ayrıştırması yok)
     const neighborhoods = useMemo(() => {
         const mh = new Set<string>();
         availableStudents.forEach(s => {
-            if (s.neighborhood) {
+            if (s.neighborhood && s.neighborhood.trim()) {
                 mh.add(s.neighborhood.trim());
-            } else if (s.address) {
-                const parts = s.address.split(',').map(p => p.trim()).filter(Boolean);
-                const mPart = parts.find(p => /(?:mahallesi|mah\b|mah\.|k\u00f6y\u00fc|mh\b|mh\.)/i.test(p));
-                if (mPart) {
-                    mh.add(mPart);
-                } else {
-                    // Fallback regex
-                    const match = s.address.match(/([^,\d]+(?:Mahallesi|Mah\.|Mah\b|Köyü|Mh\.|Mh\b))/i);
-                    if (match) mh.add(match[0].trim());
-                }
             }
         });
         return Array.from(mh).sort();
@@ -154,6 +147,7 @@ const RoutesPage: React.FC = () => {
 
     // Route Editing State
     const [editingRouteData, setEditingRouteData] = useState<{ id: string, name: string, school_id: string, time: string, tags: string[], price: number } | null>(null);
+    const [editingGeometryRouteId, setEditingGeometryRouteId] = useState<string | null>(null);
     const [newRouteTime, setNewRouteTime] = useState<string>('08:00');
 
     const placesLibrary = useMapsLibrary('places');
@@ -216,6 +210,14 @@ const RoutesPage: React.FC = () => {
         };
     }, []);
 
+    // Tam ekran değişince haritayı yeniden boyutlandır (Google Maps beyaz ekran fix)
+    useEffect(() => {
+        const t1 = setTimeout(() => window.dispatchEvent(new Event('resize')), 100);
+        const t2 = setTimeout(() => window.dispatchEvent(new Event('resize')), 300);
+        const t3 = setTimeout(() => window.dispatchEvent(new Event('resize')), 600);
+        return () => { clearTimeout(t1); clearTimeout(t2); clearTimeout(t3); };
+    }, [isMapFullscreen]);
+
     // Select route from URL param if present
     useEffect(() => {
         if (urlRouteId && routes.length > 0) {
@@ -237,6 +239,19 @@ const RoutesPage: React.FC = () => {
         window.addEventListener('keydown', handleKeyDown);
         return () => window.removeEventListener('keydown', handleKeyDown);
     }, [editingRouteData, creationStep, selectedStudent]);
+
+    // Mahalle dropdown dışarıya tıklanınca kapansın
+    useEffect(() => {
+        if (!showNeighborhoodDropdown) return;
+        const handleOutsideClick = (e: MouseEvent) => {
+            const target = e.target as HTMLElement;
+            if (!target.closest('[data-neighborhood-dropdown]')) {
+                setShowNeighborhoodDropdown(false);
+            }
+        };
+        document.addEventListener('mousedown', handleOutsideClick);
+        return () => document.removeEventListener('mousedown', handleOutsideClick);
+    }, [showNeighborhoodDropdown]);
 
     const loadInitialData = async () => {
         setLoading(true);
@@ -386,7 +401,7 @@ const RoutesPage: React.FC = () => {
 
     // Derived Route GeoJSON for Tag Highlighting (Multiple Routes)
     useEffect(() => {
-        if (routes.length === 0 || (hideOtherRoutes && selectedRouteId)) {
+        if (routes.length === 0 || hideOtherRoutes) {
             setMultiRoutesGeoJson(null);
             return;
         }
@@ -531,23 +546,24 @@ const RoutesPage: React.FC = () => {
             });
         }
 
-        // 3. Student Locations (if toggled or a specific neighborhood is selected)
-        if (showStudentLocations || selectedNeighborhood !== 'all') {
+        // 3. Student Locations (if toggled or neighborhoods selected)
+        if (showStudentLocations || selectedNeighborhoods.length > 0) {
             availableStudents.forEach(s => {
                 // Apply Tag Filter
                 const matchesTags = activeTagFilter.length === 0 ||
                     (s.tags && activeTagFilter.every(tag => s.tags?.includes(tag)));
 
-                // Apply Neighborhood Filter
+                // Apply Neighborhood Filter (multi-select)
                 let matchesNeighborhood = true;
-                if (selectedNeighborhood !== 'all') {
-                    if (s.neighborhood) {
-                        matchesNeighborhood = s.neighborhood.toLowerCase().includes(selectedNeighborhood.toLowerCase());
-                    } else if (s.address) {
-                        matchesNeighborhood = s.address.toLowerCase().includes(selectedNeighborhood.toLowerCase());
-                    } else {
-                        matchesNeighborhood = false;
-                    }
+                if (selectedNeighborhoods.length > 0) {
+                    matchesNeighborhood = selectedNeighborhoods.some(nh => {
+                        if (s.neighborhood) {
+                            return s.neighborhood.toLowerCase().includes(nh.toLowerCase());
+                        } else if (s.address) {
+                            return s.address.toLowerCase().includes(nh.toLowerCase());
+                        }
+                        return false;
+                    });
                 }
 
                 // Apply Main School Filter
@@ -565,7 +581,11 @@ const RoutesPage: React.FC = () => {
                 // Apply Shift Filter
                 const matchesShift = activeShiftFilter === 'all' || s.shift === activeShiftFilter;
 
-                if (matchesTags && matchesNeighborhood && matchesMainSchool && matchesShift && s.home_latitude && s.home_longitude) {
+                // Apply Hidden Vehicle Filter
+                const vehicleId = (s as any).vehicle_id;
+                const isHiddenByVehicle = hiddenVehicleIds.length > 0 && vehicleId && hiddenVehicleIds.includes(vehicleId);
+
+                if (matchesTags && matchesNeighborhood && matchesMainSchool && matchesShift && !isHiddenByVehicle && s.home_latitude && s.home_longitude) {
                     const lng = Number(s.home_longitude);
                     const lat = Number(s.home_latitude);
                     
@@ -625,13 +645,14 @@ const RoutesPage: React.FC = () => {
         showStudentLocations,
         availableStudents,
         activeTagFilter,
-        selectedNeighborhood,
+        selectedNeighborhoods,
         newRouteSchoolId,
         schools,
         activeSchoolFilter,
         activeShiftFilter,
         liveVehicles,
-        searchResultPin
+        searchResultPin,
+        hiddenVehicleIds
     ]);
 
     // --- Handlers: Route Creation ---
@@ -681,6 +702,16 @@ const RoutesPage: React.FC = () => {
 
     const addRoutePoint = (lng: number, lat: number, studentId?: string) => {
         setIsOptimized(false); // Reset optimization on any change
+        
+        // Toggle (remove) logic: if point already exists
+        if (studentId) {
+            const existingIndex = tempPointsRef.current.findIndex(p => p.studentId === studentId);
+            if (existingIndex !== -1) {
+                handleDeletePoint(existingIndex);
+                return;
+            }
+        }
+
         if (creationStep === 'start') {
             setTempPoints([{ type: 'start', pos: [lng, lat], studentId }]);
             setCreationStep('stops'); // Switch to stops immediately
@@ -702,6 +733,15 @@ const RoutesPage: React.FC = () => {
         setIsOptimized(false);
         // Use ref to always get the LATEST tempPoints (avoids stale closure from useCallback)
         const newPoints = [...tempPointsRef.current];
+        
+        // Toggle (remove) logic: if point already exists
+        if (studentId) {
+            const existingIndex = newPoints.findIndex(p => p.studentId === studentId);
+            if (existingIndex !== -1) {
+                handleDeletePoint(existingIndex);
+                return;
+            }
+        }
         
         if (newPoints.length === 0) {
             setTempPoints([{ type: 'start', pos: [lng, lat], studentId }]);
@@ -854,19 +894,25 @@ const RoutesPage: React.FC = () => {
     };
 
     const handleDeletePoint = (_index: number) => {
+        let remainingPoints: any[] = [];
+        let deletedPointType = '';
+
         setTempPoints(prev => {
             const newPoints = [...prev];
             const deleted = newPoints[_index];
             newPoints.splice(_index, 1);
 
+            remainingPoints = newPoints;
+            deletedPointType = deleted?.type || '';
+
             // Logic to reset steps if critical points are deleted
-            if (deleted.type === 'start') {
+            if (deleted?.type === 'start') {
                 setCreationStep('start');
                 setRouteGeoJson(null); // Clear preview if start deleted
-                return []; // Clear all if start is deleted? Or just remove start? Let's clear for simplicity/consistency
-            } else if (deleted.type === 'end') {
+                return []; // Clear all if start is deleted
+            } else if (deleted?.type === 'end') {
                 setRouteGeoJson(null); // Clear preview if end deleted
-                if (creationStep === 'idle') return newPoints; // Should not happen
+                if (creationStep === 'idle') return newPoints;
                 setCreationStep('end');
             } else {
                 // If a stop is deleted, the optimized route (if any) is now invalid
@@ -877,16 +923,28 @@ const RoutesPage: React.FC = () => {
             return newPoints;
         });
 
-        // Update GeoJSON for manual mode
-        if (creationMethod === 'manual') {
-            setRouteGeoJson((prev: any) => {
-                if (!prev) return null;
-                const coords = [...prev.geometry.coordinates];
-                coords.splice(_index, 1);
-                if (coords.length < 2) return null;
-                return { ...prev, geometry: { ...prev.geometry, coordinates: coords } };
-            });
-        }
+        setTimeout(() => {
+            if (creationMethod === 'manual') {
+                setRouteGeoJson((prev: any) => {
+                    if (!prev) return null;
+                    const coords = [...prev.geometry.coordinates];
+                    coords.splice(_index, 1);
+                    if (coords.length < 2) return null;
+                    return { ...prev, geometry: { ...prev.geometry, coordinates: coords } };
+                });
+            } else if (creationMethod === 'interactive' || creationMethod === 'auto') {
+                if (deletedPointType === 'start') {
+                    setDirectionsResponse(undefined);
+                } else if (remainingPoints.length >= 2 && remainingPoints.some(p => p.type === 'start') && remainingPoints.some(p => p.type === 'end')) {
+                    // Start ve End hala varsa rotayı yeniden çiz
+                    autoDrawRoute(remainingPoints);
+                } else {
+                    // Start var ama End silindiyse veya sadece tek nokta kaldıysa çizgiyi temizle
+                    setDirectionsResponse(undefined);
+                    setRouteGeoJson(null);
+                }
+            }
+        }, 0);
     };
 
     const finishRouteCreation = async () => {
@@ -985,6 +1043,7 @@ const RoutesPage: React.FC = () => {
             setNewRouteSchoolId('');
             setNewRouteTags([]);
             setNewRouteTime('08:00'); // Reset route time
+            setHiddenVehicleIds([]); // Reset vehicle hide on route save
 
         } catch (error) {
             console.error('Error creating route:', error);
@@ -1012,7 +1071,7 @@ const RoutesPage: React.FC = () => {
         try {
             await supabase.from('students').update({ vehicle_id: vehicleId || null }).eq('id', studentId);
             // Refresh students data
-            const { data: studentsData } = await supabase.from('students').select('id, full_name, home_latitude, home_longitude, address, tags, parent_name, parent_phone, grade, blood_group, allergies, registration_date, school_id, vehicle_id, schools(name), vehicles(plate_number), shift').neq('status', 'pending');
+            const { data: studentsData } = await supabase.from('students').select('id, full_name, home_latitude, home_longitude, address, neighborhood, tags, parent_name, parent_phone, grade, blood_group, allergies, registration_date, school_id, vehicle_id, schools(name), vehicles(plate_number), shift').neq('status', 'pending');
             if (studentsData) {
                 setAvailableStudents(studentsData as any);
                 // Update selectedStudent with fresh data
@@ -1085,7 +1144,7 @@ const RoutesPage: React.FC = () => {
                 await supabase.from('students').update({ vehicle_id: selectedRoute.vehicle_id }).eq('id', studentId);
             }
             // Refresh students data
-            const { data: studentsData } = await supabase.from('students').select('id, full_name, home_latitude, home_longitude, address, tags, parent_name, parent_phone, grade, blood_group, allergies, registration_date, school_id, vehicle_id, schools(name), vehicles(plate_number), shift').neq('status', 'pending');
+            const { data: studentsData } = await supabase.from('students').select('id, full_name, home_latitude, home_longitude, address, neighborhood, tags, parent_name, parent_phone, grade, blood_group, allergies, registration_date, school_id, vehicle_id, schools(name), vehicles(plate_number), shift').neq('status', 'pending');
             if (studentsData) setAvailableStudents(studentsData as any);
             await fetchRoutes();
         } catch (error) {
@@ -1131,6 +1190,123 @@ const RoutesPage: React.FC = () => {
         } catch (error) {
             console.error('Error updating route:', error);
             alert('Rota güncellenirken bir hata oluştu.');
+        } finally {
+            setLoading(false);
+        }
+    };
+
+    // --- Handlers: Geometry Edit ---
+
+    const startGeometryEdit = async (routeId: string) => {
+        const route = routes.find(r => r.id === routeId);
+        if (!route || route.stops.length < 2) {
+            alert('Düzenlemek için rotanın en az 2 durağı olmalıdır.');
+            return;
+        }
+
+        // Mevcut durakları tempPoints formatına çevir (sıralı)
+        const sortedStops = [...route.stops].sort((a, b) => a.order_index - b.order_index);
+        const newTempPoints = sortedStops.map((stop, index, arr) => ({
+            type: index === 0 ? 'start' as const : index === arr.length - 1 ? 'end' as const : 'stop' as const,
+            pos: stop.coordinates as [number, number], // [lng, lat]
+            studentId: stop.assignedStudentIds[0] || undefined
+        }));
+
+        setTempPoints(newTempPoints);
+        setCreationMethod('interactive');
+        setCreationStep('interactive_draw');
+        setEditingGeometryRouteId(routeId);
+        setSelectedRouteId(null); // Detay panelini kapat, oluşturma panelini aç
+        setIsOptimized(true);
+        setNewRouteSchoolId(route.school_id || '');
+
+        // Mevcut koordinatlar varsa haritada göster
+        if (route.coordinates && route.coordinates.length > 0) {
+            const validCoords = route.coordinates
+                .filter((c: any) => Array.isArray(c) && c.length >= 2 && !isNaN(Number(c[0])) && !isNaN(Number(c[1])))
+                .map((c: any) => [Number(c[0]), Number(c[1])]);
+            if (validCoords.length > 0) {
+                setRouteGeoJson({
+                    type: 'Feature',
+                    geometry: { type: 'LineString', coordinates: validCoords },
+                    properties: {}
+                });
+            }
+        }
+
+        // Interactive mod için DirectionsRenderer'ı başlat
+        if (newTempPoints.length >= 2) {
+            await autoDrawRoute(newTempPoints);
+        }
+
+        setFitBoundsTrigger(prev => prev + 1);
+    };
+
+    const saveGeometryEdit = async () => {
+        if (!editingGeometryRouteId || tempPoints.length < 2) return;
+        setLoading(true);
+        try {
+            // 1. Mevcut route_stops'ları sil
+            const { error: deleteError } = await supabase
+                .from('route_stops')
+                .delete()
+                .eq('route_id', editingGeometryRouteId);
+            if (deleteError) throw deleteError;
+
+            // 2. Yeni durakları oluştur (start, stops..., end sıralaması)
+            const start = tempPoints.find(p => p.type === 'start');
+            const end = tempPoints.find(p => p.type === 'end');
+            const intermediates = tempPoints.filter(p => p.type === 'stop');
+
+            if (!start || !end) {
+                alert('Başlangıç ve bitiş noktaları gereklidir.');
+                setLoading(false);
+                return;
+            }
+
+            const orderedPoints = [
+                { ...start, order: 0, name: 'Başlangıç' },
+                ...intermediates.map((p, i) => ({ ...p, order: i + 1, name: `${i + 1}. Durak` })),
+                { ...end, order: intermediates.length + 1, name: 'Varış' }
+            ];
+
+            const stopsToInsert = orderedPoints.map(p => ({
+                company_id: profile?.company_id,
+                route_id: editingGeometryRouteId,
+                order_index: p.order,
+                name: p.name,
+                longitude: p.pos[0],
+                latitude: p.pos[1]
+            }));
+
+            const { error: insertError } = await supabase.from('route_stops').insert(stopsToInsert);
+            if (insertError) throw insertError;
+
+            // 3. Rota geometrisini güncelle
+            if (routeGeoJson) {
+                await supabase.from('routes').update({
+                    geometry: routeGeoJson.geometry
+                }).eq('id', editingGeometryRouteId);
+            }
+
+            // 4. State'i sıfırla ve rotayı yeniden aç
+            const savedRouteId = editingGeometryRouteId;
+            setEditingGeometryRouteId(null);
+            setCreationStep('idle');
+            setCreationMethod(null);
+            setTempPoints([]);
+            setRouteGeoJson(null);
+            setDirectionsResponse(undefined);
+            setIsOptimized(false);
+            setNewRouteSchoolId('');
+
+            await fetchRoutes();
+            setSelectedRouteId(savedRouteId);
+            setFitBoundsTrigger(prev => prev + 1);
+
+        } catch (error) {
+            console.error('Error saving geometry edit:', error);
+            alert('Güzergah güncellenirken hata oluştu.');
         } finally {
             setLoading(false);
         }
@@ -1278,6 +1454,29 @@ const RoutesPage: React.FC = () => {
             }
         } catch (error) {
             console.error('Error deleting route:', error);
+        }
+    };
+
+    const handleDeleteStop = async (stopId: string) => {
+        if (!selectedRouteId) return;
+        if (!confirm('Bu durağı silmek istediğinize emin misiniz? (Bağlı öğrenciler duraktan çıkarılacaktır)')) return;
+
+        try {
+            setLoading(true);
+            
+            // 1. Önce bu durağa atanmış öğrencilerin assignments'larını sil
+            await supabase.from('student_route_assignments').delete().eq('stop_id', stopId);
+            
+            // 2. Durağı sil
+            await supabase.from('route_stops').delete().eq('id', stopId);
+            
+            // 3. UI'ı güncelle
+            await fetchRoutes();
+        } catch (error) {
+            console.error('Error deleting stop:', error);
+            alert('Durak silinirken hata oluştu.');
+        } finally {
+            setLoading(false);
         }
     };
 
@@ -1501,7 +1700,7 @@ const RoutesPage: React.FC = () => {
         <div className="h-[calc(100vh-8rem)] flex flex-col gap-4">
 
             {/* --- UNIFIED FILTER BAR --- */}
-            <div className="bg-white/95 backdrop-blur-sm rounded-2xl border border-slate-200 shadow-sm p-3 gap-4 shrink-0 flex flex-col lg:flex-row lg:items-center justify-between z-20 relative">
+            <div className="bg-white/95 backdrop-blur-sm rounded-2xl border border-slate-200 shadow-sm p-3 gap-4 shrink-0 flex flex-col lg:flex-row lg:items-center justify-between relative z-[10000]">
                 <div className="flex flex-wrap items-center gap-3 flex-1 w-full lg:w-auto">
                     {/* School Filter */}
                     <div className="flex items-center w-full sm:w-auto">
@@ -1621,22 +1820,135 @@ const RoutesPage: React.FC = () => {
                             </span>
                         </button>
 
-                        {/* Neighborhood Filter (only visible when Student Homes is active) */}
-                        {showStudentLocations && (
-                            <div className="relative flex items-center animate-in fade-in zoom-in duration-200">
-                                <MapPin size={16} className="absolute left-3 text-slate-400 pointer-events-none" />
-                                <select
-                                    value={selectedNeighborhood}
-                                    onChange={(e) => setSelectedNeighborhood(e.target.value)}
-                                    className="pl-9 pr-8 py-2 bg-white border border-slate-200 text-slate-600 rounded-xl text-sm font-bold hover:bg-slate-50 focus:outline-none focus:border-green-500 focus:ring-2 focus:ring-green-500/20 appearance-none shadow-sm cursor-pointer transition-all"
+                        {/* Neighborhood Filter (only visible when Student Homes is active) — Multi-select dropdown */}
+                        {showStudentLocations && neighborhoods.length > 0 && (
+                            <div className="relative animate-in fade-in zoom-in duration-200" data-neighborhood-dropdown>
+                                <button
+                                    onClick={() => setShowNeighborhoodDropdown(prev => !prev)}
+                                    className={`flex items-center gap-2 px-3 py-2 rounded-xl text-sm font-bold border transition-all shadow-sm ${
+                                        selectedNeighborhoods.length > 0
+                                            ? 'bg-teal-50 border-teal-300 text-teal-700'
+                                            : 'bg-white border-slate-200 text-slate-600 hover:bg-slate-50'
+                                    }`}
                                 >
-                                    <option value="all">Tüm Mahalleler / Konumlar</option>
-                                    {neighborhoods.map(nh => (
-                                        <option key={nh} value={nh}>{nh}</option>
-                                    ))}
-                                </select>
-                                <div className="absolute right-3 pointer-events-none">
-                                    <svg xmlns="http://www.w3.org/2000/svg" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className="text-slate-400"><path d="m6 9 6 6 6-6"/></svg>
+                                    <MapPin size={14} className={selectedNeighborhoods.length > 0 ? 'text-teal-600' : 'text-slate-400'} />
+                                    <span>Mahalleler</span>
+                                    {selectedNeighborhoods.length > 0 && (
+                                        <span className="bg-teal-600 text-white text-[10px] px-1.5 py-0.5 rounded-full">
+                                            {selectedNeighborhoods.length}
+                                        </span>
+                                    )}
+                                    <svg xmlns="http://www.w3.org/2000/svg" width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round" className={`transition-transform ${showNeighborhoodDropdown ? 'rotate-180' : ''}`}><path d="m6 9 6 6 6-6"/></svg>
+                                </button>
+
+                                {showNeighborhoodDropdown && (
+                                    <div className="absolute top-[110%] left-0 bg-white border border-slate-200 rounded-2xl shadow-2xl z-[200] min-w-[220px] max-w-xs animate-in slide-in-from-top-2 origin-top overflow-hidden">
+                                        <div className="p-3 border-b border-slate-100 flex items-center justify-between">
+                                            <span className="text-[10px] font-bold text-slate-400 uppercase tracking-wider">Mahalle Filtresi</span>
+                                            <div className="flex gap-2">
+                                                <button
+                                                    onClick={() => setSelectedNeighborhoods([...neighborhoods])}
+                                                    className="text-[10px] text-blue-600 font-bold hover:underline"
+                                                >Tümü</button>
+                                                <span className="text-slate-300">|</span>
+                                                <button
+                                                    onClick={() => setSelectedNeighborhoods([])}
+                                                    className="text-[10px] text-red-500 font-bold hover:underline"
+                                                >Temizle</button>
+                                            </div>
+                                        </div>
+                                        <div className="max-h-56 overflow-y-auto p-2 space-y-0.5">
+                                            {neighborhoods.map(nh => {
+                                                const isSelected = selectedNeighborhoods.includes(nh);
+                                                return (
+                                                    <button
+                                                        key={nh}
+                                                        onClick={() => {
+                                                            if (isSelected) {
+                                                                setSelectedNeighborhoods(prev => prev.filter(n => n !== nh));
+                                                            } else {
+                                                                setSelectedNeighborhoods(prev => [...prev, nh]);
+                                                            }
+                                                        }}
+                                                        className={`w-full flex items-center gap-2.5 px-2.5 py-2 rounded-lg text-sm transition-all ${
+                                                            isSelected
+                                                                ? 'bg-teal-50 text-teal-800 font-semibold'
+                                                                : 'text-slate-600 hover:bg-slate-50'
+                                                        }`}
+                                                    >
+                                                        <div className={`w-4 h-4 rounded border-2 flex items-center justify-center shrink-0 transition-all ${
+                                                            isSelected
+                                                                ? 'bg-teal-500 border-teal-500'
+                                                                : 'border-slate-300 bg-white'
+                                                        }`}>
+                                                            {isSelected && (
+                                                                <svg xmlns="http://www.w3.org/2000/svg" width="10" height="10" viewBox="0 0 24 24" fill="none" stroke="white" strokeWidth="3" strokeLinecap="round" strokeLinejoin="round"><polyline points="20 6 9 17 4 12"/></svg>
+                                                            )}
+                                                        </div>
+                                                        <span className="truncate text-left">{nh}</span>
+                                                    </button>
+                                                );
+                                            })}
+                                        </div>
+                                        <div className="p-2 border-t border-slate-100">
+                                            <button
+                                                onClick={() => setShowNeighborhoodDropdown(false)}
+                                                className="w-full py-1.5 text-xs font-bold text-slate-500 hover:bg-slate-50 rounded-lg transition-colors"
+                                            >Kapat</button>
+                                        </div>
+                                    </div>
+                                )}
+                            </div>
+                        )}
+
+                        {/* Araç Gizle Filtresi (only visible when Student Homes is active) */}
+                        {showStudentLocations && availableVehicles.length > 0 && (
+                            <div className="relative animate-in fade-in zoom-in duration-200">
+                                <div className="flex flex-col gap-1.5">
+                                    <div className="flex items-center gap-2">
+                                        <Bus size={14} className="text-slate-400" />
+                                        <span className="text-xs font-bold text-slate-500">Araç Gizle</span>
+                                        {hiddenVehicleIds.length > 0 && (
+                                            <button
+                                                onClick={() => setHiddenVehicleIds([])}
+                                                className="text-[10px] text-orange-500 font-bold hover:underline ml-1"
+                                            >
+                                                Temizle ({hiddenVehicleIds.length})
+                                            </button>
+                                        )}
+                                    </div>
+                                    <div className="flex flex-wrap gap-1.5 max-w-xs">
+                                        {availableVehicles.map(v => {
+                                            const isHidden = hiddenVehicleIds.includes(v.id);
+                                            const studentCount = availableStudents.filter(s => (s as any).vehicle_id === v.id).length;
+                                            if (studentCount === 0) return null;
+                                            return (
+                                                <button
+                                                    key={v.id}
+                                                    onClick={() => {
+                                                        if (isHidden) {
+                                                            setHiddenVehicleIds(prev => prev.filter(id => id !== v.id));
+                                                        } else {
+                                                            setHiddenVehicleIds(prev => [...prev, v.id]);
+                                                        }
+                                                    }}
+                                                    title={`${v.plate_number} aracındaki ${studentCount} öğrenciyi ${isHidden ? 'göster' : 'gizle'}`}
+                                                    className={`px-2 py-1 rounded-lg text-[11px] font-bold border transition-all flex items-center gap-1 ${
+                                                        isHidden
+                                                            ? 'bg-orange-500 text-white border-orange-600 shadow-sm'
+                                                            : 'bg-white text-slate-600 border-slate-200 hover:bg-slate-100'
+                                                    }`}
+                                                >
+                                                    <span
+                                                        className="w-2 h-2 rounded-full shrink-0"
+                                                        style={{ backgroundColor: v.color || '#94a3b8' }}
+                                                    />
+                                                    {v.plate_number}
+                                                    <span className={`${isHidden ? 'text-orange-100' : 'text-slate-400'}`}>({studentCount})</span>
+                                                </button>
+                                            );
+                                        })}
+                                    </div>
                                 </div>
                             </div>
                         )}
@@ -1645,15 +1957,19 @@ const RoutesPage: React.FC = () => {
             </div>
 
             <div className="flex-1 flex gap-6 min-h-0">
-                {/* Sidebar (Master / Detail) */}
-                <div className="w-1/3 min-w-[400px] flex flex-col bg-white rounded-2xl border border-slate-100 shadow-sm overflow-hidden transition-all duration-300">
+                {/* Sidebar (Master / Detail) - fullscreen'de gizle */}
+                <div className={`w-1/3 min-w-[400px] flex flex-col bg-white rounded-2xl border border-slate-100 shadow-sm overflow-hidden transition-all duration-300 ${isMapFullscreen ? 'hidden' : ''}`}>
 
                     {!selectedRouteId || creationStep !== 'idle' ? (
                         <>
                             {creationStep !== 'idle' ? (
                                 <div className="p-6 bg-blue-50 border-b border-blue-100 flex flex-col h-full overflow-y-auto">
                                     <h3 className="text-lg font-bold text-blue-900 mb-2">
-                                        {creationMethod === 'manual' ? 'Manuel Rota Çiziliyor' : creationMethod === 'interactive' ? 'Etkileşimli (My Maps) Rota Çiziliyor' : 'Yeni Rota Oluşturuluyor'}
+                                        {editingGeometryRouteId
+                                            ? `✏️ Güzergah Düzenleniyor`
+                                            : creationMethod === 'manual' ? 'Manuel Rota Çiziliyor'
+                                            : creationMethod === 'interactive' ? 'Etkileşimli (My Maps) Rota Çiziliyor'
+                                            : 'Yeni Rota Oluşturuluyor'}
                                     </h3>
                                     <p className="text-blue-700 text-sm mb-4">
                                         {creationMethod === 'manual'
@@ -1676,17 +1992,19 @@ const RoutesPage: React.FC = () => {
                                                     p.type === 'end' ? 'bg-red-500' :
                                                         'bg-blue-500'
                                                     }`}>
-                                                    {p.type === 'start' ? 'B' : p.type === 'end' ? 'V' : i}
+                                                    {String.fromCharCode(65 + i)}
                                                 </div>
                                                 <div className="flex-1 text-sm font-medium text-slate-700">
-                                                    {p.type === 'start' ? 'Başlangıç' : p.type === 'end' ? 'Varış' : `${i}. Durak`}
+                                                    <span className="font-bold">{String.fromCharCode(65 + i)}</span> Noktası {p.type === 'start' ? '(Başlangıç)' : p.type === 'end' ? '(Varış)' : ''}
                                                     {p.studentId && <span className="ml-1 text-xs text-blue-600">(Öğrenci)</span>}
                                                 </div>
                                                 <button
                                                     onClick={() => handleDeletePoint(i)}
-                                                    className="p-1.5 hover:bg-red-100 text-slate-400 hover:text-red-600 rounded-md transition-colors"
+                                                    className="flex items-center gap-1 px-2.5 py-1 rounded-lg text-xs font-semibold text-red-500 hover:bg-red-50 hover:text-red-600 transition-colors border border-transparent hover:border-red-200"
+                                                    title="Noktayı sil"
                                                 >
-                                                    <Trash2 size={14} />
+                                                    <Trash2 size={13} />
+                                                    Sil
                                                 </button>
                                             </div>
                                         ))}
@@ -1836,27 +2154,115 @@ const RoutesPage: React.FC = () => {
                                             )}
 
                                             <button
-                                                onClick={finishRouteCreation}
-                                                disabled={creationMethod === 'auto' && !isOptimized}
-                                                className={`w-full py-3 rounded-xl font-bold shadow-lg flex items-center justify-center gap-2 transition-all ${creationMethod === 'auto' && !isOptimized
+                                                onClick={editingGeometryRouteId ? saveGeometryEdit : finishRouteCreation}
+                                                disabled={!editingGeometryRouteId && creationMethod === 'auto' && !isOptimized}
+                                                className={`w-full py-3 rounded-xl font-bold shadow-lg flex items-center justify-center gap-2 transition-all ${!editingGeometryRouteId && creationMethod === 'auto' && !isOptimized
                                                     ? 'bg-slate-200 text-slate-400 cursor-not-allowed shadow-none'
-                                                    : 'bg-green-600 text-white hover:bg-green-700 shadow-green-200'
+                                                    : editingGeometryRouteId
+                                                        ? 'bg-orange-500 text-white hover:bg-orange-600 shadow-orange-200'
+                                                        : 'bg-green-600 text-white hover:bg-green-700 shadow-green-200'
                                                     }`}
-                                                title={creationMethod === 'auto' && !isOptimized ? 'Kaydetmeden önce rotayı optimize etmelisiniz' : ''}
+                                                title={!editingGeometryRouteId && creationMethod === 'auto' && !isOptimized ? 'Kaydetmeden önce rotayı optimize etmelisiniz' : ''}
                                             >
                                                 <Check size={20} />
-                                                Rotayı Kaydet
+                                                {editingGeometryRouteId ? 'Güzergahı Güncelle' : 'Rotayı Kaydet'}
                                             </button>
                                         </div>
                                     )}
 
 
+                                    {/* Araç Gizle - Rota Oluşturma Paneli */}
+                                    {creationStep !== 'method_selection' && availableVehicles.length > 0 && (() => {
+                                        const vehiclesWithStudents = availableVehicles.filter(v =>
+                                            availableStudents.some(s => (s as any).vehicle_id === v.id)
+                                        );
+                                        if (vehiclesWithStudents.length === 0) return null;
+                                        return (
+                                            <div className="mt-3 p-3 bg-white/60 border border-blue-100 rounded-xl">
+                                                <div className="flex items-center justify-between mb-2">
+                                                    <div className="flex items-center gap-1.5">
+                                                        <Bus size={13} className="text-blue-400" />
+                                                        <span className="text-xs font-bold text-blue-700">Araç Gizle</span>
+                                                        <span className="text-[10px] text-blue-500">— seçilenlerin öğrencileri haritadan kaybolur</span>
+                                                    </div>
+                                                    {hiddenVehicleIds.length > 0 && (
+                                                        <button
+                                                            onClick={() => setHiddenVehicleIds([])}
+                                                            className="text-[10px] text-orange-500 font-bold hover:underline"
+                                                        >
+                                                            Temizle
+                                                        </button>
+                                                    )}
+                                                </div>
+                                                <div className="space-y-1.5">
+                                                    {vehiclesWithStudents.map(v => {
+                                                        const isHidden = hiddenVehicleIds.includes(v.id);
+                                                        const studentCount = availableStudents.filter(s => (s as any).vehicle_id === v.id).length;
+                                                        return (
+                                                            <button
+                                                                key={v.id}
+                                                                onClick={() => {
+                                                                    if (isHidden) {
+                                                                        setHiddenVehicleIds(prev => prev.filter(id => id !== v.id));
+                                                                    } else {
+                                                                        setHiddenVehicleIds(prev => [...prev, v.id]);
+                                                                    }
+                                                                }}
+                                                                className={`w-full flex items-center gap-2.5 px-2.5 py-2 rounded-lg text-xs transition-all border ${
+                                                                    isHidden
+                                                                        ? 'bg-orange-50 border-orange-300 text-orange-800'
+                                                                        : 'bg-white border-slate-200 text-slate-600 hover:bg-slate-50'
+                                                                }`}
+                                                            >
+                                                                <div className={`w-4 h-4 rounded border-2 flex items-center justify-center shrink-0 transition-all ${
+                                                                    isHidden
+                                                                        ? 'bg-orange-500 border-orange-500'
+                                                                        : 'border-slate-300 bg-white'
+                                                                }`}>
+                                                                    {isHidden && (
+                                                                        <svg xmlns="http://www.w3.org/2000/svg" width="10" height="10" viewBox="0 0 24 24" fill="none" stroke="white" strokeWidth="3" strokeLinecap="round" strokeLinejoin="round"><polyline points="20 6 9 17 4 12"/></svg>
+                                                                    )}
+                                                                </div>
+                                                                <span
+                                                                    className="w-2.5 h-2.5 rounded-full shrink-0"
+                                                                    style={{ backgroundColor: v.color || '#94a3b8' }}
+                                                                />
+                                                                <span className="font-bold flex-1 text-left">{v.plate_number}</span>
+                                                                <span className={`text-[10px] px-1.5 py-0.5 rounded-full font-bold ${
+                                                                    isHidden
+                                                                        ? 'bg-orange-200 text-orange-700'
+                                                                        : 'bg-slate-100 text-slate-500'
+                                                                }`}>
+                                                                    {studentCount} öğrenci
+                                                                </span>
+                                                            </button>
+                                                        );
+                                                    })}
+                                                </div>
+                                            </div>
+                                        );
+                                    })()}
+
                                     <div className="mt-auto pt-4 border-t border-blue-100">
                                         <button
-                                            onClick={() => { setCreationStep('idle'); setTempPoints([]); setRouteGeoJson(null); setDirectionsResponse(undefined); setCreationMethod(null); setIsOptimized(false); }}
+                                            onClick={() => {
+                                                if (editingGeometryRouteId) {
+                                                    // Düzenleme modundan çıkınca rotayı yeniden seç
+                                                    const prevId = editingGeometryRouteId;
+                                                    setEditingGeometryRouteId(null);
+                                                    setSelectedRouteId(prevId);
+                                                }
+                                                setCreationStep('idle');
+                                                setTempPoints([]);
+                                                setRouteGeoJson(null);
+                                                setDirectionsResponse(undefined);
+                                                setCreationMethod(null);
+                                                setIsOptimized(false);
+                                                setHiddenVehicleIds([]);
+                                            }}
                                             className="w-full py-2 text-slate-500 hover:text-red-600 text-sm font-medium"
                                         >
-                                            İptal Et
+                                            {editingGeometryRouteId ? 'Düzenlemeyi İptal Et' : 'İptal Et'}
                                         </button>
                                     </div>
                                 </div>
@@ -1943,14 +2349,32 @@ const RoutesPage: React.FC = () => {
                                         </div>
                                     </div>
                                     {selectedRoute && (
-                                        <button
-                                            onClick={() => handleShareRoute(selectedRoute.id)}
-                                            className="p-2.5 bg-emerald-500 hover:bg-emerald-600 text-white rounded-xl font-bold text-xs flex items-center gap-1.5 shadow-sm transition-all shrink-0"
-                                            title="Şoförle / WhatsApp ile Paylaş"
-                                        >
-                                            <Share2 size={16} />
-                                            <span className="hidden sm:inline">Paylaş</span>
-                                        </button>
+                                        <div className="flex items-center gap-2 shrink-0">
+                                            <button
+                                                onClick={() => startGeometryEdit(selectedRoute.id)}
+                                                className="p-2.5 bg-indigo-500 hover:bg-indigo-600 text-white rounded-xl font-bold text-xs flex items-center gap-1.5 shadow-sm transition-all"
+                                                title="Rotanın çizimini / güzergahını harita üzerinde düzenle"
+                                            >
+                                                <MapIcon size={16} />
+                                                <span className="hidden sm:inline">Güzergahı Düzenle</span>
+                                            </button>
+                                            <button
+                                                onClick={() => openEditModal(selectedRoute.id)}
+                                                className="p-2.5 bg-blue-500 hover:bg-blue-600 text-white rounded-xl font-bold text-xs flex items-center gap-1.5 shadow-sm transition-all"
+                                                title="Rota bilgilerini düzenle (Ad, Okul, Saat, Etiket, Fiyat)"
+                                            >
+                                                <Pencil size={16} />
+                                                <span className="hidden sm:inline">Bilgi</span>
+                                            </button>
+                                            <button
+                                                onClick={() => handleShareRoute(selectedRoute.id)}
+                                                className="p-2.5 bg-emerald-500 hover:bg-emerald-600 text-white rounded-xl font-bold text-xs flex items-center gap-1.5 shadow-sm transition-all"
+                                                title="Şoförle / WhatsApp ile Paylaş"
+                                            >
+                                                <Share2 size={16} />
+                                                <span className="hidden sm:inline">Paylaş</span>
+                                            </button>
+                                        </div>
                                     )}
                                 </div>
 
@@ -2082,6 +2506,16 @@ const RoutesPage: React.FC = () => {
                                                                     <UserPlus size={13} />
                                                                     {stop.assignedStudentIds.length > 0 ? 'Öğrenci Ekle' : 'Ekle'}
                                                                 </button>
+                                                                {stop.type !== 'start' && stop.type !== 'end' && (
+                                                                    <button
+                                                                        onClick={() => handleDeleteStop(stop.id)}
+                                                                        className="flex items-center gap-1 px-2.5 py-1 rounded-lg text-xs font-semibold text-red-500 hover:bg-red-50 hover:text-red-600 transition-colors border border-transparent hover:border-red-200"
+                                                                        title="Durağı sil"
+                                                                    >
+                                                                        <Trash2 size={13} />
+                                                                        Sil
+                                                                    </button>
+                                                                )}
                                                             </div>
                                                         )}
                                                     </div>
@@ -2191,11 +2625,15 @@ const RoutesPage: React.FC = () => {
                 </div>
 
                 {/* Map Area */}
-                <div className="flex-1 bg-white rounded-2xl border border-slate-100 shadow-sm overflow-hidden relative">
+                <div className={`bg-white rounded-2xl border border-slate-100 shadow-sm overflow-hidden relative transition-all duration-300 ${
+                    isMapFullscreen
+                        ? 'fixed inset-0 z-[9999] h-screen w-screen rounded-none border-0 m-0'
+                        : 'flex-1'
+                }`}>
                     <MapScene
                         className="w-full h-full"
                         routeGeoJson={routeGeoJson}
-                        routesGeoJson={(selectedRouteId || creationStep !== 'idle') ? null : multiRoutesGeoJson}
+                        routesGeoJson={(selectedRouteId || creationStep !== 'idle' || hideOtherRoutes) ? null : multiRoutesGeoJson}
                         markers={mapMarkers}
                         onMapClick={handleMapClick}
                         onMarkerClick={handleMarkerClick}
@@ -2210,6 +2648,15 @@ const RoutesPage: React.FC = () => {
                         selectedRouteId={selectedRouteId}
                         suppressMarkers={creationMethod !== 'interactive'}
                     />
+
+                    {/* Fullscreen Toggle Button */}
+                    <button
+                        onClick={() => setIsMapFullscreen(f => !f)}
+                        className="absolute top-4 right-4 z-50 p-2.5 bg-white/90 backdrop-blur-md rounded-xl shadow-lg border border-slate-200 text-slate-600 hover:bg-slate-50 hover:border-slate-300 transition-all duration-200"
+                        title={isMapFullscreen ? 'Tam Ekrandan Çık' : 'Haritayı Tam Ekran Yap'}
+                    >
+                        {isMapFullscreen ? <Minimize size={18} className="text-blue-600" /> : <Maximize size={18} className="text-blue-600" />}
+                    </button>
 
                     {/* Route Hover Info Popup */}
                     {hoveredRouteId && hoverPosition && routes.find(r => r.id === hoveredRouteId) && (
