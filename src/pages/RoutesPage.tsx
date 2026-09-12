@@ -894,57 +894,66 @@ const RoutesPage: React.FC = () => {
     };
 
     const handleDeletePoint = (_index: number) => {
-        let remainingPoints: any[] = [];
-        let deletedPointType = '';
+        // Doğrudan ref üzerinden güncel state'i alıyoruz (asenkron batching sorunlarını önler)
+        const newPoints = [...tempPointsRef.current];
+        if (_index < 0 || _index >= newPoints.length) return;
+        
+        const deleted = newPoints[_index];
+        newPoints.splice(_index, 1);
+        
+        // Eğer Start silindiyse (0. index), her şeyi sıfırla
+        if (deleted?.type === 'start') {
+            setTempPoints([]);
+            setCreationStep('start');
+            setRouteGeoJson(null);
+            setDirectionsResponse(undefined);
+            return;
+        }
 
-        setTempPoints(prev => {
-            const newPoints = [...prev];
-            const deleted = newPoints[_index];
-            newPoints.splice(_index, 1);
+        // Kalan noktalar varsa type'ları düzelt (ilk nokta her zaman 'start', son nokta her zaman 'end')
+        if (newPoints.length > 0) {
+            newPoints[0].type = 'start';
+            if (newPoints.length > 1) {
+                newPoints[newPoints.length - 1].type = 'end';
+            }
+            for (let i = 1; i < newPoints.length - 1; i++) {
+                newPoints[i].type = 'stop';
+            }
+        }
+        
+        // Optimize status sıfırla (durak silinirse)
+        if (deleted?.type !== 'end' && deleted?.type !== 'start') {
+            setIsOptimized(false);
+        }
 
-            remainingPoints = newPoints;
-            deletedPointType = deleted?.type || '';
-
-            // Logic to reset steps if critical points are deleted
-            if (deleted?.type === 'start') {
-                setCreationStep('start');
-                setRouteGeoJson(null); // Clear preview if start deleted
-                return []; // Clear all if start is deleted
-            } else if (deleted?.type === 'end') {
-                setRouteGeoJson(null); // Clear preview if end deleted
-                if (creationStep === 'idle') return newPoints;
-                setCreationStep('end');
-            } else {
-                // If a stop is deleted, the optimized route (if any) is now invalid
+        // State'leri güncelle
+        setTempPoints(newPoints);
+        
+        // Hemen çizimi güncelle
+        if (creationMethod === 'manual') {
+            if (newPoints.length < 2) {
                 setRouteGeoJson(null);
-                setIsOptimized(false);
-            }
-
-            return newPoints;
-        });
-
-        setTimeout(() => {
-            if (creationMethod === 'manual') {
-                setRouteGeoJson((prev: any) => {
-                    if (!prev) return null;
-                    const coords = [...prev.geometry.coordinates];
-                    coords.splice(_index, 1);
-                    if (coords.length < 2) return null;
-                    return { ...prev, geometry: { ...prev.geometry, coordinates: coords } };
+            } else {
+                setRouteGeoJson({
+                    type: 'Feature',
+                    geometry: { type: 'LineString', coordinates: newPoints.map(p => p.pos) },
+                    properties: {}
                 });
-            } else if (creationMethod === 'interactive' || creationMethod === 'auto') {
-                if (deletedPointType === 'start') {
-                    setDirectionsResponse(undefined);
-                } else if (remainingPoints.length >= 2 && remainingPoints.some(p => p.type === 'start') && remainingPoints.some(p => p.type === 'end')) {
-                    // Start ve End hala varsa rotayı yeniden çiz
-                    autoDrawRoute(remainingPoints);
-                } else {
-                    // Start var ama End silindiyse veya sadece tek nokta kaldıysa çizgiyi temizle
-                    setDirectionsResponse(undefined);
-                    setRouteGeoJson(null);
-                }
             }
-        }, 0);
+        } else if (creationMethod === 'interactive' || creationMethod === 'auto') {
+            if (newPoints.length < 2) {
+                setDirectionsResponse(undefined);
+                setRouteGeoJson(null);
+            } else {
+                // Route çiz, start ve end'i garanti altına aldık
+                autoDrawRoute(newPoints);
+            }
+        }
+        
+        // Creation step ayarlamaları (kaldığı yeri düzelt)
+        if (newPoints.length === 1 && creationStep !== 'idle') {
+            setCreationStep('end');
+        }
     };
 
     const finishRouteCreation = async () => {
