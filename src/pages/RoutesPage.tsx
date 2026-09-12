@@ -1982,7 +1982,7 @@ const RoutesPage: React.FC = () => {
                                     </p>
 
                                     {/* Points List */}
-                                    <div className="flex-1 overflow-y-auto space-y-2 mb-4 pr-1">
+                                    <div className="flex-1 overflow-y-auto space-y-2 mb-4 pr-1 min-h-[150px]">
                                         {tempPoints.map((p, i) => (
                                             <div key={i} className={`flex items-center gap-2 p-2 rounded-lg border ${p.type === 'start' ? 'bg-green-100 border-green-200' :
                                                 p.type === 'end' ? 'bg-red-100 border-red-200' :
@@ -2194,7 +2194,7 @@ const RoutesPage: React.FC = () => {
                                                         </button>
                                                     )}
                                                 </div>
-                                                <div className="space-y-1.5">
+                                                <div className="space-y-1.5 max-h-48 overflow-y-auto pr-1">
                                                     {vehiclesWithStudents.map(v => {
                                                         const isHidden = hiddenVehicleIds.includes(v.id);
                                                         const studentCount = availableStudents.filter(s => (s as any).vehicle_id === v.id).length;
