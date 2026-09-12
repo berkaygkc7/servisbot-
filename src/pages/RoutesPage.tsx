@@ -2508,7 +2508,7 @@ const RoutesPage: React.FC = () => {
                                                                     <UserPlus size={13} />
                                                                     {stop.assignedStudentIds.length > 0 ? 'Öğrenci Ekle' : 'Ekle'}
                                                                 </button>
-                                                                {stop.type !== 'start' && stop.type !== 'end' && (
+                                                                {stop.type === 'stop' && (
                                                                     <button
                                                                         onClick={() => handleDeleteStop(stop.id)}
                                                                         className="flex items-center gap-1 px-2.5 py-1 rounded-lg text-xs font-semibold text-red-500 hover:bg-red-50 hover:text-red-600 transition-colors border border-transparent hover:border-red-200"
