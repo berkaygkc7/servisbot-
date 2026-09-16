@@ -1,5 +1,6 @@
 import React, { useState } from 'react';
-import { Plus, Search, Filter, X, Users, Printer, Phone, MessageSquare, School, Share2 } from 'lucide-react';
+import { Plus, Search, Filter, X, Users, Printer, Phone, MessageSquare, School, Share2, Download } from 'lucide-react';
+import * as XLSX from 'xlsx';
 import VehicleList, { type Vehicle } from '../components/dashboard/VehicleList';
 import { supabase } from '../lib/supabase';
 import { useAuth } from '../contexts/AuthContext';
@@ -196,6 +197,43 @@ const Vehicles: React.FC = () => {
         if (!printWindow) {
             alert("Yeni sekme açılamadı! Lütfen tarayıcınızın pop-up (açılır pencere) engelleyicisini kapatıp tekrar deneyin.");
         }
+    };
+
+    const handleExportExcel = () => {
+        if (!selectedVehicleForStudents) return;
+
+        const filteredStudents = vehicleStudents.filter(s => {
+            const term = studentSearchTerm.toLowerCase();
+            const matchesSearch = (
+                (s.full_name || '').toLowerCase().includes(term) ||
+                (s.parent_name || '').toLowerCase().includes(term) ||
+                (s.neighborhood || '').toLowerCase().includes(term) ||
+                (s.schools?.name || '').toLowerCase().includes(term)
+            );
+            const matchesShift = vehicleShiftFilter === 'all' || 
+                (vehicleShiftFilter === 'sabah' && s.shift === 'Sabahçı') || 
+                (vehicleShiftFilter === 'oglen' && s.shift === 'Öğlenci');
+            const matchesSchool = selectedSchoolFilter === 'all' || s.schools?.id === selectedSchoolFilter;
+            return matchesSearch && matchesShift && matchesSchool;
+        });
+
+        const data = filteredStudents.map((s, index) => ({
+            'Sıra': index + 1,
+            'Öğrenci Adı Soyadı': s.full_name
+        }));
+
+        const worksheet = XLSX.utils.json_to_sheet(data);
+        const workbook = XLSX.utils.book_new();
+        XLSX.utils.book_append_sheet(workbook, worksheet, 'Öğrenciler');
+        
+        // Sütun genişliklerini ayarla
+        const wscols = [
+            { wch: 8 }, // Sıra
+            { wch: 40 } // Öğrenci Adı Soyadı
+        ];
+        worksheet['!cols'] = wscols;
+
+        XLSX.writeFile(workbook, `${selectedVehicleForStudents.plate}_Ogrenci_Listesi.xlsx`);
     };
 
     // Real-time subscription
@@ -577,6 +615,14 @@ const Vehicles: React.FC = () => {
                                 >
                                     <Share2 size={15} />
                                     <span>Paylaş</span>
+                                </button>
+                                <button
+                                    onClick={handleExportExcel}
+                                    className="flex items-center gap-1.5 px-3 py-2 bg-green-600 hover:bg-green-700 text-white rounded-xl transition-all text-xs font-bold shadow-sm shadow-green-600/20 active:scale-95"
+                                    title="Excel ile İndir"
+                                >
+                                    <Download size={15} />
+                                    <span>Excel</span>
                                 </button>
                                 <button
                                     onClick={handlePrintStudents}
