@@ -604,7 +604,7 @@ const Payments = () => {
             "Son Ödeme Tarihi": '',
             "Durum": `${filteredPayments.length} kayıt`
         };
-        exportData.push(totalRow);
+        (exportData as any[]).push(totalRow);
 
         const ws = XLSX.utils.json_to_sheet(exportData);
         
