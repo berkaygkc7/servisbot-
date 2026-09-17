@@ -1,5 +1,5 @@
 import { useState, useEffect, useMemo, useRef, useCallback } from 'react';
-import { Plus, Search, Filter, Loader2, TrendingUp, AlertTriangle, FileText, Download, CheckSquare, CheckCircle, Archive, Trash2, RotateCcw, Layers } from 'lucide-react';
+import { Plus, Search, Filter, Loader2, TrendingUp, AlertTriangle, FileText, Download, CheckSquare, CheckCircle, Archive, Trash2, RotateCcw, Layers, Bus } from 'lucide-react';
 import { supabase } from '../lib/supabase';
 import { useAuth } from '../contexts/AuthContext';
 import PaymentList, { type Payment } from '../components/dashboard/PaymentList';
@@ -20,6 +20,8 @@ const Payments = () => {
     const [availableSchoolLevels, setAvailableSchoolLevels] = useState<string[]>([]);
     const [selectedIds, setSelectedIds] = useState<string[]>([]);
     const [showArchived, setShowArchived] = useState(false);
+    const [vehicleFilter, setVehicleFilter] = useState('all');
+    const [availableVehicles, setAvailableVehicles] = useState<{id: string; plate_number: string}[]>([]);
     const [stats, setStats] = useState({ receivable: 0, collected: 0, overdue: 0, annualRemaining: 0 });
 
     // Pagination refs
@@ -36,6 +38,19 @@ const Payments = () => {
         // The pagination logic will handle resetting when filters change by calling fetchPayments(true).
     }, [searchQuery, statusFilter, monthFilter, schoolLevelFilter]);
 
+    // Fetch available vehicles on mount
+    useEffect(() => {
+        const fetchVehicles = async () => {
+            if (!profile?.company_id) return;
+            const { data } = await supabase
+                .from('vehicles')
+                .select('id, plate_number')
+                .order('plate_number');
+            if (data) setAvailableVehicles(data);
+        };
+        if (!authLoading && profile?.company_id) fetchVehicles();
+    }, [profile?.company_id, authLoading]);
+
     useEffect(() => {
         if (!authLoading) {
             if (profile?.company_id) {
@@ -48,7 +63,7 @@ const Payments = () => {
                 setIsLoading(false);
             }
         }
-    }, [profile?.company_id, authLoading, searchQuery, statusFilter, monthFilter, schoolLevelFilter, showArchived]); // Added showArchived and authLoading
+    }, [profile?.company_id, authLoading, searchQuery, statusFilter, monthFilter, schoolLevelFilter, showArchived, vehicleFilter]);
 
     const fetchPayments = async (reset = false) => {
         console.log("fetchPayments started", { reset, profileId: profile?.id });
@@ -82,6 +97,20 @@ const Payments = () => {
         try {
             console.log("Querrying Supabase...");
 
+            // -- Vehicle filter: find student IDs for the selected vehicle --
+            let vehicleStudentIds: string[] | null = null;
+            if (vehicleFilter !== 'all') {
+                const { data: vStudents } = await supabase
+                    .from('students')
+                    .select('id')
+                    .eq('vehicle_id', vehicleFilter)
+                    .eq('company_id', profile.company_id);
+                vehicleStudentIds = vStudents ? vStudents.map(s => s.id) : [];
+                if (vehicleStudentIds.length === 0) {
+                    vehicleStudentIds = ['00000000-0000-0000-0000-000000000000'];
+                }
+            }
+
             // -- NEW STATS QUERY (Ignores statusFilter and pagination) --
             let statsQuery = supabase
                 .from('payments')
@@ -93,6 +122,9 @@ const Payments = () => {
             }
             if (monthFilter !== 'all') {
                 statsQuery = statsQuery.eq('month', monthFilter);
+            }
+            if (vehicleStudentIds) {
+                statsQuery = statsQuery.in('student_id', vehicleStudentIds);
             }
 
             const { data: statsData } = await statsQuery;
@@ -189,6 +221,9 @@ const Payments = () => {
             }
             if (monthFilter !== 'all') {
                 query = query.eq('month', monthFilter);
+            }
+            if (vehicleStudentIds) {
+                query = query.in('student_id', vehicleStudentIds);
             }
 
             const { data, error } = await query
@@ -520,18 +555,27 @@ const Payments = () => {
         }
     };
 
-    // CSV Export
+    // Excel Export
     const handleExportExcel = () => {
         if (filteredPayments.length === 0) {
             alert('Dışa aktarılacak veri bulunamadı.');
             return;
         }
 
+        // Find vehicle plate for each student based on their vehicle_id relationship
+        const selectedVehiclePlate = vehicleFilter !== 'all'
+            ? availableVehicles.find(v => v.id === vehicleFilter)?.plate_number || ''
+            : '';
+
+        let totalAmount = 0;
+
         const exportData = filteredPayments.map(p => {
             let sl = p.student?.school_level || '';
             if (sl === 'primary') sl = 'İlkokul';
             else if (sl === 'middle') sl = 'Ortaokul';
             else if (sl === 'high') sl = 'Lise';
+
+            totalAmount += Number(p.amount) || 0;
 
             return {
                 "Fatura No": p.invoice_no,
@@ -540,11 +584,27 @@ const Payments = () => {
                 "Veli Adı": p.student?.parent_name || '',
                 "Telefon": p.student?.parent_phone || '',
                 "Okul Kademesi": sl,
-                "Tutar": p.amount,
+                ...(selectedVehiclePlate ? { "Araç Plakası": selectedVehiclePlate } : {}),
+                "Tutar (₺)": p.amount,
                 "Son Ödeme Tarihi": p.due_date,
                 "Durum": p.status
             };
         });
+
+        // Add total row at the bottom
+        const totalRow: Record<string, any> = {
+            "Fatura No": '',
+            "Ay": '',
+            "Öğrenci Adı": 'TOPLAM',
+            "Veli Adı": '',
+            "Telefon": '',
+            "Okul Kademesi": '',
+            ...(selectedVehiclePlate ? { "Araç Plakası": '' } : {}),
+            "Tutar (₺)": totalAmount,
+            "Son Ödeme Tarihi": '',
+            "Durum": `${filteredPayments.length} kayıt`
+        };
+        exportData.push(totalRow);
 
         const ws = XLSX.utils.json_to_sheet(exportData);
         
@@ -556,15 +616,23 @@ const Payments = () => {
             { wch: 30 }, // Veli Adı
             { wch: 15 }, // Telefon
             { wch: 15 }, // Okul Kademesi
+            ...(selectedVehiclePlate ? [{ wch: 18 }] : []), // Araç Plakası
             { wch: 15 }, // Tutar
             { wch: 20 }, // Son Ödeme Tarihi
             { wch: 15 }  // Durum
         ];
         ws['!cols'] = colWidths;
 
+        // Build filename
+        const datePart = new Date().toISOString().split('T')[0];
+        const vehiclePart = selectedVehiclePlate ? `_${selectedVehiclePlate.replace(/\s+/g, '')}` : '';
+        const monthPart = monthFilter !== 'all' ? `_${monthFilter}` : '';
+        const fileName = `Odemeler_Raporu${vehiclePart}${monthPart}_${datePart}.xlsx`;
+
         const wb = XLSX.utils.book_new();
-        XLSX.utils.book_append_sheet(wb, ws, "Ödemeler Raporu");
-        XLSX.writeFile(wb, `Odemeler_Raporu_${new Date().toISOString().split('T')[0]}.xlsx`);
+        const sheetName = selectedVehiclePlate ? `${selectedVehiclePlate}` : 'Ödemeler Raporu';
+        XLSX.utils.book_append_sheet(wb, ws, sheetName.substring(0, 31));
+        XLSX.writeFile(wb, fileName);
     };
 
     // Batch Actions
@@ -885,6 +953,20 @@ const Payments = () => {
                             <option key={m} value={m}>{m}</option>
                         ))}
                     </select>
+
+                    <div className="relative flex-1 md:flex-none min-w-[160px]">
+                        <Bus size={16} className="absolute left-3 top-1/2 -translate-y-1/2 text-slate-500 pointer-events-none" />
+                        <select
+                            value={vehicleFilter}
+                            onChange={(e) => setVehicleFilter(e.target.value)}
+                            className="w-full appearance-none pl-9 pr-8 py-2 bg-slate-50 border border-slate-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500/20 focus:border-blue-500 transition-all text-sm font-semibold text-slate-700 cursor-pointer hover:bg-white"
+                        >
+                            <option value="all">Tüm Araçlar</option>
+                            {availableVehicles.map(v => (
+                                <option key={v.id} value={v.id}>{v.plate_number}</option>
+                            ))}
+                        </select>
+                    </div>
                     
                     <label className="flex flex-1 md:flex-none items-center justify-center gap-2 cursor-pointer bg-white px-3 py-2 rounded-lg border border-slate-200 shadow-sm hover:bg-slate-50 transition-colors">
                         <input
