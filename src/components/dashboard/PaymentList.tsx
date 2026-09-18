@@ -1,5 +1,5 @@
 import React from 'react';
-import { Trash2, MessageSquare, CheckCircle, Clock, AlertCircle, Archive, RotateCcw } from 'lucide-react';
+import { Trash2, MessageSquare, CheckCircle, Clock, AlertCircle, Archive, RotateCcw, Pencil } from 'lucide-react';
 import { format } from 'date-fns';
 import { tr } from 'date-fns/locale';
 
@@ -33,6 +33,8 @@ interface PaymentListProps {
     onMarkAsPaid: (payment: Payment) => void;
     onMarkAsUnpaid?: (payment: Payment) => void;
     onRemind: (payment: Payment) => void;
+    onEdit?: (payment: Payment) => void;
+    onHardDelete?: (payment: Payment) => void;
 }
 
 const statusConfig = {
@@ -42,7 +44,7 @@ const statusConfig = {
     'İptal': { icon: Trash2, color: 'text-slate-700', bg: 'bg-slate-50', border: 'border-slate-200' },
 };
 
-const PaymentList: React.FC<PaymentListProps> = ({ payments, selectedIds, onToggleSelect, onToggleSelectAll, onDelete, onMarkAsPaid, onMarkAsUnpaid, onRemind }) => {
+const PaymentList: React.FC<PaymentListProps> = ({ payments, selectedIds, onToggleSelect, onToggleSelectAll, onDelete, onMarkAsPaid, onMarkAsUnpaid, onRemind, onEdit, onHardDelete }) => {
     const allSelected = payments.length > 0 && selectedIds.length === payments.length;
     const someSelected = selectedIds.length > 0 && selectedIds.length < payments.length;
     return (
@@ -202,7 +204,16 @@ const PaymentList: React.FC<PaymentListProps> = ({ payments, selectedIds, onTogg
                                                     </button>
                                                 )}
 
-                                                {/* Edit -> Removed since it was unused */}
+                                                {/* Edit */}
+                                                {onEdit && (
+                                                    <button
+                                                        onClick={() => onEdit(payment)}
+                                                        className="p-2 text-indigo-600 bg-indigo-50 hover:bg-indigo-100 rounded-lg transition-colors border border-indigo-100 shadow-sm"
+                                                        title="Düzenle"
+                                                    >
+                                                        <Pencil size={16} />
+                                                    </button>
+                                                )}
 
                                                 {/* Archive / Unarchive */}
                                                 <button
@@ -223,6 +234,17 @@ const PaymentList: React.FC<PaymentListProps> = ({ payments, selectedIds, onTogg
                                                         <Archive size={16} />
                                                     )}
                                                 </button>
+
+                                                {/* Hard Delete */}
+                                                {onHardDelete && (
+                                                    <button
+                                                        onClick={() => onHardDelete(payment)}
+                                                        className="p-2 text-red-600 bg-red-50 hover:bg-red-100 rounded-lg transition-colors border border-red-100 shadow-sm ml-1"
+                                                        title="Kalıcı Olarak Sil"
+                                                    >
+                                                        <Trash2 size={16} />
+                                                    </button>
+                                                )}
                                             </div>
                                         </td>
                                     </tr>

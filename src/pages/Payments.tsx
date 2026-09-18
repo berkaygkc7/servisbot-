@@ -4,6 +4,7 @@ import { supabase } from '../lib/supabase';
 import { useAuth } from '../contexts/AuthContext';
 import PaymentList, { type Payment } from '../components/dashboard/PaymentList';
 import BulkBillingModal from '../components/dashboard/BulkBillingModal';
+import EditPaymentModal from '../components/dashboard/EditPaymentModal';
 import * as XLSX from 'xlsx';
 
 const Payments = () => {
@@ -16,6 +17,7 @@ const Payments = () => {
     const [monthFilter, setMonthFilter] = useState('all');
     const [schoolLevelFilter, setSchoolLevelFilter] = useState('all');
     const [isBulkBillingModalOpen, setIsBulkBillingModalOpen] = useState(false);
+    const [editingPayment, setEditingPayment] = useState<Payment | null>(null);
     const [availableMonths, setAvailableMonths] = useState<string[]>([]);
     const [availableSchoolLevels, setAvailableSchoolLevels] = useState<string[]>([]);
     const [selectedIds, setSelectedIds] = useState<string[]>([]);
@@ -515,6 +517,47 @@ const Payments = () => {
             fetchPayments(true);
         } catch (error) {
             alert('Hata oluştu');
+        }
+    };
+
+    const handleHardDelete = async (payment: Payment) => {
+        if (!confirm(`DİKKAT: Bu ödeme kaydını KALICI OLARAK silmek istediğinize emin misiniz?\n\nÖğrenci: ${payment.student?.full_name}\nAy: ${payment.month}\nTutar: ${payment.amount} ₺\n\nBu işlem geri alınamaz!`)) return;
+        
+        try {
+            // First get the payment to see if it was paid
+            // If it was paid, we should probably warn or adjust debt, but let's just delete it for now as requested.
+            const { error } = await supabase.from('payments').delete().eq('id', payment.id);
+            if (error) throw error;
+            
+            // Full reset
+            setPayments([]);
+            pageRef.current = 0;
+            hasMoreRef.current = true;
+            fetchPayments(true);
+        } catch (error) {
+            console.error('Hard delete error:', error);
+            alert('Hata: Kayıt silinemedi.');
+        }
+    };
+
+    const handleEditSave = async (paymentId: string, updates: Partial<Payment>) => {
+        try {
+            const { error } = await supabase
+                .from('payments')
+                .update(updates)
+                .eq('id', paymentId);
+            
+            if (error) throw error;
+            
+            // Full reset
+            setPayments([]);
+            pageRef.current = 0;
+            hasMoreRef.current = true;
+            fetchPayments(true);
+        } catch (error) {
+            console.error('Edit error:', error);
+            alert('Hata: Kayıt güncellenemedi.');
+            throw error;
         }
     };
 
@@ -1065,6 +1108,8 @@ const Payments = () => {
                             onMarkAsUnpaid={handleMarkAsUnpaid}
                             onDelete={handleDelete}
                             onRemind={handleRemind}
+                            onEdit={(payment) => setEditingPayment(payment)}
+                            onHardDelete={handleHardDelete}
                         />
                         {/* Infinite Scroll Trigger Element Inside Table */}
                         {loading && (
@@ -1094,6 +1139,13 @@ const Payments = () => {
                 isOpen={isBulkBillingModalOpen}
                 onClose={() => setIsBulkBillingModalOpen(false)}
                 onConfirm={handleBulkBilling}
+            />
+
+            <EditPaymentModal
+                isOpen={!!editingPayment}
+                payment={editingPayment}
+                onClose={() => setEditingPayment(null)}
+                onSave={handleEditSave}
             />
         </div>
     );
