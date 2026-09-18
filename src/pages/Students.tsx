@@ -513,8 +513,13 @@ const Students: React.FC = () => {
         const rawMonth = format(new Date(), 'MMMM yyyy', { locale: tr });
         const currentMonth = rawMonth.charAt(0).toUpperCase() + rawMonth.slice(1);
         
-        const invoiceNo = window.prompt(`${student.name} isimli öğrencinin ${currentMonth} ayı ödemesini "Ödendi (Nakit)" olarak işaretlemek istiyor musunuz?\n\nFatura Numarası (Varsa girin, yoksa boş bırakıp Tamam'a tıklayın):`, "");
+        const invoiceNo = window.prompt(`${student.name} isimli öğrencinin ${currentMonth} ayı ödemesini "Ödendi" olarak işaretlemek istiyor musunuz?\n\nFatura Numarası (Varsa girin, yoksa boş bırakıp Tamam'a tıklayın):`, "");
         if (invoiceNo === null) {
+            return;
+        }
+
+        const paymentMethod = window.prompt(`Ödeme Yöntemi / Notu (Örn: Nakit, IBAN, Kredi Kartı vb.)\n\nBoş bırakabilirsiniz:`, "Nakit");
+        if (paymentMethod === null) {
             return;
         }
 
@@ -548,7 +553,7 @@ const Students: React.FC = () => {
                     .from('payments')
                     .update({ 
                         status: 'Ödendi', 
-                        payment_method: 'Nakit/Elden',
+                        payment_method: paymentMethod.trim() || 'Nakit',
                         month: currentMonth,
                         invoice_no: invoiceNo.trim()
                     })
@@ -595,7 +600,7 @@ const Students: React.FC = () => {
                     amount: monthlyPrice,
                     due_date: new Date().toISOString().split('T')[0],
                     status: 'Ödendi',
-                    payment_method: 'Nakit/Elden'
+                    payment_method: paymentMethod.trim() || 'Nakit'
                 };
 
                 const { error } = await supabase.from('payments').insert([payload]);

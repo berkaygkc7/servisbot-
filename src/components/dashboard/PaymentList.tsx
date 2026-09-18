@@ -109,7 +109,10 @@ const PaymentList: React.FC<PaymentListProps> = ({ payments, selectedIds, onTogg
                                         </td>
                                         <td className="px-6 py-4">
                                             <div className="font-bold text-slate-800">{payment.month}</div>
-                                            <div className="text-xs text-slate-500 font-mono mt-1">#{payment.invoice_no}</div>
+                                            <div className="text-xs text-slate-500 font-mono mt-1">
+                                                #{payment.invoice_no}
+                                                {payment.payment_method && <span className="ml-1 text-slate-400">({payment.payment_method})</span>}
+                                            </div>
                                         </td>
                                         <td className="px-6 py-4">
                                             <div className="flex items-center gap-3">
@@ -151,9 +154,6 @@ const PaymentList: React.FC<PaymentListProps> = ({ payments, selectedIds, onTogg
                                         </td>
                                         <td className="px-6 py-4">
                                             <div className="font-bold text-slate-900 text-base">{payment.amount.toLocaleString('tr-TR')} ₺</div>
-                                            {payment.payment_method && (
-                                                <div className="text-xs text-slate-500 mt-1">{payment.payment_method}</div>
-                                            )}
                                         </td>
                                         <td className="px-6 py-4">
                                             <div className={`font-medium ${isOverdue ? 'text-red-600' : 'text-slate-700'}`}>

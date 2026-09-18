@@ -419,7 +419,11 @@ const Payments = () => {
     };
 
     const handleMarkAsPaid = async (payment: Payment) => {
-        if (!confirm(`${payment.student?.full_name} isimli öğrencinin ${payment.month} ayı (${payment.amount}₺) faturasını ödendi olarak işaretlemek istiyor musunuz?`)) return;
+        const invoiceNo = window.prompt(`${payment.student?.full_name} isimli öğrencinin ${payment.month} ayı (${payment.amount}₺) faturasını ödendi olarak işaretlemek istiyor musunuz?\n\nFatura Numarası (Varsa girin, yoksa boş bırakıp Tamam'a tıklayın):`, payment.invoice_no || "");
+        if (invoiceNo === null) return;
+
+        const paymentMethod = window.prompt(`Ödeme Yöntemi / Notu (Örn: Nakit, IBAN, Kredi Kartı vb.)\n\nBoş bırakabilirsiniz:`, "Nakit");
+        if (paymentMethod === null) return;
 
         try {
             // Set payment as paid today
@@ -427,7 +431,8 @@ const Payments = () => {
                 .from('payments')
                 .update({
                     status: 'Ödendi',
-                    payment_method: 'Nakit/Banka Transferi' // Or leave empty / show a modal to select
+                    payment_method: paymentMethod.trim() || 'Nakit',
+                    invoice_no: invoiceNo.trim() || payment.invoice_no
                 })
                 .eq('id', payment.id);
 
@@ -587,7 +592,8 @@ const Payments = () => {
                 ...(selectedVehiclePlate ? { "Araç Plakası": selectedVehiclePlate } : {}),
                 "Tutar (₺)": p.amount,
                 "Son Ödeme Tarihi": p.due_date,
-                "Durum": p.status
+                "Durum": p.status,
+                "Ödeme Yöntemi / Notu": p.payment_method || ''
             };
         });
 
@@ -602,7 +608,8 @@ const Payments = () => {
             ...(selectedVehiclePlate ? { "Araç Plakası": '' } : {}),
             "Tutar (₺)": totalAmount,
             "Son Ödeme Tarihi": '',
-            "Durum": `${filteredPayments.length} kayıt`
+            "Durum": `${filteredPayments.length} kayıt`,
+            "Ödeme Yöntemi / Notu": ''
         };
         (exportData as any[]).push(totalRow);
 
@@ -619,7 +626,8 @@ const Payments = () => {
             ...(selectedVehiclePlate ? [{ wch: 18 }] : []), // Araç Plakası
             { wch: 15 }, // Tutar
             { wch: 20 }, // Son Ödeme Tarihi
-            { wch: 15 }  // Durum
+            { wch: 15 }, // Durum
+            { wch: 25 }  // Ödeme Yöntemi
         ];
         ws['!cols'] = colWidths;
 
