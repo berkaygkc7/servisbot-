@@ -604,12 +604,7 @@ const Payments = () => {
     };
 
     // Excel Export
-    const handleExportExcel = () => {
-        if (filteredPayments.length === 0) {
-            alert('Dışa aktarılacak veri bulunamadı.');
-            return;
-        }
-
+    const handleExportExcel = async () => {
         // Find vehicle plate for each student based on their vehicle_id relationship
         const selectedVehiclePlate = vehicleFilter !== 'all'
             ? availableVehicles.find(v => v.id === vehicleFilter)?.plate_number || ''
@@ -617,7 +612,8 @@ const Payments = () => {
 
         let totalAmount = 0;
 
-        const exportData = filteredPayments.map(p => {
+        // Build export data from filtered payments
+        const exportData: Record<string, any>[] = filteredPayments.map(p => {
             let sl = p.student?.school_level || '';
             if (sl === 'primary') sl = 'İlkokul';
             else if (sl === 'middle') sl = 'Ortaokul';
@@ -640,6 +636,54 @@ const Payments = () => {
             };
         });
 
+        // If a vehicle is selected, fetch ALL students in that vehicle and add
+        // students without any payment record as "Ödenmedi"
+        if (vehicleFilter !== 'all' && profile?.company_id) {
+            try {
+                const { data: allVehicleStudents } = await supabase
+                    .from('students')
+                    .select('id, full_name, parent_name, parent_phone, school_level')
+                    .eq('vehicle_id', vehicleFilter)
+                    .eq('company_id', profile.company_id)
+                    .order('full_name');
+
+                if (allVehicleStudents) {
+                    // Collect student IDs that already have payment entries
+                    const paidStudentIds = new Set(filteredPayments.map(p => p.student_id));
+
+                    allVehicleStudents.forEach(student => {
+                        if (!paidStudentIds.has(student.id)) {
+                            let sl = student.school_level || '';
+                            if (sl === 'primary') sl = 'İlkokul';
+                            else if (sl === 'middle') sl = 'Ortaokul';
+                            else if (sl === 'high') sl = 'Lise';
+
+                            exportData.push({
+                                "Fatura No": '',
+                                "Ay": monthFilter !== 'all' ? monthFilter : '',
+                                "Öğrenci Adı": student.full_name || '',
+                                "Veli Adı": student.parent_name || '',
+                                "Telefon": student.parent_phone || '',
+                                "Okul Kademesi": sl,
+                                ...(selectedVehiclePlate ? { "Araç Plakası": selectedVehiclePlate } : {}),
+                                "Tutar (₺)": '',
+                                "Son Ödeme Tarihi": '',
+                                "Durum": 'Ödenmedi',
+                                "Ödeme Yöntemi / Notu": ''
+                            });
+                        }
+                    });
+                }
+            } catch (err) {
+                console.error('Error fetching vehicle students for export:', err);
+            }
+        }
+
+        if (exportData.length === 0) {
+            alert('Dışa aktarılacak veri bulunamadı.');
+            return;
+        }
+
         // Add total row at the bottom
         const totalRow: Record<string, any> = {
             "Fatura No": '',
@@ -651,10 +695,10 @@ const Payments = () => {
             ...(selectedVehiclePlate ? { "Araç Plakası": '' } : {}),
             "Tutar (₺)": totalAmount,
             "Son Ödeme Tarihi": '',
-            "Durum": `${filteredPayments.length} kayıt`,
+            "Durum": `${filteredPayments.length} ödeme / ${exportData.length} öğrenci`,
             "Ödeme Yöntemi / Notu": ''
         };
-        (exportData as any[]).push(totalRow);
+        exportData.push(totalRow);
 
         const ws = XLSX.utils.json_to_sheet(exportData);
         
@@ -685,6 +729,7 @@ const Payments = () => {
         XLSX.utils.book_append_sheet(wb, ws, sheetName.substring(0, 31));
         XLSX.writeFile(wb, fileName);
     };
+
 
     // Batch Actions
     const handleBatchMarkAsPaid = async () => {
