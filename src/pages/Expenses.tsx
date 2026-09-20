@@ -2,7 +2,7 @@ import React, { useState, useEffect, useMemo } from 'react';
 import {
     Search, X, Wrench, Fuel, Users, Wallet, MoreHorizontal,
     Check, Trash2, Edit2, Loader2, AlertCircle, TrendingUp, TrendingDown, Map,
-    Plus, Building2, Phone, StickyNote, ChevronDown, Calendar, Filter, UserCircle, Eye
+    Plus, Building2, Phone, ChevronDown, Calendar, Filter, UserCircle, Eye
 } from 'lucide-react';
 import {
     BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip as RechartsTooltip, Legend, ResponsiveContainer,
