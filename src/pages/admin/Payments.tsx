@@ -1,8 +1,9 @@
 import { useState, useEffect } from 'react';
-import { CreditCard, Search, Download, CheckCircle, Bell, UserPlus, X, MapPin } from 'lucide-react';
+import { CreditCard, Search, Download, CheckCircle, Bell, UserPlus, X, MapPin, History, ChevronRight, Calendar } from 'lucide-react';
 import { supabase } from '../../lib/supabase';
 import { useAuth } from '../../contexts/AuthContext';
 import MapScene from '../../components/map/MapScene';
+import PaymentHistoryModal from '../../components/dashboard/PaymentHistoryModal';
 
 // Helper component for status badges
 const StatusBadge = ({ status }: { status: string }) => {
@@ -51,6 +52,11 @@ const Payments = () => {
 
     // Location Modal State
     const [isLocationModalOpen, setIsLocationModalOpen] = useState(false);
+
+    // Payment History Modal State
+    const [isPaymentHistoryOpen, setIsPaymentHistoryOpen] = useState(false);
+    const [paymentHistoryStudentId, setPaymentHistoryStudentId] = useState<string | null>(null);
+    const [paymentHistoryStudentName, setPaymentHistoryStudentName] = useState<string>('');
 
     // Add Payment Modal State
     const [newPayment, setNewPayment] = useState({
@@ -956,6 +962,69 @@ const Payments = () => {
                                         </dl>
                                     </div>
                                 </div>
+
+                                {/* Section 4: Ödeme Geçmişi (Full Width) */}
+                                <div className="col-span-1 md:col-span-3 mt-4 pt-6 border-t border-slate-100">
+                                    <div className="flex items-center justify-between mb-5">
+                                        <div className="flex items-center gap-2">
+                                            <span className="text-xl">💰</span>
+                                            <h3 className="font-black text-slate-800 uppercase tracking-wider text-sm">Ödeme Geçmişi</h3>
+                                        </div>
+                                        <button
+                                            onClick={() => {
+                                                setPaymentHistoryStudentId(selectedStudentDetails.id);
+                                                setPaymentHistoryStudentName(selectedStudentDetails.full_name);
+                                                setIsPaymentHistoryOpen(true);
+                                            }}
+                                            className="inline-flex items-center gap-1.5 px-4 py-2 bg-gradient-to-r from-blue-500 to-indigo-600 hover:from-blue-600 hover:to-indigo-700 text-white rounded-xl text-xs font-bold transition-all shadow-md shadow-blue-200 active:scale-95"
+                                        >
+                                            <History size={14} />
+                                            Tüm Ödeme Geçmişini Gör
+                                            <ChevronRight size={14} />
+                                        </button>
+                                    </div>
+
+                                    {/* Quick Preview: Son 3 Ödeme */}
+                                    {(() => {
+                                        const studentPayments = studentsData
+                                            .filter(s => s.id === selectedStudentDetails.id)
+                                            .flatMap(s => s.paymentRecord ? [s.paymentRecord] : []);
+
+                                        return studentPayments.length > 0 ? (
+                                            <div className="space-y-2">
+                                                {studentPayments.slice(0, 3).map((p: any, idx: number) => (
+                                                    <div key={idx} className="flex items-center justify-between bg-slate-50 p-3 rounded-xl border border-slate-100 hover:border-slate-200 transition-colors">
+                                                        <div className="flex items-center gap-3">
+                                                            <div className={`w-8 h-8 rounded-lg flex items-center justify-center ${p.status === 'Ödendi' ? 'bg-green-100 text-green-600' : 'bg-amber-100 text-amber-600'}`}>
+                                                                <Calendar size={14} />
+                                                            </div>
+                                                            <div>
+                                                                <div className="text-sm font-bold text-slate-800">{selectedStudentDetails.currentMonthStr || 'Bu Ay'}</div>
+                                                                <div className="text-[11px] text-slate-500">{p.payment_method || 'Yöntem belirtilmemiş'}</div>
+                                                            </div>
+                                                        </div>
+                                                        <div className="flex items-center gap-3">
+                                                            <span className="text-sm font-black text-slate-800">
+                                                                {Number(selectedStudentDetails.monthlyFee || p.amount || 0).toLocaleString('tr-TR')} ₺
+                                                            </span>
+                                                            {p.status === 'Ödendi' ? (
+                                                                <span className="px-2 py-0.5 bg-green-100 text-green-700 rounded-md text-[10px] font-bold">Ödendi</span>
+                                                            ) : (
+                                                                <span className="px-2 py-0.5 bg-amber-100 text-amber-700 rounded-md text-[10px] font-bold">Bekliyor</span>
+                                                            )}
+                                                        </div>
+                                                    </div>
+                                                ))}
+                                            </div>
+                                        ) : (
+                                            <div className="text-center py-6 text-slate-400">
+                                                <CreditCard size={28} className="mx-auto mb-2 opacity-30" />
+                                                <p className="text-sm font-medium">Bu ay için ödeme kaydı yok</p>
+                                                <p className="text-xs mt-1">Tüm geçmişi görmek için yukarıdaki butona tıklayın</p>
+                                            </div>
+                                        );
+                                    })()}
+                                </div>
                             </div>
                         </div>
                     </div>
@@ -1001,6 +1070,19 @@ const Payments = () => {
                     </div>
                 )
             }
+
+            {/* Payment History Modal */}
+            {isPaymentHistoryOpen && paymentHistoryStudentId && (
+                <PaymentHistoryModal
+                    studentId={paymentHistoryStudentId}
+                    studentName={paymentHistoryStudentName}
+                    isOpen={isPaymentHistoryOpen}
+                    onClose={() => {
+                        setIsPaymentHistoryOpen(false);
+                        setPaymentHistoryStudentId(null);
+                    }}
+                />
+            )}
         </div >
     );
 };

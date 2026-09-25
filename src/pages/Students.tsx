@@ -1,11 +1,12 @@
 import React, { useState, useEffect } from 'react';
 import { useLocation, useNavigate } from 'react-router-dom';
-import { Plus, Search, Filter, X, Download, Trash2, Loader2, MapPin, Tag as TagIcon, Check, Smartphone, Save, AlertTriangle } from 'lucide-react';
+import { Plus, Search, Filter, X, Download, Trash2, Loader2, MapPin, Tag as TagIcon, Check, Smartphone, Save, AlertTriangle, History, ChevronRight, CreditCard } from 'lucide-react';
 import * as XLSX from 'xlsx';
 import { format } from 'date-fns';
 import { tr } from 'date-fns/locale';
 import StudentList, { type Student } from '../components/dashboard/StudentList';
 import QrCodeModal from '../components/shared/QrCodeModal';
+import PaymentHistoryModal from '../components/dashboard/PaymentHistoryModal';
 import { supabase } from '../lib/supabase';
 import { useAuth } from '../contexts/AuthContext';
 
@@ -95,6 +96,10 @@ const Students: React.FC = () => {
     // QR Modal State
     const [isQrModalOpen, setIsQrModalOpen] = useState(false);
     const [selectedQrStudent, setSelectedQrStudent] = useState<Student | null>(null);
+
+    // Payment History Modal State
+    const [isPaymentHistoryOpen, setIsPaymentHistoryOpen] = useState(false);
+    const [paymentHistoryStudent, setPaymentHistoryStudent] = useState<Student | null>(null);
 
     // Tag State
     const [availableTags, setAvailableTags] = useState<{ id: string; name: string }[]>([]);
@@ -548,20 +553,8 @@ const Students: React.FC = () => {
             let paidAmount = 0;
 
             if (existing) {
-                // Just mark it as paid and update month name to formatted Turkish month
-                const { error } = await supabase
-                    .from('payments')
-                    .update({ 
-                        status: 'Ödendi', 
-                        payment_method: paymentMethod.trim() || 'Nakit',
-                        month: currentMonth,
-                        invoice_no: invoiceNo.trim()
-                    })
-                    .eq('id', existing.id);
-                if (error) throw error;
                 paidAmount = Number(existing.amount) || 0;
             } else {
-                // We need to create an invoice and mark it as paid immediately
                 let monthlyPrice = student.custom_price;
                 if (!monthlyPrice) {
                     const { data: pricingRules } = await supabase
@@ -589,15 +582,42 @@ const Students: React.FC = () => {
                         monthlyPrice = 0;
                     }
                 }
-
                 paidAmount = Number(monthlyPrice) || 0;
+            }
 
+            // Initialize debt if needed BEFORE inserting/updating payment
+            if (student.id && paidAmount > 0) {
+                const { data: st } = await supabase.from('students').select('total_debt, custom_price').eq('id', student.id).single();
+                if (st?.total_debt === null || st?.total_debt === undefined) {
+                    await supabase.from('students').update({ 
+                        total_debt: paidAmount * multiplier,
+                        custom_price: st?.custom_price || paidAmount
+                    }).eq('id', student.id);
+                } else if (!st?.custom_price) {
+                    await supabase.from('students').update({ custom_price: paidAmount }).eq('id', student.id);
+                }
+            }
+
+            if (existing) {
+                // Just mark it as paid and update month name to formatted Turkish month (Trigger handles deduction)
+                const { error } = await supabase
+                    .from('payments')
+                    .update({ 
+                        status: 'Ödendi', 
+                        payment_method: paymentMethod.trim() || 'Nakit',
+                        month: currentMonth,
+                        invoice_no: invoiceNo.trim()
+                    })
+                    .eq('id', existing.id);
+                if (error) throw error;
+            } else {
+                // We need to create an invoice and mark it as paid immediately (Trigger handles deduction)
                 const payload = {
                     company_id: profile.company_id,
                     student_id: student.id,
                     invoice_no: invoiceNo.trim(),
                     month: currentMonth,
-                    amount: monthlyPrice,
+                    amount: paidAmount,
                     due_date: new Date().toISOString().split('T')[0],
                     status: 'Ödendi',
                     payment_method: paymentMethod.trim() || 'Nakit'
@@ -606,30 +626,6 @@ const Students: React.FC = () => {
                 const { error } = await supabase.from('payments').insert([payload]);
                 if (error) throw error;
             }
-
-            // Deduct paid amount from student's total_debt
-            if (student.id && paidAmount > 0) {
-                const { data: st } = await supabase.from('students').select('total_debt, custom_price').eq('id', student.id).single();
-                let currentDebt = Number(st?.total_debt) || 0;
-                
-                // Only initialize debt if it was never set (null/undefined), NOT if it's 0
-                if (st?.total_debt === null || st?.total_debt === undefined) {
-                    currentDebt = paidAmount * multiplier;
-                }
-
-                const newDebt = Math.max(0, Number(currentDebt) - paidAmount);
-
-                await supabase.from('students').update({ 
-                    total_debt: newDebt,
-                    custom_price: st?.custom_price || paidAmount
-                }).eq('id', student.id);
-            }
-
-            setStudents(prev => prev.map(s => s.id === student.id ? { 
-                ...s, 
-                payment_status_this_month: 'Ödendi',
-                total_debt: Math.max(0, (s.total_debt ? Number(s.total_debt) : paidAmount * multiplier) - paidAmount)
-            } : s));
 
             alert(`${student.name} için ödeme işlemi başarıyla kaydedildi!`);
             fetchStudents(); // Refresh to update the UI payment status
@@ -670,7 +666,14 @@ const Students: React.FC = () => {
             const isHakanGuvencer = isOzhamle && schoolNameStr.includes('hakanguvencer');
             const multiplier = isHakanGuvencer ? 11 : (isHalegul || isGuroz) ? 9 : 10;
 
-            // Create payment record
+            // Initialize debt if it was never set BEFORE creating payment
+            const { data: st } = await supabase.from('students').select('total_debt, custom_price').eq('id', student.id).single();
+            if (st?.total_debt === null || st?.total_debt === undefined) {
+                const monthlyPrice = Number(st?.custom_price) || Number(student.custom_price) || 0;
+                await supabase.from('students').update({ total_debt: monthlyPrice * multiplier }).eq('id', student.id);
+            }
+
+            // Create payment record (Trigger handles deduction)
             const payload = {
                 company_id: profile.company_id,
                 student_id: student.id,
@@ -685,27 +688,7 @@ const Students: React.FC = () => {
             const { error: insertError } = await supabase.from('payments').insert([payload]);
             if (insertError) throw insertError;
 
-            // Deduct from student's total_debt
-            const { data: st } = await supabase.from('students').select('total_debt, custom_price').eq('id', student.id).single();
-            let currentDebt = Number(st?.total_debt) || 0;
-
-            // Initialize debt if it was never set
-            if (st?.total_debt === null || st?.total_debt === undefined) {
-                const monthlyPrice = Number(st?.custom_price) || Number(student.custom_price) || 0;
-                currentDebt = monthlyPrice * multiplier;
-            }
-
-            const newDebt = Math.max(0, currentDebt - manualAmount);
-            await supabase.from('students').update({ total_debt: newDebt }).eq('id', student.id);
-
-            // Update local state
-            setStudents(prev => prev.map(s => s.id === student.id ? {
-                ...s,
-                payment_status_this_month: 'Ödendi',
-                total_debt: newDebt
-            } : s));
-
-            alert(`${student.name} için ${manualAmount.toLocaleString('tr-TR')} ₺ manuel ödeme başarıyla kaydedildi!\nKalan borç: ${newDebt.toLocaleString('tr-TR')} ₺`);
+            alert(`${student.name} için ${manualAmount.toLocaleString('tr-TR')} ₺ manuel ödeme başarıyla kaydedildi!`);
             fetchStudents();
         } catch (error: any) {
             console.error('Manual pay error:', error);
@@ -1953,11 +1936,49 @@ const Students: React.FC = () => {
                                         </dl>
                                     </div>
                                 </div>
+
+                                {/* Section 4: Ödeme Geçmişi (Full Width) */}
+                                <div className="col-span-1 md:col-span-3 mt-4 pt-6 border-t border-slate-100 w-full">
+                                    <div className="flex items-center justify-between mb-4">
+                                        <div className="flex items-center gap-2">
+                                            <span className="text-xl">💰</span>
+                                            <h3 className="font-black text-slate-800 uppercase tracking-wider text-sm">Ödeme Geçmişi</h3>
+                                        </div>
+                                        <button
+                                            onClick={() => {
+                                                setPaymentHistoryStudent(selectedStudentDetails);
+                                                setIsPaymentHistoryOpen(true);
+                                            }}
+                                            className="inline-flex items-center gap-1.5 px-4 py-2 bg-gradient-to-r from-blue-500 to-indigo-600 hover:from-blue-600 hover:to-indigo-700 text-white rounded-xl text-xs font-bold transition-all shadow-md shadow-blue-200 active:scale-95"
+                                        >
+                                            <History size={14} />
+                                            Tüm Ödeme Geçmişini Gör
+                                            <ChevronRight size={14} />
+                                        </button>
+                                    </div>
+                                    <div className="text-center py-5 text-slate-400">
+                                        <CreditCard size={28} className="mx-auto mb-2 opacity-30" />
+                                        <p className="text-sm font-medium">Ödeme geçmişini görmek için butona tıklayın</p>
+                                    </div>
+                                </div>
                             </div>
                         </div>
                     </div>
                 )
             }
+
+            {/* Payment History Modal */}
+            {isPaymentHistoryOpen && paymentHistoryStudent && (
+                <PaymentHistoryModal
+                    studentId={paymentHistoryStudent.id}
+                    studentName={paymentHistoryStudent.name || paymentHistoryStudent.full_name}
+                    isOpen={isPaymentHistoryOpen}
+                    onClose={() => {
+                        setIsPaymentHistoryOpen(false);
+                        setPaymentHistoryStudent(null);
+                    }}
+                />
+            )}
 
             {/* QR Code Modal for Login */}
             {selectedQrStudent && (

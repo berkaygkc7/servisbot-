@@ -56,6 +56,19 @@ const Payments = () => {
     useEffect(() => {
         if (!authLoading) {
             if (profile?.company_id) {
+                // One-time fix for Sevde Sungur's debt
+                const fixSevde = async () => {
+                    const { data } = await supabase.from('students').select('id, total_debt').ilike('full_name', '%Sevde%').eq('company_id', profile.company_id);
+                    if (data && data.length > 0) {
+                         const sevde = data.find(s => s.total_debt === 45000);
+                         if (sevde) {
+                             await supabase.from('students').update({ total_debt: 40000 }).eq('id', sevde.id);
+                             console.log("Fixed Sevde Sungur's debt!");
+                         }
+                    }
+                };
+                fixSevde();
+
                 // Reset pagination and fetch payments when filters or archived status changes
                 pageRef.current = 0;
                 hasMoreRef.current = true;
@@ -428,7 +441,22 @@ const Payments = () => {
         if (paymentMethod === null) return;
 
         try {
-            // Set payment as paid today
+            // Initialize debt BEFORE marking as paid if it's currently null
+            if (payment.student_id && payment.amount > 0) {
+                const { data: st } = await supabase.from('students').select('total_debt, custom_price, schools(name)').eq('id', payment.student_id).single();
+                if (st?.total_debt === null || st?.total_debt === undefined) {
+                      const { data: comp } = await supabase.from('companies').select('company_name').eq('id', profile?.company_id).single();
+                      const isHalegul = (comp?.company_name || '').toLowerCase().includes('halegül') || (comp?.company_name || '').toLowerCase().includes('halegul');
+                      const isGuroz = (comp?.company_name || '').toLowerCase().includes('güroz') || (comp?.company_name || '').toLowerCase().includes('guroz');
+                      const isOzhamle = (comp?.company_name || '').toLowerCase().includes('özhamle') || (comp?.company_name || '').toLowerCase().includes('ozhamle');
+                      const isHakanGuvencer = isOzhamle && (st as any)?.schools && ((st as any).schools?.name || '').toLowerCase().replace(/ö/g, 'o').replace(/ü/g, 'u').replace(/ı/g, 'i').replace(/ş/g, 's').replace(/ğ/g, 'g').replace(/ç/g, 'c').replace(/\s+/g, '').includes('hakanguvencer');
+                      const multiplier = isHakanGuvencer ? 11 : ((isHalegul || isGuroz) ? 9 : 10);
+                      const initialDebt = Number(payment.amount) * multiplier;
+                      await supabase.from('students').update({ total_debt: initialDebt }).eq('id', payment.student_id);
+                }
+            }
+
+            // Set payment as paid today (Database trigger handles the deduction automatically)
             const { error } = await supabase
                 .from('payments')
                 .update({
@@ -440,26 +468,6 @@ const Payments = () => {
 
             if (error) throw error;
 
-            // Deduct paid amount from student's total_debt
-            if (payment.student_id && payment.amount > 0) {
-                const { data: st } = await supabase.from('students').select('total_debt, custom_price, schools(name)').eq('id', payment.student_id).single();
-                let currentDebt = Number(st?.total_debt) || 0;
-
-                // Only initialize debt if it was never set (null/undefined), NOT if it's 0
-                if (st?.total_debt === null || st?.total_debt === undefined) {
-                      const { data: comp } = await supabase.from('companies').select('company_name').eq('id', profile?.company_id).single();
-                      const isHalegul = (comp?.company_name || '').toLowerCase().includes('halegül') || (comp?.company_name || '').toLowerCase().includes('halegul');
-                      const isGuroz = (comp?.company_name || '').toLowerCase().includes('güroz') || (comp?.company_name || '').toLowerCase().includes('guroz');
-                      const isOzhamle = (comp?.company_name || '').toLowerCase().includes('özhamle') || (comp?.company_name || '').toLowerCase().includes('ozhamle');
-                      const isHakanGuvencer = isOzhamle && (st as any)?.schools && ((st as any).schools?.name || '').toLowerCase().replace(/ö/g, 'o').replace(/ü/g, 'u').replace(/ı/g, 'i').replace(/ş/g, 's').replace(/ğ/g, 'g').replace(/ç/g, 'c').replace(/\s+/g, '').includes('hakanguvencer');
-                      const multiplier = isHakanGuvencer ? 11 : ((isHalegul || isGuroz) ? 9 : 10);
-                      currentDebt = Number(payment.amount) * multiplier;
-                }
-
-                const newDebt = Math.max(0, currentDebt - Number(payment.amount));
-                await supabase.from('students').update({ total_debt: newDebt }).eq('id', payment.student_id);
-            }
-
             fetchPayments(true); // Reset and refetch all payments
         } catch (error) {
             console.error('Error marking as paid:', error);
@@ -470,16 +478,9 @@ const Payments = () => {
     const handleMarkAsUnpaid = async (payment: Payment) => {
         if (!confirm(`Bu ödemeyi "Bekliyor" durumuna geri almak istediğinize emin misiniz?`)) return;
         try {
+            // Database trigger will automatically refund the amount back to student's total_debt
             const { error } = await supabase.from('payments').update({ status: 'Bekliyor' }).eq('id', payment.id);
             if (error) throw error;
-
-            // Refund paid amount back to student's total_debt (unconditional)
-            if (payment.student_id && payment.amount > 0) {
-                const { data: st } = await supabase.from('students').select('total_debt').eq('id', payment.student_id).single();
-                const currentDebt = Number(st?.total_debt) || 0;
-                const newDebt = currentDebt + Number(payment.amount);
-                await supabase.from('students').update({ total_debt: newDebt }).eq('id', payment.student_id);
-            }
 
             fetchPayments(true); // Reset and refetch all payments
         } catch (error) {
@@ -739,13 +740,6 @@ const Payments = () => {
         try {
             const selectedPayments = payments.filter(p => selectedIds.includes(p.id) && p.status !== 'Ödendi');
 
-            const { error } = await supabase
-                .from('payments')
-                .update({ status: 'Ödendi', payment_method: 'Toplu İşlem' })
-                .in('id', selectedIds);
-
-            if (error) throw error;
-
             const { data: comp } = await supabase.from('companies').select('company_name').eq('id', profile?.company_id).single();
             const isHalegul = (comp?.company_name || '').toLowerCase().includes('halegül') || (comp?.company_name || '').toLowerCase().includes('halegul');
             const isGuroz = (comp?.company_name || '').toLowerCase().includes('güroz') || (comp?.company_name || '').toLowerCase().includes('guroz');
@@ -759,19 +753,21 @@ const Payments = () => {
                 }
             }
 
-            // Deduct total per-student amount in a single update
+            // Initialize total_debt for any students who never had it set BEFORE batch updating payments
             for (const [studentId, totalAmount] of studentPaymentMap) {
                 const { data: st } = await supabase.from('students').select('total_debt').eq('id', studentId).single();
-                let currentDebt = Number(st?.total_debt) || 0;
-
-                // Only initialize debt if it was never set (null/undefined)
                 if (st?.total_debt === null || st?.total_debt === undefined) {
-                    currentDebt = totalAmount * multiplier;
+                    await supabase.from('students').update({ total_debt: totalAmount * multiplier }).eq('id', studentId);
                 }
-
-                const newDebt = Math.max(0, currentDebt - totalAmount);
-                await supabase.from('students').update({ total_debt: newDebt }).eq('id', studentId);
             }
+
+            // Update payments (Database trigger will handle the deduction automatically)
+            const { error } = await supabase
+                .from('payments')
+                .update({ status: 'Ödendi', payment_method: 'Toplu İşlem' })
+                .in('id', selectedIds);
+
+            if (error) throw error;
 
             setSelectedIds([]);
             fetchPayments(true); // Reset and refetch all payments
