@@ -1,4 +1,5 @@
 import React, { useState, useEffect } from 'react';
+import { useQuery, useQueryClient } from '@tanstack/react-query';
 import { useLocation, useNavigate } from 'react-router-dom';
 import { Plus, Search, Filter, X, Download, Trash2, Loader2, MapPin, Tag as TagIcon, Check, Smartphone, Save, AlertTriangle, History, ChevronRight, CreditCard } from 'lucide-react';
 import * as XLSX from 'xlsx';
@@ -114,41 +115,12 @@ const Students: React.FC = () => {
         return () => clearTimeout(handler);
     }, [searchTerm]);
 
-    // Fetch data when filters/pagination changes
+    // Remove simple fetch effect
+    // We will use useQuery for fetching
+
+    // Realtime subscription for students
     useEffect(() => {
         if (!profile?.company_id) return;
-        fetchStudents();
-    }, [page, pageSize, debouncedSearch, activeFilter, activeTagFilter, profile?.company_id, refreshKey]);
-
-    // Handle global search redirection
-    useEffect(() => {
-        if (students.length > 0 && location.state && (location.state as any).searchStudentId) {
-            const searchId = (location.state as any).searchStudentId;
-            const targetStudent = students.find(s => s.id === searchId);
-            
-            if (targetStudent) {
-                // Open modal
-                setSelectedStudentDetails(targetStudent);
-                setIsDetailModalOpen(true);
-                
-                // Clear state
-                navigate(location.pathname, { replace: true, state: {} });
-            } else if (totalStudents > 0) {
-                navigate(location.pathname, { replace: true, state: {} });
-            }
-        }
-    }, [students, location.state, navigate, location.pathname]);
-
-    // Setup Realtime & fetch static dropdowns on mount
-    useEffect(() => {
-        if (!profile?.company_id) return;
-        
-        fetchSchools();
-        fetchVehicles();
-        fetchTags();
-        fetchNeighborhoods();
-
-        // Realtime subscription for students
         const channel = supabase
             .channel('public:students:company')
             .on(
@@ -156,7 +128,8 @@ const Students: React.FC = () => {
                 { event: '*', schema: 'public', table: 'students', filter: `company_id=eq.${profile.company_id}` },
                 () => {
                     console.log('Öğrenci tablosu güncellendi, liste yenileniyor...');
-                    setRefreshKey(prev => prev + 1);
+                    queryClient.invalidateQueries({ queryKey: ['students'] });
+                    queryClient.invalidateQueries({ queryKey: ['pending-count'] });
                 }
             )
             .subscribe();
@@ -166,70 +139,52 @@ const Students: React.FC = () => {
         };
     }, [profile?.company_id]);
 
-    const fetchSchools = async () => {
-        const { data } = await supabase.from('schools').select('id, name, has_shifts');
-        if (data) setSchools(data as any);
-    };
-
-    const fetchVehicles = async () => {
-        const { data } = await supabase.from('vehicles').select('id, plate_number').order('plate_number');
-        if (data) setVehicles(data);
-    };
-
-    const fetchTags = async () => {
-        const { data } = await supabase.from('tags').select('id, name').order('name');
-        if (data) setAvailableTags(data);
-    };
-
-    const fetchNeighborhoods = async () => {
-        if (!profile?.company_id) return;
-        const { data } = await supabase
-            .from('pricing_rules')
-            .select('id, school_id, school_level, amount, annual_amount')
-            .eq('company_id', profile.company_id)
-            .order('school_level');
-        if (data) setPricingRules(data);
-    };
-
-    // Şirket / okul bazlı taksit sayısı tespiti (form için)
-    const companyName = (profile as any)?.companies?.company_name || '';
-    const normCompanyName = companyName.toLowerCase().replace(/ö/g, 'o').replace(/ü/g, 'u').replace(/ı/g, 'i').replace(/ş/g, 's').replace(/ğ/g, 'g').replace(/ç/g, 'c').replace(/\s+/g, '');
-    const isOzhamleComp = normCompanyName.includes('ozhamle');
-    const isHalegulComp = normCompanyName.includes('halegul');
-    const isGurozComp = normCompanyName.includes('guroz');
-
-    const getFormInstallmentCount = (schoolId?: string) => {
-        const schoolObj = schools.find((s: any) => String(s.id) === String(schoolId || ''));
-        const normSchool = (schoolObj?.name || '').toLowerCase().replace(/ö/g, 'o').replace(/ü/g, 'u').replace(/ı/g, 'i').replace(/ş/g, 's').replace(/ğ/g, 'g').replace(/ç/g, 'c').replace(/\s+/g, '');
-        const isHakanGuvencerSchool = isOzhamleComp && normSchool.includes('hakanguvencer');
-        return isHakanGuvencerSchool ? 11 : (isHalegulComp || isGurozComp) ? 9 : 10;
-    };
-
-    const getFilteredNeighborhoodRules = (selectedSchoolId?: string) => {
-        const generalRules = pricingRules.filter(r => !r.school_id);
-        
-        if (!selectedSchoolId) {
-            return generalRules.length > 0 ? generalRules : pricingRules;
+    const { data: schools = [] } = useQuery({
+        queryKey: ['schools'],
+        queryFn: async () => {
+            const { data } = await supabase.from('schools').select('id, name, has_shifts');
+            return data || [];
         }
+    });
 
-        const schoolRules = pricingRules.filter(r => r.school_id === selectedSchoolId);
-        
-        // Okula özel kurallar ve genel kuralları birleştir (Aynı mahalle varsa okula özel olan geçerli olur)
-        const combinedRules = [...schoolRules];
-        generalRules.forEach(gr => {
-            if (!schoolRules.some(sr => sr.school_level === gr.school_level)) {
-                combinedRules.push(gr);
-            }
-        });
+    const { data: vehicles = [] } = useQuery({
+        queryKey: ['vehicles'],
+        queryFn: async () => {
+            const { data } = await supabase.from('vehicles').select('id, plate_number').order('plate_number');
+            return data || [];
+        }
+    });
 
-        // Eğer hiçbir kural bulunamadıysa tüm kuralları döndür
-        return combinedRules.length > 0 ? combinedRules : pricingRules;
-    };
+    const { data: tagsData = [] } = useQuery({
+        queryKey: ['tags'],
+        queryFn: async () => {
+            const { data } = await supabase.from('tags').select('id, name').order('name');
+            return data || [];
+        }
+    });
 
-    const fetchStudents = async () => {
-        if (!profile?.company_id) return;
-        try {
-            setLoading(true);
+    useEffect(() => {
+        if (tagsData.length > 0) setAvailableTags(tagsData);
+    }, [tagsData]);
+
+    const { data: pricingRules = [] } = useQuery({
+        queryKey: ['pricingRules', profile?.company_id],
+        queryFn: async () => {
+            const { data } = await supabase
+                .from('pricing_rules')
+                .select('id, school_id, school_level, amount, annual_amount')
+                .eq('company_id', profile?.company_id || '')
+                .order('school_level');
+            return data || [];
+        },
+        enabled: !!profile?.company_id
+    });
+
+    const queryClient = useQueryClient();
+
+    const { data: studentsQueryData, isLoading: isStudentsLoading, isFetching: isStudentsFetching } = useQuery({
+        queryKey: ['students', profile?.company_id, page, pageSize, debouncedSearch, activeFilter, activeTagFilter],
+        queryFn: async () => {
             const rawMonth = format(new Date(), 'MMMM yyyy', { locale: tr });
             const currentMonth = rawMonth.charAt(0).toUpperCase() + rawMonth.slice(1);
             
@@ -240,7 +195,7 @@ const Students: React.FC = () => {
                     schools (id, name),
                     vehicles (id, plate_number, driver_name)
                 `, { count: 'exact' })
-                .eq('company_id', profile.company_id);
+                .eq('company_id', profile!.company_id);
 
             // Filter logic
             if (activeFilter === 'pending') {
@@ -268,47 +223,33 @@ const Students: React.FC = () => {
             const to = from + pageSize - 1;
             query = query.range(from, to).order('full_name', { ascending: true });
 
-            const { data, error, count } = await query;
+            const [queryResult, pendingResult, paymentsResult] = await Promise.all([
+                query,
+                supabase.from('students').select('*', { count: 'exact', head: true }).eq('company_id', profile!.company_id).eq('status', 'pending'),
+                supabase.from('payments').select('student_id, status').in('month', [currentMonth, new Date().toISOString().substring(0, 7)]).eq('company_id', profile!.company_id)
+            ]);
 
-            if (error) throw error;
-            if (count !== null) setTotalStudents(count);
-            
-            const { count: pCount } = await supabase
-                .from('students')
-                .select('*', { count: 'exact', head: true })
-                .eq('company_id', profile.company_id)
-                .eq('status', 'pending');
-            setPendingCount(pCount || 0);
-            
+            if (queryResult.error) throw queryResult.error;
+
             let paymentMap = new Map();
-            if (profile?.company_id) {
-                const { data: paymentsData } = await supabase
-                    .from('payments')
-                    .select('student_id, status')
-                    .in('month', [currentMonth, new Date().toISOString().substring(0, 7)])
-                    .eq('company_id', profile.company_id);
-                    
-                paymentsData?.forEach(p => {
-                    if (p.status === 'Ödendi' || !paymentMap.has(p.student_id)) {
-                        paymentMap.set(p.student_id, p.status);
-                    }
-                });
-            }
-
-            console.log('Fetched students:', data);
+            paymentsResult.data?.forEach(p => {
+                if (p.status === 'Ödendi' || !paymentMap.has(p.student_id)) {
+                    paymentMap.set(p.student_id, p.status);
+                }
+            });
 
             // Map DB data to UI interface
-            const mappedStudents: Student[] = data?.map((s: any) => ({
+            const mappedStudents: Student[] = queryResult.data?.map((s: any) => ({
                 id: s.id,
                 full_name: s.full_name,
-                name: s.full_name, // UI helper
-                parent: s.parent_name || 'Bilinmiyor', // UI helper
+                name: s.full_name,
+                parent: s.parent_name || 'Bilinmiyor',
                 parent_name: s.parent_name,
                 parent_phone: s.parent_phone,
-                phone: s.parent_phone, // UI helper
+                phone: s.parent_phone,
                 school_id: s.school_id,
                 school_name: s.schools?.name,
-                school: s.schools?.name || 'Okul Yok', // UI helper
+                school: s.schools?.name || 'Okul Yok',
                 vehicle_id: s.vehicle_id,
                 vehicle_plate: s.vehicles?.plate_number,
                 driver_name: s.vehicles?.driver_name,
@@ -334,14 +275,47 @@ const Students: React.FC = () => {
                 payment_note: s.payment_note
             })) || [];
 
-            setStudents(mappedStudents);
-        } catch (error) {
-            console.error('Error fetching students:', error);
-            // alert('Öğrenciler yüklenirken bir hata oluştu.');
-        } finally {
+            return {
+                students: mappedStudents,
+                total: queryResult.count || 0,
+                pendingCount: pendingResult.count || 0
+            };
+        },
+        enabled: !!profile?.company_id,
+        staleTime: 60 * 1000, // Keep data fresh for 60 seconds
+    });
+
+    useEffect(() => {
+        if (studentsQueryData) {
+            setStudents(studentsQueryData.students);
+            setTotalStudents(studentsQueryData.total);
+            setPendingCount(studentsQueryData.pendingCount);
             setLoading(false);
         }
-    };
+    }, [studentsQueryData]);
+
+    useEffect(() => {
+        setLoading(isStudentsLoading);
+    }, [isStudentsLoading]);
+
+    // Handle global search redirection
+    useEffect(() => {
+        if (studentsQueryData?.students && studentsQueryData.students.length > 0 && location.state && (location.state as any).searchStudentId) {
+            const searchId = (location.state as any).searchStudentId;
+            const targetStudent = studentsQueryData.students.find(s => s.id === searchId);
+            
+            if (targetStudent) {
+                // Open modal
+                setSelectedStudentDetails(targetStudent);
+                setIsDetailModalOpen(true);
+                
+                // Clear state
+                navigate(location.pathname, { replace: true, state: {} });
+            } else if (studentsQueryData.total > 0) {
+                navigate(location.pathname, { replace: true, state: {} });
+            }
+        }
+    }, [studentsQueryData, location.state, navigate, location.pathname]);
 
     const formatDate = (dateString: string | undefined | null) => {
         if (!dateString) return 'Yeni';
