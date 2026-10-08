@@ -1812,7 +1812,7 @@ const Students: React.FC = () => {
                                 </div>
                                 <button
                                     onClick={() => setIsDetailModalOpen(false)}
-                                    className="absolute top-6 right-6 p-2 bg-white/10 hover:bg-white/20 text-white rounded-full transition-all"
+                                    className="absolute top-6 right-6 z-50 p-2 bg-white/10 hover:bg-white/20 text-white rounded-full transition-all"
                                 >
                                     <X size={20} />
                                 </button>
@@ -1969,6 +1969,14 @@ const Students: React.FC = () => {
                                         <CreditCard size={28} className="mx-auto mb-2 opacity-30" />
                                         <p className="text-sm font-medium">Ödeme geçmişini görmek için butona tıklayın</p>
                                     </div>
+                                </div>
+                                <div className="mt-8 flex justify-center w-full">
+                                    <button
+                                        onClick={() => setIsDetailModalOpen(false)}
+                                        className="px-8 py-3 bg-slate-100 hover:bg-slate-200 text-slate-700 font-bold rounded-xl transition-colors w-full md:w-auto"
+                                    >
+                                        Kapat
+                                    </button>
                                 </div>
                             </div>
                         </div>
