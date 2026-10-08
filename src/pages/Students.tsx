@@ -493,7 +493,7 @@ const Students: React.FC = () => {
                 if (rule && rule.annual_amount) {
                     const annualPrice = Number(rule.annual_amount);
 
-                    const studentPayments = (payments || []).filter(p => p.student_id === student.id && (p.status === 'approved' || p.status === 'completed' || !p.status));
+                    const studentPayments = (payments || []).filter(p => p.student_id === student.id && p.status === 'Ödendi');
                     const totalPaid = studentPayments.reduce((acc, p) => acc + (Number(p.amount) || 0), 0);
                     
                     const newDebt = Math.max(0, annualPrice - totalPaid);
@@ -654,6 +654,15 @@ const Students: React.FC = () => {
             return;
         }
 
+        const paymentMethodChoice = window.prompt(
+            `Ödeme yöntemi seçin:\n\n1 - Nakit\n2 - Havale/IBAN\n3 - Kredi Kartı\n4 - Diğer\n\nNumara girin veya direkt yazın (örn: "Nakit", "IBAN"):`,
+            '1'
+        );
+        if (paymentMethodChoice === null) return;
+
+        const methodMap: Record<string, string> = { '1': 'Nakit', '2': 'Havale/IBAN', '3': 'Kredi Kartı', '4': 'Diğer' };
+        const manualPaymentMethod = methodMap[paymentMethodChoice.trim()] || paymentMethodChoice.trim() || 'Nakit';
+
         try {
             // Query company name from DB for accurate multiplier
             const { data: compData } = await supabase.from('companies').select('company_name').eq('id', profile.company_id).single();
@@ -682,7 +691,7 @@ const Students: React.FC = () => {
                 amount: manualAmount,
                 due_date: new Date().toISOString().split('T')[0],
                 status: 'Ödendi',
-                payment_method: 'Manuel Ödeme'
+                payment_method: manualPaymentMethod
             };
 
             const { error: insertError } = await supabase.from('payments').insert([payload]);

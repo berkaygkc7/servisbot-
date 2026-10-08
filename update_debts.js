@@ -24,7 +24,7 @@ async function updateDebts() {
       const annualPrice = Number(rule.annual_amount);
 
       // Sum of payments
-      const studentPayments = payments.filter(p => p.student_id === student.id && (p.status === 'approved' || p.status === 'completed' || !p.status));
+      const studentPayments = payments.filter(p => p.student_id === student.id && p.status === 'Ödendi');
       const totalPaid = studentPayments.reduce((acc, p) => acc + (Number(p.amount) || 0), 0);
       
       const newDebt = Math.max(0, annualPrice - totalPaid);
