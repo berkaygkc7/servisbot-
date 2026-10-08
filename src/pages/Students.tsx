@@ -1803,8 +1803,8 @@ const Students: React.FC = () => {
             {/* Student Details Modal (Premium UI) */}
             {
                 isDetailModalOpen && selectedStudentDetails && (
-                    <div className="fixed inset-0 z-[60] flex items-center justify-center p-4 bg-black/60 backdrop-blur-md animate-in fade-in duration-300">
-                        <div className="bg-white rounded-[2.5rem] w-full max-w-4xl shadow-[0_32px_64px_-12px_rgba(0,0,0,0.14)] overflow-hidden animate-in zoom-in-95 slide-in-from-bottom-10 duration-500">
+                    <div className="fixed inset-0 z-[60] flex items-start justify-center p-4 sm:p-6 bg-black/60 backdrop-blur-md animate-in fade-in duration-300 overflow-y-auto">
+                        <div className="bg-white rounded-[2.5rem] w-full max-w-4xl shadow-[0_32px_64px_-12px_rgba(0,0,0,0.14)] overflow-hidden my-auto animate-in zoom-in-95 slide-in-from-bottom-10 duration-500 relative">
                             {/* Header with Background Pattern */}
                             <div className="relative h-32 bg-slate-900 overflow-hidden">
                                 <div className="absolute inset-0 opacity-20 pointer-events-none">
@@ -1812,14 +1812,15 @@ const Students: React.FC = () => {
                                 </div>
                                 <button
                                     onClick={() => setIsDetailModalOpen(false)}
-                                    className="absolute top-6 right-6 z-50 p-2 bg-white/10 hover:bg-white/20 text-white rounded-full transition-all"
+                                    className="absolute top-6 right-6 z-50 p-2 bg-white/10 hover:bg-white/20 text-white rounded-full transition-all cursor-pointer"
+                                    type="button"
                                 >
                                     <X size={20} />
                                 </button>
                             </div>
 
                             {/* Profile Section */}
-                            <div className="relative px-12 -mt-16 pb-12 flex flex-col items-center">
+                            <div className="relative px-6 sm:px-12 -mt-16 pb-12 flex flex-col items-center">
                                 <div className="relative">
                                     <div className="w-32 h-32 rounded-full border-4 border-white bg-slate-800 flex items-center justify-center shadow-2xl">
                                         <span className="text-4xl font-black text-white uppercase">
