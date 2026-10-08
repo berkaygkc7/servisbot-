@@ -1,4 +1,5 @@
 import React, { useState } from 'react';
+import { useQuery, useQueryClient } from '@tanstack/react-query';
 import { Plus, Search, Filter, X, Users, Printer, Phone, MessageSquare, School, Share2, Download } from 'lucide-react';
 import * as XLSX from 'xlsx';
 import VehicleList, { type Vehicle } from '../components/dashboard/VehicleList';
@@ -38,36 +39,41 @@ const Vehicles: React.FC = () => {
     // Form State
     const [formData, setFormData] = useState<Partial<Vehicle>>({});
 
+    const queryClient = useQueryClient();
+
+    const { data: driversData = [] } = useQuery({
+        queryKey: ['drivers'],
+        queryFn: async () => {
+            const { data } = await supabase.from('drivers').select('id, full_name, phone').eq('status', 'active');
+            return data || [];
+        }
+    });
+
     React.useEffect(() => {
-        fetchVehicles();
-        fetchDrivers();
-    }, []);
+        if (driversData.length > 0) setDrivers(driversData);
+    }, [driversData]);
 
-    const fetchDrivers = async () => {
-        const { data } = await supabase.from('drivers').select('id, full_name, phone').eq('status', 'active');
-        if (data) setDrivers(data);
-    };
+    const { data: vehiclesData, isLoading: isVehiclesLoading } = useQuery({
+        queryKey: ['vehicles', profile?.company_id],
+        queryFn: async () => {
+            const { data, error } = await supabase.from('vehicles').select('*').order('plate_number');
+            if (error) throw error;
 
-    const fetchVehicles = async () => {
-        setLoading(true);
-        const { data, error } = await supabase.from('vehicles').select('*').order('plate_number');
+            // Fetch student count per vehicle
+            const { data: studentCounts } = await supabase
+                .from('students')
+                .select('vehicle_id')
+                .not('vehicle_id', 'is', null)
+                .neq('status', 'pending');
 
-        // Fetch student count per vehicle
-        const { data: studentCounts } = await supabase
-            .from('students')
-            .select('vehicle_id')
-            .not('vehicle_id', 'is', null)
-            .neq('status', 'pending');
+            const countMap: Record<string, number> = {};
+            studentCounts?.forEach(s => {
+                if (s.vehicle_id) {
+                    countMap[s.vehicle_id] = (countMap[s.vehicle_id] || 0) + 1;
+                }
+            });
 
-        const countMap: Record<string, number> = {};
-        studentCounts?.forEach(s => {
-            if (s.vehicle_id) {
-                countMap[s.vehicle_id] = (countMap[s.vehicle_id] || 0) + 1;
-            }
-        });
-
-        if (data) {
-            setVehicles(data.map((v: any) => ({
+            return data?.map((v: any) => ({
                 id: v.id,
                 plate: v.plate_number,
                 driver: v.driver_name || '',
@@ -79,10 +85,26 @@ const Vehicles: React.FC = () => {
                 location: v.current_latitude && v.current_longitude ? `${v.current_latitude.toFixed(4)}, ${v.current_longitude.toFixed(4)}` : 'Konum Yok',
                 current_latitude: v.current_latitude,
                 current_longitude: v.current_longitude
-            })));
+            })) || [];
+        },
+        enabled: !!profile?.company_id,
+        staleTime: 60 * 1000
+    });
+
+    React.useEffect(() => {
+        if (vehiclesData) {
+            setVehicles(vehiclesData);
+            setLoading(false);
         }
-        if (error) console.error('Error fetching vehicles:', error);
-        setLoading(false);
+    }, [vehiclesData]);
+
+    React.useEffect(() => {
+        setLoading(isVehiclesLoading);
+    }, [isVehiclesLoading]);
+
+    const fetchVehicles = async () => {
+        // Fallback for manual refresh if needed
+        await queryClient.invalidateQueries({ queryKey: ['vehicles'] });
     };
 
     const handleShowStudents = async (vehicle: Vehicle) => {

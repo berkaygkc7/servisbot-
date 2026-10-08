@@ -1,4 +1,5 @@
 import React, { useState, useEffect, useMemo } from 'react';
+import { useQuery, useQueryClient } from '@tanstack/react-query';
 import { Plus, Search, Filter, X, Loader2, Calendar as CalendarIcon, Users } from 'lucide-react';
 import DriverList, { type Driver } from '../components/dashboard/DriverList';
 import DriverLeaveCalendar, { type DriverLeave } from '../components/dashboard/DriverLeaveCalendar';
@@ -35,33 +36,46 @@ const Drivers: React.FC = () => {
     // Form State
     const [formData, setFormData] = useState<Partial<Driver>>({});
 
-    useEffect(() => {
-        fetchData();
-    }, []);
+    const queryClient = useQueryClient();
 
-    const fetchData = async () => {
-        setLoading(true);
-        try {
+    const { data: queryData, isLoading: isDriversLoading } = useQuery({
+        queryKey: ['drivers_and_leaves'],
+        queryFn: async () => {
             const [driversRes, leavesRes] = await Promise.all([
                 supabase.from('drivers').select('*').order('full_name'),
                 supabase.from('driver_leaves').select('*').order('start_date')
             ]);
 
-            if (driversRes.data) setDrivers(driversRes.data);
-
+            let mappedLeaves = [];
             if (leavesRes.data && driversRes.data) {
-                // Enrich leaves with driver names
-                const enrichedLeaves = leavesRes.data.map(leave => ({
+                mappedLeaves = leavesRes.data.map(leave => ({
                     ...leave,
                     driver_name: driversRes.data.find(d => d.id === leave.driver_id)?.full_name || 'Bilinmeyen Şoför'
                 }));
-                setLeaves(enrichedLeaves);
             }
-        } catch (error) {
-            console.error('Error fetching data:', error);
-        } finally {
+
+            return {
+                drivers: driversRes.data || [],
+                leaves: mappedLeaves
+            };
+        },
+        staleTime: 60 * 1000
+    });
+
+    useEffect(() => {
+        if (queryData) {
+            setDrivers(queryData.drivers);
+            setLeaves(queryData.leaves);
             setLoading(false);
         }
+    }, [queryData]);
+
+    useEffect(() => {
+        setLoading(isDriversLoading);
+    }, [isDriversLoading]);
+
+    const fetchData = async () => {
+        await queryClient.invalidateQueries({ queryKey: ['drivers_and_leaves'] });
     };
 
     const handleAddClick = () => {

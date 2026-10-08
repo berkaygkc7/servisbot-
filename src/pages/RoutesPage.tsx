@@ -1,4 +1,5 @@
 import React, { useState, useEffect, useCallback, useMemo, useRef } from 'react';
+import { useQuery, useQueryClient } from '@tanstack/react-query';
 import { useSearchParams, useLocation } from 'react-router-dom';
 import RouteList from '../components/dashboard/RouteList';
 import MapScene from '../components/map/MapScene';
@@ -253,52 +254,80 @@ const RoutesPage: React.FC = () => {
         return () => document.removeEventListener('mousedown', handleOutsideClick);
     }, [showNeighborhoodDropdown]);
 
-    const loadInitialData = async () => {
-        setLoading(true);
-        try {
-            // 1. Fetch Vehicles
-            const { data: vehiclesData } = await supabase.from('vehicles').select('id, plate_number, driver_name, color');
-            if (vehiclesData) setAvailableVehicles(vehiclesData);
+    const queryClient = useQueryClient();
 
-            // 2. Fetch Students
-            const { data: studentsData } = await supabase.from('students').select('id, full_name, home_latitude, home_longitude, address, neighborhood, tags, parent_name, parent_phone, grade, blood_group, allergies, registration_date, school_id, vehicle_id, schools(name), vehicles(plate_number), shift').neq('status', 'pending');
-            if (studentsData) setAvailableStudents(studentsData as any);
+    const { data: initialData, isLoading: isInitialLoading } = useQuery({
+        queryKey: ['routes_initial_data'],
+        queryFn: async () => {
+            const [vehiclesRes, studentsRes, tagsRes, schoolsRes] = await Promise.all([
+                supabase.from('vehicles').select('id, plate_number, driver_name, color'),
+                supabase.from('students').select('id, full_name, home_latitude, home_longitude, address, neighborhood, tags, parent_name, parent_phone, grade, blood_group, allergies, registration_date, school_id, vehicle_id, schools(name), vehicles(plate_number), shift').neq('status', 'pending'),
+                supabase.from('tags').select('id, name').order('name'),
+                supabase.from('schools').select('id, name').order('name')
+            ]);
+            return {
+                vehicles: vehiclesRes.data || [],
+                students: studentsRes.data || [],
+                tags: tagsRes.data || [],
+                schools: schoolsRes.data || []
+            };
+        },
+        staleTime: 60 * 1000
+    });
 
-            // 2.5 Fetch Tags
-            const { data: tagsData } = await supabase.from('tags').select('id, name').order('name');
-            if (tagsData) setAvailableTags(tagsData);
+    useEffect(() => {
+        if (initialData) {
+            setAvailableVehicles(initialData.vehicles);
+            setAvailableStudents(initialData.students as any);
+            setAvailableTags(initialData.tags);
+            setSchools(initialData.schools);
+        }
+    }, [initialData]);
 
-            // 2.6 Fetch Schools
-            const { data: schoolsData } = await supabase.from('schools').select('id, name').order('name');
-            if (schoolsData) setSchools(schoolsData);
+    const { data: routesQueryData, isLoading: isRoutesLoading } = useQuery({
+        queryKey: ['routes'],
+        queryFn: async () => {
+            const { data: routesData, error } = await supabase
+                .from('routes')
+                .select(`
+                    *,
+                    vehicles (plate_number, driver_name, driver_phone, color),
+                    schools (name),
+                    route_stops (*),
+                    student_route_assignments (student_id, stop_id)
+                `)
+                .order('created_at', { ascending: false });
 
-            // 3. Fetch Routes with related data
-            await fetchRoutes();
+            if (error || !routesData) throw error || new Error('Failed to fetch routes');
+            return routesData;
+        },
+        staleTime: 60 * 1000
+    });
 
-        } catch (error) {
-            console.error('Error loading data:', error);
-        } finally {
+    useEffect(() => {
+        if (routesQueryData) {
+            processFetchedRoutes(routesQueryData);
             setLoading(false);
         }
+    }, [routesQueryData]);
+
+    useEffect(() => {
+        if (isInitialLoading || isRoutesLoading) {
+            setLoading(true);
+        }
+    }, [isInitialLoading, isRoutesLoading]);
+
+    const loadInitialData = async () => {
+        // Fallback manual refresh
+        await queryClient.invalidateQueries({ queryKey: ['routes_initial_data'] });
+        await queryClient.invalidateQueries({ queryKey: ['routes'] });
     };
 
     const fetchRoutes = async () => {
-        const { data: routesData, error } = await supabase
-            .from('routes')
-            .select(`
-                *,
-                vehicles (plate_number, driver_name, driver_phone, color),
-                schools (name),
-                route_stops (*),
-                student_route_assignments (student_id, stop_id)
-            `)
-            .order('created_at', { ascending: false });
+        await queryClient.invalidateQueries({ queryKey: ['routes'] });
+    };
 
-        if (error || !routesData) {
-            console.error('Error fetching routes:', error);
-            return;
-        }
-
+    const processFetchedRoutes = (routesData: any[]) => {
         // Map Response to UI Models
         const mappedRoutes: RouteDef[] = routesData.map((r: any) => {
             // Process Stops
