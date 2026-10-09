@@ -13,7 +13,7 @@ export interface Payment {
     status: 'Bekliyor' | 'Ödendi' | 'Gecikti' | 'İptal';
     payment_method?: string;
     is_archived?: boolean;
-    payment_date?: string;
+    payment_date?: string | null;
     student?: {
         full_name: string;
         parent_name: string;

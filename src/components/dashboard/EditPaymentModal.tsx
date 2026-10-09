@@ -45,6 +45,14 @@ const EditPaymentModal: React.FC<EditPaymentModalProps> = ({ isOpen, payment, on
         }
     }, [payment]);
 
+    useEffect(() => {
+        if (status === 'Ödendi' && !paymentDate) {
+            const dateObj = new Date();
+            const localISO = new Date(dateObj.getTime() - (dateObj.getTimezoneOffset() * 60000)).toISOString().substring(0, 16);
+            setPaymentDate(localISO);
+        }
+    }, [status, paymentDate]);
+
     if (!isOpen || !payment) return null;
 
     const handleSubmit = async (e: React.FormEvent) => {
@@ -58,7 +66,7 @@ const EditPaymentModal: React.FC<EditPaymentModalProps> = ({ isOpen, payment, on
                 due_date: dueDate,
                 status,
                 payment_method: paymentMethod,
-                payment_date: status === 'Ödendi' ? (paymentDate ? new Date(paymentDate).toISOString() : new Date().toISOString()) : undefined
+                payment_date: status === 'Ödendi' ? (paymentDate ? new Date(paymentDate).toISOString() : new Date().toISOString()) : null
             });
             onClose();
         } catch (error) {

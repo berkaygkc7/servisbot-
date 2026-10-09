@@ -13,7 +13,7 @@ interface PaymentRecord {
     payment_method: string | null;
     is_archived: boolean;
     created_at: string;
-    payment_date?: string;
+    payment_date?: string | null;
 }
 
 interface PaymentHistoryModalProps {
