@@ -68,7 +68,7 @@ const PaymentList: React.FC<PaymentListProps> = ({ payments, selectedIds, onTogg
                             <th className="px-6 py-4">Fatura No / Ay</th>
                             <th className="px-6 py-4">Öğrenci & Veli</th>
                             <th className="px-6 py-4">Tutar</th>
-                            <th className="px-6 py-4">Son Ödeme (Vade)</th>
+                            <th className="px-6 py-4">Ödeme Tarihi</th>
                             <th className="px-6 py-4">Durum</th>
                             <th className="px-6 py-4 text-right">İşlemler</th>
                         </tr>
@@ -160,7 +160,7 @@ const PaymentList: React.FC<PaymentListProps> = ({ payments, selectedIds, onTogg
                                         </td>
                                         <td className="px-6 py-4">
                                             <div className={`font-medium ${isOverdue ? 'text-red-600' : 'text-slate-700'}`}>
-                                                {format(new Date(payment.due_date), 'd MMM yyyy', { locale: tr })}
+                                                {format(new Date(payment.payment_date || payment.due_date), 'd MMM yyyy', { locale: tr })}
                                             </div>
                                         </td>
                                         <td className="px-6 py-4">
@@ -169,11 +169,6 @@ const PaymentList: React.FC<PaymentListProps> = ({ payments, selectedIds, onTogg
                                                     <StatusIcon size={12} strokeWidth={3} />
                                                     {displayStatus}
                                                 </span>
-                                                {displayStatus === 'Ödendi' && payment.payment_date && (
-                                                    <span className="text-[10px] text-slate-500 font-medium">
-                                                        {format(new Date(payment.payment_date), 'd MMM yyyy HH:mm', { locale: tr })}
-                                                    </span>
-                                                )}
                                             </div>
                                         </td>
                                         <td className="px-6 py-4 text-right">

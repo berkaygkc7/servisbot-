@@ -507,7 +507,7 @@ const Payments = () => {
                                 <th className="p-4 font-semibold whitespace-nowrap">Veli</th>
                                 <th className="p-4 font-semibold whitespace-nowrap">Aylık Tutar</th>
                                 <th className="p-4 font-semibold whitespace-nowrap">Kayıt / Esas Tarih</th>
-                                <th className="p-4 font-semibold whitespace-nowrap">Bu Ayın Son Ödemesi</th>
+                                <th className="p-4 font-semibold whitespace-nowrap">Ödeme Tarihi</th>
                                 <th className="p-4 font-semibold whitespace-nowrap">Bir Sonraki (Gelecek Ay)</th>
                                 <th className="p-4 font-semibold whitespace-nowrap">Durum</th>
                                 <th className="p-4 font-semibold whitespace-nowrap last:pr-6 text-right">İşlem</th>
@@ -553,7 +553,7 @@ const Payments = () => {
                                         </span>
                                     </td>
                                     <td className="p-4 text-slate-800 font-bold whitespace-nowrap">
-                                        {formatDate(student.dueDate)}
+                                        {formatDate(student.paymentRecord?.payment_date || student.dueDate)}
                                     </td>
                                     <td className="p-4 text-secondary font-medium whitespace-nowrap">
                                         {formatDate(student.nextDueDate)}

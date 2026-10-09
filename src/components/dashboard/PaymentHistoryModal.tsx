@@ -68,7 +68,7 @@ const PaymentHistoryModal: React.FC<PaymentHistoryModalProps> = ({ studentId, st
         const exportData = payments.map(p => ({
             'Ay': p.month,
             'Tutar (₺)': p.amount,
-            'Son Ödeme Tarihi': formatDate(p.due_date),
+            'Ödeme Tarihi': formatDate(p.payment_date || p.due_date),
             'Durum': p.status,
             'Ödeme Yöntemi': p.payment_method || '-',
             'Fatura No': p.invoice_no,
@@ -89,7 +89,7 @@ const PaymentHistoryModal: React.FC<PaymentHistoryModalProps> = ({ studentId, st
             <tr>
                 <td style="padding:8px 12px;border-bottom:1px solid #e2e8f0">${p.month}</td>
                 <td style="padding:8px 12px;border-bottom:1px solid #e2e8f0;text-align:right;font-weight:bold">${Number(p.amount).toLocaleString('tr-TR')} ₺</td>
-                <td style="padding:8px 12px;border-bottom:1px solid #e2e8f0">${formatDate(p.due_date)}</td>
+                <td style="padding:8px 12px;border-bottom:1px solid #e2e8f0">${formatDate(p.payment_date || p.due_date)}</td>
                 <td style="padding:8px 12px;border-bottom:1px solid #e2e8f0">${p.payment_method || '-'}</td>
                 <td style="padding:8px 12px;border-bottom:1px solid #e2e8f0">
                     <span style="padding:2px 8px;border-radius:12px;font-size:12px;font-weight:bold;${p.status === 'Ödendi' ? 'background:#dcfce7;color:#15803d' : 'background:#fef3c7;color:#d97706'}">${p.status}</span>
@@ -140,7 +140,7 @@ const PaymentHistoryModal: React.FC<PaymentHistoryModalProps> = ({ studentId, st
                         <tr>
                             <th>Ay</th>
                             <th style="text-align:right">Tutar</th>
-                            <th>Son Ödeme</th>
+                            <th>Ödeme Tarihi</th>
                             <th>Yöntem</th>
                             <th>Durum</th>
                             <th>Fatura No</th>
@@ -307,7 +307,7 @@ const PaymentHistoryModal: React.FC<PaymentHistoryModalProps> = ({ studentId, st
                                 <tr className="bg-slate-50 border-b border-slate-200">
                                     <th className="px-6 py-3 text-xs font-bold text-slate-500 uppercase tracking-wider">Ay</th>
                                     <th className="px-6 py-3 text-xs font-bold text-slate-500 uppercase tracking-wider text-right">Tutar</th>
-                                    <th className="px-6 py-3 text-xs font-bold text-slate-500 uppercase tracking-wider">Son Ödeme</th>
+                                    <th className="px-6 py-3 text-xs font-bold text-slate-500 uppercase tracking-wider">Ödeme Tarihi</th>
                                     <th className="px-6 py-3 text-xs font-bold text-slate-500 uppercase tracking-wider">Yöntem</th>
                                     <th className="px-6 py-3 text-xs font-bold text-slate-500 uppercase tracking-wider">Durum</th>
                                     <th className="px-6 py-3 text-xs font-bold text-slate-500 uppercase tracking-wider">Fatura No</th>
@@ -332,7 +332,7 @@ const PaymentHistoryModal: React.FC<PaymentHistoryModalProps> = ({ studentId, st
                                             </span>
                                         </td>
                                         <td className="px-6 py-3.5 text-sm text-slate-600 font-medium">
-                                            {formatDate(payment.due_date)}
+                                            {formatDate(payment.payment_date || payment.due_date)}
                                         </td>
                                         <td className="px-6 py-3.5 text-sm text-slate-600">
                                             <span className="font-medium">{getPaymentMethodIcon(payment.payment_method)}</span>
