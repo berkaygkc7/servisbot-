@@ -27,9 +27,7 @@ const Students: React.FC = () => {
     const [isModalOpen, setIsModalOpen] = useState(false);
     const [editingStudent, setEditingStudent] = useState<Student | null>(null);
     const [formData, setFormData] = useState<Partial<Student>>({});
-    const [schools, setSchools] = useState<{ id: string; name: string; has_shifts?: boolean }[]>([]);
-    const [vehicles, setVehicles] = useState<{ id: string; plate_number: string }[]>([]);
-    const [pricingRules, setPricingRules] = useState<{ id: string; school_id: string | null; school_level: string; amount: number; annual_amount?: number | null }[]>([]);
+
     
     // Pagination & Search State
     const [page, setPage] = useState(1);
@@ -37,7 +35,7 @@ const Students: React.FC = () => {
     const [totalStudents, setTotalStudents] = useState(0);
     const [pendingCount, setPendingCount] = useState(0);
     const [debouncedSearch, setDebouncedSearch] = useState('');
-    const [refreshKey, setRefreshKey] = useState(0);
+    
 
     // Location Modal State
     const [isLocationModalOpen, setIsLocationModalOpen] = useState(false);
@@ -182,7 +180,38 @@ const Students: React.FC = () => {
 
     const queryClient = useQueryClient();
 
-    const { data: studentsQueryData, isLoading: isStudentsLoading, isFetching: isStudentsFetching } = useQuery({
+    const getFilteredNeighborhoodRules = (selectedSchoolId: string | undefined | null) => {
+        const generalRules = pricingRules.filter(r => !r.school_id);
+        if (!selectedSchoolId) return generalRules;
+
+        const schoolRules = pricingRules.filter(r => String(r.school_id) === String(selectedSchoolId));
+        const combinedRules = [...schoolRules];
+        
+        generalRules.forEach(gr => {
+            if (!schoolRules.some(sr => sr.school_level === gr.school_level)) {
+                combinedRules.push(gr);
+            }
+        });
+        return combinedRules.length > 0 ? combinedRules : pricingRules;
+    };
+
+    const getFormInstallmentCount = (selectedSchoolId: string | undefined | null) => {
+        const compData = (profile as any)?.company_name || '';
+        const isHalegul = compData.toLowerCase().includes('halegül') || compData.toLowerCase().includes('halegul');
+        const isGuroz = compData.toLowerCase().includes('güroz') || compData.toLowerCase().includes('guroz');
+        const isOzhamle = compData.toLowerCase().includes('özhamle') || compData.toLowerCase().includes('ozhamle');
+        
+        let isHakanGuvencer = false;
+        if (isOzhamle && selectedSchoolId) {
+            const schoolObj = schools?.find((s: any) => String(s.id) === String(selectedSchoolId));
+            const schoolNameStr = schoolObj ? (schoolObj.name || '').toLowerCase().replace(/ö/g, 'o').replace(/ü/g, 'u').replace(/ı/g, 'i').replace(/ş/g, 's').replace(/ğ/g, 'g').replace(/ç/g, 'c').replace(/\s+/g, '') : '';
+            isHakanGuvencer = schoolNameStr.includes('hakanguvencer');
+        }
+        
+        return isHakanGuvencer ? 11 : ((isHalegul || isGuroz) ? 9 : 10);
+    };
+
+    const { data: studentsQueryData, isLoading: isStudentsLoading } = useQuery({
         queryKey: ['students', profile?.company_id, page, pageSize, debouncedSearch, activeFilter, activeTagFilter],
         queryFn: async () => {
             const rawMonth = format(new Date(), 'MMMM yyyy', { locale: tr });
@@ -421,7 +450,7 @@ const Students: React.FC = () => {
                 .eq('id', student.id);
             if (error) throw error;
             alert(`${student.full_name || student.name} başarıyla onaylandı.`);
-            fetchStudents();
+            queryClient.invalidateQueries({ queryKey: ['students'] });
         } catch (error) {
             console.error('Error approving student:', error);
             alert('Öğrenci onaylanırken bir hata oluştu.');
@@ -436,7 +465,7 @@ const Students: React.FC = () => {
                 .eq('id', student.id);
             if (error) throw error;
             alert(`${student.full_name} başvurusu reddedildi ve silindi.`);
-            fetchStudents();
+            queryClient.invalidateQueries({ queryKey: ['students'] });
         } catch (error) {
             console.error('Error rejecting student:', error);
             alert('Başvuru silinirken bir hata oluştu.');
@@ -479,7 +508,7 @@ const Students: React.FC = () => {
                 }
             }
             alert(`İşlem tamamlandı! ${updateCount} öğrencinin borcu güncellendi.`);
-            fetchStudents();
+            queryClient.invalidateQueries({ queryKey: ['students'] });
         } catch (err: any) {
             console.error(err);
             alert('Hata oluştu: ' + err.message);
@@ -531,18 +560,18 @@ const Students: React.FC = () => {
             } else {
                 let monthlyPrice = student.custom_price;
                 if (!monthlyPrice) {
-                    const { data: pricingRules } = await supabase
+                    const { data: fetchedPricingRules } = await supabase
                         .from('pricing_rules')
                         .select('id, school_id, school_level, amount')
                         .eq('company_id', profile.company_id);
                         
                     const normNeighborhood = student.neighborhood?.toLocaleLowerCase('tr-TR')?.trim();
-                    let rule = pricingRules?.find(pr => 
+                    let rule = fetchedPricingRules?.find(pr => 
                         pr.school_id === student.school_id &&
                         pr.school_level?.toLocaleLowerCase('tr-TR')?.trim() === normNeighborhood
                     );
                     if (!rule) {
-                        rule = pricingRules?.find(pr => 
+                        rule = fetchedPricingRules?.find(pr => 
                             !pr.school_id &&
                             pr.school_level?.toLocaleLowerCase('tr-TR')?.trim() === normNeighborhood
                         );
@@ -602,7 +631,7 @@ const Students: React.FC = () => {
             }
 
             alert(`${student.name} için ödeme işlemi başarıyla kaydedildi!`);
-            fetchStudents(); // Refresh to update the UI payment status
+            queryClient.invalidateQueries({ queryKey: ['students'] }); // Refresh to update the UI payment status
         } catch (error: any) {
             console.error('Quick pay error:', error);
             alert(`Ödeme işlemi sırasında bir hata oluştu: ${error.message || 'Bilinmeyen Hata'}`);
@@ -672,7 +701,7 @@ const Students: React.FC = () => {
             if (insertError) throw insertError;
 
             alert(`${student.name} için ${manualAmount.toLocaleString('tr-TR')} ₺ manuel ödeme başarıyla kaydedildi!`);
-            fetchStudents();
+            queryClient.invalidateQueries({ queryKey: ['students'] });
         } catch (error: any) {
             console.error('Manual pay error:', error);
             alert(`Manuel ödeme sırasında bir hata oluştu: ${error.message || 'Bilinmeyen Hata'}`);
@@ -888,7 +917,7 @@ const Students: React.FC = () => {
                 }
             }
 
-            await fetchStudents(); // Refresh list
+            queryClient.invalidateQueries({ queryKey: ['students'] }); // Refresh list
             setIsModalOpen(false);
         } catch (error: any) {
             console.error('Error saving student:', error);
