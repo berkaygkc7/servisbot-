@@ -13,6 +13,7 @@ export interface Payment {
     status: 'Bekliyor' | 'Ödendi' | 'Gecikti' | 'İptal';
     payment_method?: string;
     is_archived?: boolean;
+    payment_date?: string;
     student?: {
         full_name: string;
         parent_name: string;
@@ -163,10 +164,17 @@ const PaymentList: React.FC<PaymentListProps> = ({ payments, selectedIds, onTogg
                                             </div>
                                         </td>
                                         <td className="px-6 py-4">
-                                            <span className={`inline-flex items-center gap-1.5 px-3 py-1 rounded-full text-[11px] font-black uppercase tracking-wider border shadow-sm ${config.bg} ${config.color} ${config.border}`}>
-                                                <StatusIcon size={12} strokeWidth={3} />
-                                                {displayStatus}
-                                            </span>
+                                            <div className="flex flex-col items-start gap-1">
+                                                <span className={`inline-flex items-center gap-1.5 px-3 py-1 rounded-full text-[11px] font-black uppercase tracking-wider border shadow-sm ${config.bg} ${config.color} ${config.border}`}>
+                                                    <StatusIcon size={12} strokeWidth={3} />
+                                                    {displayStatus}
+                                                </span>
+                                                {displayStatus === 'Ödendi' && payment.payment_date && (
+                                                    <span className="text-[10px] text-slate-500 font-medium">
+                                                        {format(new Date(payment.payment_date), 'd MMM yyyy HH:mm', { locale: tr })}
+                                                    </span>
+                                                )}
+                                            </div>
                                         </td>
                                         <td className="px-6 py-4 text-right">
                                             <div className="flex items-center justify-end gap-2 opacity-0 group-hover:opacity-100 transition-opacity">

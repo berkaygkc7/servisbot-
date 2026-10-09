@@ -191,7 +191,7 @@ const Payments = () => {
             let query = supabase
                 .from('payments')
                 .select(`
-                    id, invoice_no, student_id, month, amount, due_date, status, payment_method, is_archived,
+                    id, invoice_no, student_id, month, amount, due_date, status, payment_method, is_archived, payment_date,
                     student:students(full_name, parent_name, parent_phone, school_level, neighborhood, total_debt, custom_price, tags)
                 `);
 
@@ -263,6 +263,7 @@ const Payments = () => {
                         status: p.status as Payment['status'],
                         payment_method: p.payment_method,
                         is_archived: p.is_archived,
+                        payment_date: p.payment_date,
                         student: studentData
                     };
                 });
@@ -462,7 +463,8 @@ const Payments = () => {
                 .update({
                     status: 'Ödendi',
                     payment_method: paymentMethod.trim() || 'Nakit',
-                    invoice_no: invoiceNo.trim() || payment.invoice_no
+                    invoice_no: invoiceNo.trim() || payment.invoice_no,
+                    payment_date: new Date().toISOString()
                 })
                 .eq('id', payment.id);
 
@@ -764,7 +766,7 @@ const Payments = () => {
             // Update payments (Database trigger will handle the deduction automatically)
             const { error } = await supabase
                 .from('payments')
-                .update({ status: 'Ödendi', payment_method: 'Toplu İşlem' })
+                .update({ status: 'Ödendi', payment_method: 'Toplu İşlem', payment_date: new Date().toISOString() })
                 .in('id', selectedIds);
 
             if (error) throw error;
