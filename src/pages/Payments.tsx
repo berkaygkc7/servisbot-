@@ -5,8 +5,8 @@ import { useAuth } from '../contexts/AuthContext';
 import PaymentList, { type Payment } from '../components/dashboard/PaymentList';
 import BulkBillingModal from '../components/dashboard/BulkBillingModal';
 import EditPaymentModal from '../components/dashboard/EditPaymentModal';
-import * as XLSX from 'xlsx';
-
+import ExcelJS from 'exceljs';
+import { saveAs } from 'file-saver';
 const Payments = () => {
     const { profile, loading: authLoading } = useAuth();
     const [payments, setPayments] = useState<Payment[]>([]);
@@ -700,25 +700,68 @@ const Payments = () => {
                 return row;
             });
 
-            const ws = XLSX.utils.json_to_sheet(exportData);
-            
-            // Auto-fit columns
-            const colWidths = [
-                { wch: 5 },  // No
-                { wch: 30 }, // Öğrenci Adı
-                ...months.map(() => ({ wch: 22 })) // Months
+            const workbook = new ExcelJS.Workbook();
+            const sheetName = selectedVehiclePlate ? `${selectedVehiclePlate}` : 'Ödemeler Raporu';
+            const worksheet = workbook.addWorksheet(sheetName.substring(0, 31));
+
+            // Setup columns
+            const columns = [
+                { header: 'No', key: 'No', width: 5 },
+                { header: 'Öğrenci Adı', key: 'Öğrenci Adı', width: 17.3 }, // İstenen genişlik
+                ...months.map(m => ({ 
+                    header: m.toLocaleUpperCase('tr-TR'), 
+                    key: m.toLocaleUpperCase('tr-TR'), 
+                    width: 8.38 // İstenen genişlik
+                }))
             ];
-            ws['!cols'] = colWidths;
+            worksheet.columns = columns;
+
+            // Add rows
+            exportData.forEach(row => {
+                worksheet.addRow(row);
+            });
+
+            // Styling: all text bold, all borders
+            worksheet.eachRow((row) => {
+                row.eachCell((cell) => {
+                    cell.font = { bold: true }; // Tüm yazılar kalın font
+                    cell.border = { // Tüm kenarlık
+                        top: { style: 'thin' },
+                        left: { style: 'thin' },
+                        bottom: { style: 'thin' },
+                        right: { style: 'thin' }
+                    };
+                    cell.alignment = { vertical: 'middle', horizontal: 'center' };
+                });
+            });
+
+            // Yazdırırken üst bilgi (Header) - Araç plakası, boyut 22, kalın
+            const headerText = selectedVehiclePlate ? selectedVehiclePlate : 'Ödemeler Raporu';
+            worksheet.headerFooter = {
+                oddHeader: `&C&22&B${headerText}`, // Center, Size 22, Bold
+            };
+
+            // Sayfa yapısı (A4 dikey veya yatay, sığdırma ayarları)
+            worksheet.pageSetup = {
+                paperSize: 9, // A4
+                orientation: 'landscape', // Geniş tablo olduğu için yatay daha iyi olabilir ama A4 ayarlı dediğine göre dikey de olabilir. Excel kendisi halleder.
+                fitToPage: true,
+                fitToWidth: 1,
+                fitToHeight: 0,
+                margins: {
+                    left: 0.25, right: 0.25,
+                    top: 1.0, bottom: 0.75, // Üst bilgi için biraz daha fazla boşluk
+                    header: 0.5, footer: 0.3
+                }
+            };
 
             // Build filename
             const datePart = new Date().toISOString().split('T')[0];
             const vehiclePart = selectedVehiclePlate ? `_${selectedVehiclePlate.replace(/\s+/g, '')}` : '';
             const fileName = `Odemeler_Raporu${vehiclePart}_${datePart}.xlsx`;
 
-            const wb = XLSX.utils.book_new();
-            const sheetName = selectedVehiclePlate ? `${selectedVehiclePlate}` : 'Ödemeler Raporu';
-            XLSX.utils.book_append_sheet(wb, ws, sheetName.substring(0, 31));
-            XLSX.writeFile(wb, fileName);
+            const buffer = await workbook.xlsx.writeBuffer();
+            saveAs(new Blob([buffer]), fileName);
             
         } catch (error) {
             console.error('Export error:', error);
