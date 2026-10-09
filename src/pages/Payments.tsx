@@ -704,54 +704,73 @@ const Payments = () => {
             const sheetName = selectedVehiclePlate ? `${selectedVehiclePlate}` : 'Ödemeler Raporu';
             const worksheet = workbook.addWorksheet(sheetName.substring(0, 31));
 
-            // Setup columns
+            // Sütun genişlikleri ayarlanıyor (Başlıkları manuel gireceğiz)
             const columns = [
-                { header: 'No', key: 'No', width: 5 },
-                { header: 'Öğrenci Adı', key: 'Öğrenci Adı', width: 17.3 }, // İstenen genişlik
+                { key: 'No', width: 5 },
+                { key: 'Öğrenci Adı', width: 17.3 }, // İstenen genişlik
                 ...months.map(m => ({ 
-                    header: m.toLocaleUpperCase('tr-TR'), 
                     key: m.toLocaleUpperCase('tr-TR'), 
                     width: 8.38 // İstenen genişlik
                 }))
             ];
             worksheet.columns = columns;
 
-            // Add rows
+            const headerText = selectedVehiclePlate ? selectedVehiclePlate : 'Ödemeler Raporu';
+
+            // 1. Satır: Üst Bilgi (Araç plakası, boyut 22, kalın font)
+            worksheet.addRow([headerText]);
+            worksheet.mergeCells('A1:L1'); // No + Öğrenci + 10 Ay = Toplam 12 Sütun (L'ye kadar)
+            const titleRow = worksheet.getRow(1);
+            titleRow.height = 40;
+            titleRow.getCell(1).font = { bold: true, size: 22 };
+            titleRow.getCell(1).alignment = { vertical: 'middle', horizontal: 'center' };
+
+            // 2. Satır: Sütun Başlıkları
+            const headerRowData = ['No', 'Öğrenci Adı', ...months.map(m => m.toLocaleUpperCase('tr-TR'))];
+            worksheet.addRow(headerRowData);
+
+            // Veri satırları
             exportData.forEach(row => {
-                worksheet.addRow(row);
+                const rowData = [
+                    row['No'], 
+                    row['Öğrenci Adı'], 
+                    ...months.map(m => row[m.toLocaleUpperCase('tr-TR')])
+                ];
+                worksheet.addRow(rowData);
             });
 
-            // Styling: all text bold, all borders
-            worksheet.eachRow((row) => {
+            // Tüm hücrelere stil uygulama (kalın font, kenarlık, metni kaydırma)
+            worksheet.eachRow((row, rowNumber) => {
                 row.eachCell((cell) => {
-                    cell.font = { bold: true }; // Tüm yazılar kalın font
-                    cell.border = { // Tüm kenarlık
+                    // 1. satır (plaka) zaten özel boyutlu, diğerleri kalın
+                    if (rowNumber !== 1) {
+                        cell.font = { bold: true }; 
+                    }
+                    
+                    // Tüm kenarlık
+                    cell.border = { 
                         top: { style: 'thin' },
                         left: { style: 'thin' },
                         bottom: { style: 'thin' },
                         right: { style: 'thin' }
                     };
-                    cell.alignment = { vertical: 'middle', horizontal: 'center' };
+                    
+                    // Ortalama ve Metni Kaydır (Genişlik dar olduğu için tarih ve fiyat alt alta sığsın)
+                    cell.alignment = { vertical: 'middle', horizontal: 'center', wrapText: true };
                 });
             });
 
-            // Yazdırırken üst bilgi (Header) - Araç plakası, boyut 22, kalın
-            const headerText = selectedVehiclePlate ? selectedVehiclePlate : 'Ödemeler Raporu';
-            worksheet.headerFooter = {
-                oddHeader: `&C&22&B${headerText}`, // Center, Size 22, Bold
-            };
-
-            // Sayfa yapısı (A4 dikey veya yatay, sığdırma ayarları)
+            // Sayfa yapısı (A4, dikey sığdırma)
             worksheet.pageSetup = {
                 paperSize: 9, // A4
-                orientation: 'landscape', // Geniş tablo olduğu için yatay daha iyi olabilir ama A4 ayarlı dediğine göre dikey de olabilir. Excel kendisi halleder.
+                orientation: 'landscape', 
                 fitToPage: true,
                 fitToWidth: 1,
                 fitToHeight: 0,
                 margins: {
                     left: 0.25, right: 0.25,
-                    top: 1.0, bottom: 0.75, // Üst bilgi için biraz daha fazla boşluk
-                    header: 0.5, footer: 0.3
+                    top: 0.25, bottom: 0.25,
+                    header: 0.2, footer: 0.2
                 }
             };
 
