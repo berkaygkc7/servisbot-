@@ -292,7 +292,8 @@ const Payments = () => {
                     amount: amount,
                     due_date: new Date().toISOString().split('T')[0],
                     status: 'Ödendi',
-                    payment_method: method
+                    payment_method: method,
+                    payment_date: new Date().toISOString()
                 }]);
 
             if (error) throw error;
@@ -323,7 +324,8 @@ const Payments = () => {
                 amount: amount,
                 due_date: new Date().toISOString().split('T')[0],
                 status: 'Ödendi',
-                payment_method: method
+                payment_method: method,
+                payment_date: new Date().toISOString()
             }]);
         }
         setSelectedStudentIds([]);
@@ -342,7 +344,8 @@ const Payments = () => {
                     amount: parseFloat(newPayment.amount),
                     due_date: newPayment.due_date,
                     status: newPayment.status,
-                    payment_method: newPayment.payment_method || null
+                    payment_method: newPayment.payment_method || null,
+                    payment_date: newPayment.status === 'Ödendi' ? new Date().toISOString() : null
                 }]);
 
             if (error) throw error;

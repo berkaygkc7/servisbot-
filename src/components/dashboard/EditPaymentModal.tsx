@@ -46,7 +46,8 @@ const EditPaymentModal: React.FC<EditPaymentModalProps> = ({ isOpen, payment, on
                 invoice_no: invoiceNo,
                 due_date: dueDate,
                 status,
-                payment_method: paymentMethod
+                payment_method: paymentMethod,
+                payment_date: status === 'Ödendi' ? new Date().toISOString() : null
             });
             onClose();
         } catch (error) {
@@ -142,14 +143,33 @@ const EditPaymentModal: React.FC<EditPaymentModalProps> = ({ isOpen, payment, on
                             </select>
                         </div>
                         <div>
-                            <label className="block text-sm font-bold text-slate-700 mb-1">Ödeme Yöntemi / Not</label>
-                            <input
-                                type="text"
-                                value={paymentMethod}
-                                onChange={(e) => setPaymentMethod(e.target.value)}
-                                placeholder="Nakit, Kredi Kartı vb."
+                            <label className="block text-sm font-bold text-slate-700 mb-1">Ödeme Yöntemi</label>
+                            <select
+                                value={['Nakit', 'Havale/IBAN', 'Kredi Kartı', ''].includes(paymentMethod) ? paymentMethod : '__custom__'}
+                                onChange={(e) => {
+                                    if (e.target.value === '__custom__') {
+                                        setPaymentMethod('');
+                                    } else {
+                                        setPaymentMethod(e.target.value);
+                                    }
+                                }}
                                 className="w-full px-3 py-2 border border-slate-200 rounded-lg focus:ring-2 focus:ring-blue-500 outline-none"
-                            />
+                            >
+                                <option value="">Seçiniz</option>
+                                <option value="Nakit">💵 Nakit</option>
+                                <option value="Havale/IBAN">🏦 Havale/IBAN</option>
+                                <option value="Kredi Kartı">💳 Kredi Kartı</option>
+                                <option value="__custom__">✏️ Diğer (Yazın)</option>
+                            </select>
+                            {!['Nakit', 'Havale/IBAN', 'Kredi Kartı', ''].includes(paymentMethod) && (
+                                <input
+                                    type="text"
+                                    value={paymentMethod}
+                                    onChange={(e) => setPaymentMethod(e.target.value)}
+                                    placeholder="Ödeme yöntemini yazın..."
+                                    className="w-full mt-2 px-3 py-2 border border-slate-200 rounded-lg focus:ring-2 focus:ring-blue-500 outline-none"
+                                />
+                            )}
                         </div>
                     </div>
 
