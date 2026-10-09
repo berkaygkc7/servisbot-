@@ -566,6 +566,11 @@ const Payments = () => {
                                                     {student.paymentRecord.payment_method === 'Nakit' ? '💵 Nakit' : '🏦 Havale'}
                                                 </span>
                                             )}
+                                            {student.status === 'Ödendi' && student.paymentRecord?.payment_date && (
+                                                <span className="text-[10px] text-slate-500 font-medium">
+                                                    {new Date(student.paymentRecord.payment_date).toLocaleString('tr-TR', { day: '2-digit', month: 'short', year: 'numeric', hour: '2-digit', minute: '2-digit' })}
+                                                </span>
+                                            )}
                                         </div>
                                     </td>
                                     <td className="p-4 last:pr-6 text-right whitespace-nowrap">

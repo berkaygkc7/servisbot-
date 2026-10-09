@@ -169,6 +169,11 @@ const PaymentList: React.FC<PaymentListProps> = ({ payments, selectedIds, onTogg
                                                     <StatusIcon size={12} strokeWidth={3} />
                                                     {displayStatus}
                                                 </span>
+                                                {displayStatus === 'Ödendi' && payment.payment_date && (
+                                                    <span className="text-[10px] text-slate-500 font-medium">
+                                                        {format(new Date(payment.payment_date), 'd MMM yyyy HH:mm', { locale: tr })}
+                                                    </span>
+                                                )}
                                             </div>
                                         </td>
                                         <td className="px-6 py-4 text-right">
