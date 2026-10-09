@@ -21,6 +21,7 @@ const EditPaymentModal: React.FC<EditPaymentModalProps> = ({ isOpen, payment, on
     const [dueDate, setDueDate] = useState<string>('');
     const [status, setStatus] = useState<Payment['status']>('Bekliyor');
     const [paymentMethod, setPaymentMethod] = useState<string>('');
+    const [paymentDate, setPaymentDate] = useState<string>('');
     const [loading, setLoading] = useState(false);
 
     useEffect(() => {
@@ -31,6 +32,16 @@ const EditPaymentModal: React.FC<EditPaymentModalProps> = ({ isOpen, payment, on
             setDueDate(payment.due_date ? payment.due_date.split('T')[0] : '');
             setStatus(payment.status);
             setPaymentMethod(payment.payment_method || '');
+            
+            if (payment.payment_date) {
+                // Remove milliseconds and 'Z' to format as YYYY-MM-DDTHH:mm
+                const dateObj = new Date(payment.payment_date);
+                // Adjust for local timezone
+                const localISO = new Date(dateObj.getTime() - (dateObj.getTimezoneOffset() * 60000)).toISOString().substring(0, 16);
+                setPaymentDate(localISO);
+            } else {
+                setPaymentDate('');
+            }
         }
     }, [payment]);
 
@@ -47,7 +58,7 @@ const EditPaymentModal: React.FC<EditPaymentModalProps> = ({ isOpen, payment, on
                 due_date: dueDate,
                 status,
                 payment_method: paymentMethod,
-                payment_date: status === 'Ödendi' ? new Date().toISOString() : undefined
+                payment_date: status === 'Ödendi' ? (paymentDate ? new Date(paymentDate).toISOString() : new Date().toISOString()) : undefined
             });
             onClose();
         } catch (error) {
@@ -142,7 +153,18 @@ const EditPaymentModal: React.FC<EditPaymentModalProps> = ({ isOpen, payment, on
                                 <option value="İptal">İptal</option>
                             </select>
                         </div>
-                        <div>
+                        {status === 'Ödendi' && (
+                            <div>
+                                <label className="block text-sm font-bold text-slate-700 mb-1">Ödeme Tarihi & Saati</label>
+                                <input
+                                    type="datetime-local"
+                                    value={paymentDate}
+                                    onChange={(e) => setPaymentDate(e.target.value)}
+                                    className="w-full px-3 py-2 border border-slate-200 rounded-lg focus:ring-2 focus:ring-blue-500 outline-none"
+                                />
+                            </div>
+                        )}
+                        <div className={status === 'Ödendi' ? 'col-span-2' : ''}>
                             <label className="block text-sm font-bold text-slate-700 mb-1">Ödeme Yöntemi</label>
                             <select
                                 value={['Nakit', 'Havale/IBAN', 'Kredi Kartı', ''].includes(paymentMethod) ? paymentMethod : '__custom__'}

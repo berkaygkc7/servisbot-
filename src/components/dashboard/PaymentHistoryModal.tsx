@@ -13,6 +13,7 @@ interface PaymentRecord {
     payment_method: string | null;
     is_archived: boolean;
     created_at: string;
+    payment_date?: string;
 }
 
 interface PaymentHistoryModalProps {
@@ -37,7 +38,7 @@ const PaymentHistoryModal: React.FC<PaymentHistoryModalProps> = ({ studentId, st
         try {
             const { data, error } = await supabase
                 .from('payments')
-                .select('id, invoice_no, month, amount, due_date, status, payment_method, is_archived, created_at')
+                .select('id, invoice_no, month, amount, due_date, status, payment_method, is_archived, created_at, payment_date')
                 .eq('student_id', studentId)
                 .order('created_at', { ascending: false });
 
