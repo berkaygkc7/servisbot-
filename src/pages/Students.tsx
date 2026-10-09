@@ -609,7 +609,8 @@ const Students: React.FC = () => {
                         status: 'Ödendi', 
                         payment_method: paymentMethod.trim() || 'Nakit',
                         month: currentMonth,
-                        invoice_no: invoiceNo.trim()
+                        invoice_no: invoiceNo.trim(),
+                        payment_date: new Date().toISOString()
                     })
                     .eq('id', existing.id);
                 if (error) throw error;
@@ -623,7 +624,8 @@ const Students: React.FC = () => {
                     amount: paidAmount,
                     due_date: new Date().toISOString().split('T')[0],
                     status: 'Ödendi',
-                    payment_method: paymentMethod.trim() || 'Nakit'
+                    payment_method: paymentMethod.trim() || 'Nakit',
+                    payment_date: new Date().toISOString()
                 };
 
                 const { error } = await supabase.from('payments').insert([payload]);
@@ -694,7 +696,8 @@ const Students: React.FC = () => {
                 amount: manualAmount,
                 due_date: new Date().toISOString().split('T')[0],
                 status: 'Ödendi',
-                payment_method: manualPaymentMethod
+                payment_method: manualPaymentMethod,
+                payment_date: new Date().toISOString()
             };
 
             const { error: insertError } = await supabase.from('payments').insert([payload]);
@@ -912,7 +915,8 @@ const Students: React.FC = () => {
                         due_date: new Date().toISOString().split('T')[0],
                         status: 'Ödendi',
                         payment_method: 'Peşin/Nakit (Kayıt)',
-                        invoice_no: 'PEŞİN-' + Math.floor(Math.random() * 10000)
+                        invoice_no: 'PEŞİN-' + Math.floor(Math.random() * 10000),
+                        payment_date: new Date().toISOString()
                     }]);
                 }
             }
