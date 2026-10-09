@@ -47,7 +47,7 @@ const EditPaymentModal: React.FC<EditPaymentModalProps> = ({ isOpen, payment, on
                 due_date: dueDate,
                 status,
                 payment_method: paymentMethod,
-                payment_date: status === 'Ödendi' ? new Date().toISOString() : null
+                payment_date: status === 'Ödendi' ? new Date().toISOString() : undefined
             });
             onClose();
         } catch (error) {

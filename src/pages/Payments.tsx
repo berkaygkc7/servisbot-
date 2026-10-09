@@ -608,129 +608,97 @@ const Payments = () => {
 
     // Excel Export
     const handleExportExcel = async () => {
+        if (!profile?.company_id) return;
+        
         // Find vehicle plate for each student based on their vehicle_id relationship
         const selectedVehiclePlate = vehicleFilter !== 'all'
             ? availableVehicles.find(v => v.id === vehicleFilter)?.plate_number || ''
             : '';
 
-        let totalAmount = 0;
-
-        // Build export data from filtered payments
-        const exportData: Record<string, any>[] = filteredPayments.map(p => {
-            let sl = p.student?.school_level || '';
-            if (sl === 'primary') sl = 'İlkokul';
-            else if (sl === 'middle') sl = 'Ortaokul';
-            else if (sl === 'high') sl = 'Lise';
-
-            totalAmount += Number(p.amount) || 0;
-
-            return {
-                "Fatura No": p.invoice_no,
-                "Ay": p.month,
-                "Öğrenci Adı": p.student?.full_name || '',
-                "Veli Adı": p.student?.parent_name || '',
-                "Telefon": p.student?.parent_phone || '',
-                "Okul Kademesi": sl,
-                ...(selectedVehiclePlate ? { "Araç Plakası": selectedVehiclePlate } : {}),
-                "Tutar (₺)": p.amount,
-                "Son Ödeme Tarihi": p.due_date,
-                "Durum": p.status,
-                "Ödeme Yöntemi / Notu": p.payment_method || ''
-            };
-        });
-
-        // If a vehicle is selected, fetch ALL students in that vehicle and add
-        // students without any payment record as "Ödenmedi"
-        if (vehicleFilter !== 'all' && profile?.company_id) {
-            try {
-                const { data: allVehicleStudents } = await supabase
-                    .from('students')
-                    .select('id, full_name, parent_name, parent_phone, school_level')
-                    .eq('vehicle_id', vehicleFilter)
-                    .eq('company_id', profile.company_id)
-                    .order('full_name');
-
-                if (allVehicleStudents) {
-                    // Collect student IDs that already have payment entries
-                    const paidStudentIds = new Set(filteredPayments.map(p => p.student_id));
-
-                    allVehicleStudents.forEach(student => {
-                        if (!paidStudentIds.has(student.id)) {
-                            let sl = student.school_level || '';
-                            if (sl === 'primary') sl = 'İlkokul';
-                            else if (sl === 'middle') sl = 'Ortaokul';
-                            else if (sl === 'high') sl = 'Lise';
-
-                            exportData.push({
-                                "Fatura No": '',
-                                "Ay": monthFilter !== 'all' ? monthFilter : '',
-                                "Öğrenci Adı": student.full_name || '',
-                                "Veli Adı": student.parent_name || '',
-                                "Telefon": student.parent_phone || '',
-                                "Okul Kademesi": sl,
-                                ...(selectedVehiclePlate ? { "Araç Plakası": selectedVehiclePlate } : {}),
-                                "Tutar (₺)": '',
-                                "Son Ödeme Tarihi": '',
-                                "Durum": 'Ödenmedi',
-                                "Ödeme Yöntemi / Notu": ''
-                            });
-                        }
-                    });
-                }
-            } catch (err) {
-                console.error('Error fetching vehicle students for export:', err);
+        try {
+            // First fetch the relevant students based on filters
+            let sq = supabase.from('students').select('id, full_name, vehicle_id').eq('company_id', profile.company_id);
+            if (vehicleFilter !== 'all') {
+                sq = sq.eq('vehicle_id', vehicleFilter);
             }
+            if (schoolLevelFilter !== 'all') {
+                sq = sq.eq('school_level', schoolLevelFilter);
+            }
+            if (searchQuery) {
+                sq = sq.or(`full_name.ilike.%${searchQuery}%,parent_name.ilike.%${searchQuery}%`);
+            }
+            // Exclude pending ones just in case
+            sq = sq.neq('status', 'pending');
+
+            const { data: students, error: stErr } = await sq.order('full_name');
+            if (stErr) throw stErr;
+
+            if (!students || students.length === 0) {
+                alert('Dışa aktarılacak öğrenci bulunamadı.');
+                return;
+            }
+
+            const studentIds = students.map(s => s.id);
+
+            // Fetch ALL payments for these students, regardless of month filter
+            const { data: allPayments, error: payErr } = await supabase
+                .from('payments')
+                .select('student_id, month, status, amount, payment_date')
+                .in('student_id', studentIds);
+
+            if (payErr) throw payErr;
+
+            const months = ['Eylül', 'Ekim', 'Kasım', 'Aralık', 'Ocak', 'Şubat', 'Mart', 'Nisan', 'Mayıs', 'Haziran'];
+
+            const exportData = students.map((student, index) => {
+                const studentPayments = (allPayments || []).filter(p => p.student_id === student.id);
+                
+                const row: Record<string, any> = {
+                    "No": index + 1,
+                    "Öğrenci Adı": student.full_name || ''
+                };
+
+                months.forEach(month => {
+                    const monthUpper = month.toLocaleUpperCase('tr-TR');
+                    // Find payment for this month that is PAID
+                    const payment = studentPayments.find(p => p.month === month && p.status === 'Ödendi');
+                    if (payment) {
+                        const dateStr = payment.payment_date 
+                            ? new Date(payment.payment_date).toLocaleDateString('tr-TR') 
+                            : '';
+                        row[monthUpper] = dateStr ? `${dateStr} - ${payment.amount} ₺` : `${payment.amount} ₺ (Tarih Yok)`;
+                    } else {
+                        row[monthUpper] = ''; // Boş kalacak
+                    }
+                });
+
+                return row;
+            });
+
+            const ws = XLSX.utils.json_to_sheet(exportData);
+            
+            // Auto-fit columns
+            const colWidths = [
+                { wch: 5 },  // No
+                { wch: 30 }, // Öğrenci Adı
+                ...months.map(() => ({ wch: 22 })) // Months
+            ];
+            ws['!cols'] = colWidths;
+
+            // Build filename
+            const datePart = new Date().toISOString().split('T')[0];
+            const vehiclePart = selectedVehiclePlate ? `_${selectedVehiclePlate.replace(/\s+/g, '')}` : '';
+            const fileName = `Odemeler_Raporu${vehiclePart}_${datePart}.xlsx`;
+
+            const wb = XLSX.utils.book_new();
+            const sheetName = selectedVehiclePlate ? `${selectedVehiclePlate}` : 'Ödemeler Raporu';
+            XLSX.utils.book_append_sheet(wb, ws, sheetName.substring(0, 31));
+            XLSX.writeFile(wb, fileName);
+            
+        } catch (error) {
+            console.error('Export error:', error);
+            alert('Rapor oluşturulurken bir hata oluştu.');
         }
-
-        if (exportData.length === 0) {
-            alert('Dışa aktarılacak veri bulunamadı.');
-            return;
-        }
-
-        // Add total row at the bottom
-        const totalRow: Record<string, any> = {
-            "Fatura No": '',
-            "Ay": '',
-            "Öğrenci Adı": 'TOPLAM',
-            "Veli Adı": '',
-            "Telefon": '',
-            "Okul Kademesi": '',
-            ...(selectedVehiclePlate ? { "Araç Plakası": '' } : {}),
-            "Tutar (₺)": totalAmount,
-            "Son Ödeme Tarihi": '',
-            "Durum": `${filteredPayments.length} ödeme / ${exportData.length} öğrenci`,
-            "Ödeme Yöntemi / Notu": ''
-        };
-        exportData.push(totalRow);
-
-        const ws = XLSX.utils.json_to_sheet(exportData);
-        
-        // Auto-fit columns
-        const colWidths = [
-            { wch: 20 }, // Fatura No
-            { wch: 15 }, // Ay
-            { wch: 30 }, // Öğrenci Adı
-            { wch: 30 }, // Veli Adı
-            { wch: 15 }, // Telefon
-            { wch: 15 }, // Okul Kademesi
-            ...(selectedVehiclePlate ? [{ wch: 18 }] : []), // Araç Plakası
-            { wch: 15 }, // Tutar
-            { wch: 20 }, // Son Ödeme Tarihi
-            { wch: 15 }, // Durum
-            { wch: 25 }  // Ödeme Yöntemi
-        ];
-        ws['!cols'] = colWidths;
-
-        // Build filename
-        const datePart = new Date().toISOString().split('T')[0];
-        const vehiclePart = selectedVehiclePlate ? `_${selectedVehiclePlate.replace(/\s+/g, '')}` : '';
-        const monthPart = monthFilter !== 'all' ? `_${monthFilter}` : '';
-        const fileName = `Odemeler_Raporu${vehiclePart}${monthPart}_${datePart}.xlsx`;
-
-        const wb = XLSX.utils.book_new();
-        const sheetName = selectedVehiclePlate ? `${selectedVehiclePlate}` : 'Ödemeler Raporu';
-        XLSX.utils.book_append_sheet(wb, ws, sheetName.substring(0, 31));
-        XLSX.writeFile(wb, fileName);
     };
 
 
