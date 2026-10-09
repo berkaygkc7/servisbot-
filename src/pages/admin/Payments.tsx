@@ -281,6 +281,30 @@ const Payments = () => {
             const student = studentsData.find(s => s.id === studentId);
             const studentTargetMonth = student?.currentMonthStr || currentMonthStr;
             const amount = student?.monthlyFee || 0;
+            const dateInput = window.prompt(`Ödeme Tarihi (GG.AA.YYYY formatında girin)\n\nBugünün tarihi için boş bırakıp Tamam'a tıklayın:`, "");
+            if (dateInput === null) return;
+            
+            let parsedDate = new Date();
+            if (dateInput.trim() !== '') {
+                const parts = dateInput.trim().split(/[./-]/);
+                if (parts.length === 3) {
+                    const day = parseInt(parts[0], 10);
+                    const month = parseInt(parts[1], 10) - 1;
+                    let year = parseInt(parts[2], 10);
+                    if (year < 100) year += 2000;
+                    
+                    const customDate = new Date(year, month, day, parsedDate.getHours(), parsedDate.getMinutes());
+                    if (!isNaN(customDate.getTime())) {
+                        parsedDate = customDate;
+                    } else {
+                        alert('Geçersiz tarih girdiniz. İşlem iptal edildi.');
+                        return;
+                    }
+                } else {
+                    alert('Tarihi GG.AA.YYYY formatında girmediniz. İşlem iptal edildi.');
+                    return;
+                }
+            }
 
             const { error } = await supabase
                 .from('payments')
@@ -293,7 +317,7 @@ const Payments = () => {
                     due_date: new Date().toISOString().split('T')[0],
                     status: 'Ödendi',
                     payment_method: method,
-                    payment_date: new Date().toISOString()
+                    payment_date: parsedDate.toISOString()
                 }]);
 
             if (error) throw error;

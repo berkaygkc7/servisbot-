@@ -441,6 +441,31 @@ const Payments = () => {
         const paymentMethod = window.prompt(`Ödeme Yöntemi / Notu (Örn: Nakit, IBAN, Kredi Kartı vb.)\n\nBoş bırakabilirsiniz:`, "Nakit");
         if (paymentMethod === null) return;
 
+        const dateInput = window.prompt(`Ödeme Tarihi (GG.AA.YYYY formatında girin)\n\nBugünün tarihi için boş bırakıp Tamam'a tıklayın:`, "");
+        if (dateInput === null) return;
+        
+        let parsedDate = new Date();
+        if (dateInput.trim() !== '') {
+            const parts = dateInput.trim().split(/[./-]/);
+            if (parts.length === 3) {
+                const day = parseInt(parts[0], 10);
+                const month = parseInt(parts[1], 10) - 1;
+                let year = parseInt(parts[2], 10);
+                if (year < 100) year += 2000;
+                
+                const customDate = new Date(year, month, day, parsedDate.getHours(), parsedDate.getMinutes());
+                if (!isNaN(customDate.getTime())) {
+                    parsedDate = customDate;
+                } else {
+                    alert('Geçersiz tarih girdiniz. İşlem iptal edildi.');
+                    return;
+                }
+            } else {
+                alert('Tarihi GG.AA.YYYY formatında girmediniz. İşlem iptal edildi.');
+                return;
+            }
+        }
+
         try {
             // Initialize debt BEFORE marking as paid if it's currently null
             if (payment.student_id && payment.amount > 0) {
@@ -464,7 +489,7 @@ const Payments = () => {
                     status: 'Ödendi',
                     payment_method: paymentMethod.trim() || 'Nakit',
                     invoice_no: invoiceNo.trim() || payment.invoice_no,
-                    payment_date: new Date().toISOString()
+                    payment_date: parsedDate.toISOString()
                 })
                 .eq('id', payment.id);
 

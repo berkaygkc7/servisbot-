@@ -531,6 +531,31 @@ const Students: React.FC = () => {
             return;
         }
 
+        const dateInput = window.prompt(`Ödeme Tarihi (GG.AA.YYYY formatında girin)\n\nBugünün tarihi için boş bırakıp Tamam'a tıklayın:`, "");
+        if (dateInput === null) return;
+        
+        let parsedDate = new Date();
+        if (dateInput.trim() !== '') {
+            const parts = dateInput.trim().split(/[./-]/);
+            if (parts.length === 3) {
+                const day = parseInt(parts[0], 10);
+                const month = parseInt(parts[1], 10) - 1;
+                let year = parseInt(parts[2], 10);
+                if (year < 100) year += 2000;
+                
+                const customDate = new Date(year, month, day, parsedDate.getHours(), parsedDate.getMinutes());
+                if (!isNaN(customDate.getTime())) {
+                    parsedDate = customDate;
+                } else {
+                    alert('Geçersiz tarih girdiniz. İşlem iptal edildi.');
+                    return;
+                }
+            } else {
+                alert('Tarihi GG.AA.YYYY formatında girmediniz. İşlem iptal edildi.');
+                return;
+            }
+        }
+
         try {
             // Check if an invoice already exists for this month (supports "Ağustos 2026" or "2026-08")
             const { data: existingList } = await supabase
@@ -610,7 +635,7 @@ const Students: React.FC = () => {
                         payment_method: paymentMethod.trim() || 'Nakit',
                         month: currentMonth,
                         invoice_no: invoiceNo.trim(),
-                        payment_date: new Date().toISOString()
+                        payment_date: parsedDate.toISOString()
                     })
                     .eq('id', existing.id);
                 if (error) throw error;
@@ -625,7 +650,7 @@ const Students: React.FC = () => {
                     due_date: new Date().toISOString().split('T')[0],
                     status: 'Ödendi',
                     payment_method: paymentMethod.trim() || 'Nakit',
-                    payment_date: new Date().toISOString()
+                    payment_date: parsedDate.toISOString()
                 };
 
                 const { error } = await supabase.from('payments').insert([payload]);
@@ -668,6 +693,31 @@ const Students: React.FC = () => {
         const methodMap: Record<string, string> = { '1': 'Nakit', '2': 'Havale/IBAN', '3': 'Kredi Kartı', '4': 'Diğer' };
         const manualPaymentMethod = methodMap[paymentMethodChoice.trim()] || paymentMethodChoice.trim() || 'Nakit';
 
+        const dateInput = window.prompt(`Ödeme Tarihi (GG.AA.YYYY formatında girin)\n\nBugünün tarihi için boş bırakıp Tamam'a tıklayın:`, "");
+        if (dateInput === null) return;
+        
+        let parsedDate = new Date();
+        if (dateInput.trim() !== '') {
+            const parts = dateInput.trim().split(/[./-]/);
+            if (parts.length === 3) {
+                const day = parseInt(parts[0], 10);
+                const month = parseInt(parts[1], 10) - 1;
+                let year = parseInt(parts[2], 10);
+                if (year < 100) year += 2000;
+                
+                const customDate = new Date(year, month, day, parsedDate.getHours(), parsedDate.getMinutes());
+                if (!isNaN(customDate.getTime())) {
+                    parsedDate = customDate;
+                } else {
+                    alert('Geçersiz tarih girdiniz. İşlem iptal edildi.');
+                    return;
+                }
+            } else {
+                alert('Tarihi GG.AA.YYYY formatında girmediniz. İşlem iptal edildi.');
+                return;
+            }
+        }
+
         try {
             // Query company name from DB for accurate multiplier
             const { data: compData } = await supabase.from('companies').select('company_name').eq('id', profile.company_id).single();
@@ -697,7 +747,7 @@ const Students: React.FC = () => {
                 due_date: new Date().toISOString().split('T')[0],
                 status: 'Ödendi',
                 payment_method: manualPaymentMethod,
-                payment_date: new Date().toISOString()
+                payment_date: parsedDate.toISOString()
             };
 
             const { error: insertError } = await supabase.from('payments').insert([payload]);
