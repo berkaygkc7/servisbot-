@@ -947,7 +947,7 @@ const Payments = () => {
                         className="flex items-center justify-center gap-2 px-6 py-3 bg-white border border-slate-200 hover:bg-slate-50 text-slate-700 rounded-xl font-bold transition-all shadow-sm active:scale-95"
                     >
                         <Download size={20} />
-                        <span className="hidden sm:inline">Rapor İndir</span>
+                        <span className="hidden sm:inline">Rapor İndir (Yeni)</span>
                     </button>
                 </div>
             </div>
