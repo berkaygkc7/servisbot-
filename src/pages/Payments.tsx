@@ -680,13 +680,18 @@ const Payments = () => {
                 months.forEach(month => {
                     const monthUpper = month.toLocaleUpperCase('tr-TR');
                     // Find payment for this month that is PAID
-                    const payment = studentPayments.find(p => p.month === month && p.status === 'Ödendi');
+                    const payment = studentPayments.find(p => p.month === month);
                     if (payment) {
-                        const dateStr = payment.payment_date 
-                            ? new Date(payment.payment_date).toLocaleDateString('tr-TR') 
-                            : '';
-                        const method = payment.payment_method ? `\r\n(${payment.payment_method})` : '';
-                        row[monthUpper] = dateStr ? `${dateStr}\r\n${payment.amount} ₺${method}` : `Tarih Yok\r\n${payment.amount} ₺${method}`;
+                        if (payment.status === 'Ödendi') {
+                            const dateStr = payment.payment_date 
+                                ? new Date(payment.payment_date).toLocaleDateString('tr-TR') 
+                                : '';
+                            const method = payment.payment_method ? `\r\n(${payment.payment_method})` : '';
+                            row[monthUpper] = dateStr ? `${dateStr}\r\n${payment.amount} ₺${method}` : `Tarih Yok\r\n${payment.amount} ₺${method}`;
+                        } else {
+                            // Ödenmediyse (Bekliyor, Gecikti vb.)
+                            row[monthUpper] = `${payment.amount} ₺\r\n(${payment.status})`;
+                        }
                     } else {
                         row[monthUpper] = ''; // Boş kalacak
                     }
