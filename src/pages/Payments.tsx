@@ -691,7 +691,7 @@ const Payments = () => {
                         const dateStr = payment.payment_date 
                             ? new Date(payment.payment_date).toLocaleDateString('tr-TR') 
                             : '';
-                        row[monthUpper] = dateStr ? `${dateStr} - ${payment.amount} ₺` : `${payment.amount} ₺ (Tarih Yok)`;
+                        row[monthUpper] = dateStr ? `${dateStr}\n${payment.amount} ₺` : `Tarih Yok\n${payment.amount} ₺`;
                     } else {
                         row[monthUpper] = ''; // Boş kalacak
                     }
@@ -742,9 +742,18 @@ const Payments = () => {
             // Tüm hücrelere stil uygulama (kalın font, kenarlık, metni kaydırma)
             worksheet.eachRow((row, rowNumber) => {
                 row.eachCell((cell) => {
-                    // 1. satır (plaka) zaten özel boyutlu, diğerleri kalın
-                    if (rowNumber !== 1) {
+                    // 1. satır (plaka) zaten özel boyutlu, 2. satır (başlıklar) kalın ve gri
+                    if (rowNumber === 2) {
                         cell.font = { bold: true }; 
+                        row.height = 25; // Başlık satırı
+                        cell.fill = {
+                            type: 'pattern',
+                            pattern: 'solid',
+                            fgColor: { argb: 'FFE0E0E0' }
+                        };
+                    } else if (rowNumber > 2) {
+                        cell.font = { bold: false };
+                        row.height = 35; // Veri satırları (tarih ve tutar alt alta sığsın diye)
                     }
                     
                     // Tüm kenarlık

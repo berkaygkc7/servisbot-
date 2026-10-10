@@ -40,18 +40,18 @@ const EditPaymentModal: React.FC<EditPaymentModalProps> = ({ isOpen, payment, on
                 const localISO = new Date(dateObj.getTime() - (dateObj.getTimezoneOffset() * 60000)).toISOString().substring(0, 16);
                 setPaymentDate(localISO);
             } else {
-                setPaymentDate('');
+                if (payment.status === 'Ödendi') {
+                    const dateObj = new Date();
+                    const localISO = new Date(dateObj.getTime() - (dateObj.getTimezoneOffset() * 60000)).toISOString().substring(0, 16);
+                    setPaymentDate(localISO);
+                } else {
+                    setPaymentDate('');
+                }
             }
         }
     }, [payment]);
 
-    useEffect(() => {
-        if (status === 'Ödendi' && !paymentDate) {
-            const dateObj = new Date();
-            const localISO = new Date(dateObj.getTime() - (dateObj.getTimezoneOffset() * 60000)).toISOString().substring(0, 16);
-            setPaymentDate(localISO);
-        }
-    }, [status, paymentDate]);
+
 
     if (!isOpen || !payment) return null;
 
@@ -74,6 +74,15 @@ const EditPaymentModal: React.FC<EditPaymentModalProps> = ({ isOpen, payment, on
             alert('Kaydedilirken hata oluştu.');
         } finally {
             setLoading(false);
+        }
+    };
+
+    const handleStatusChange = (newStatus: Payment['status']) => {
+        setStatus(newStatus);
+        if (newStatus === 'Ödendi' && !paymentDate) {
+            const dateObj = new Date();
+            const localISO = new Date(dateObj.getTime() - (dateObj.getTimezoneOffset() * 60000)).toISOString().substring(0, 16);
+            setPaymentDate(localISO);
         }
     };
 
@@ -153,7 +162,7 @@ const EditPaymentModal: React.FC<EditPaymentModalProps> = ({ isOpen, payment, on
                             <select
                                 required
                                 value={status}
-                                onChange={(e) => setStatus(e.target.value as Payment['status'])}
+                                onChange={(e) => handleStatusChange(e.target.value as Payment['status'])}
                                 className="w-full px-3 py-2 border border-slate-200 rounded-lg focus:ring-2 focus:ring-blue-500 outline-none"
                             >
                                 <option value="Bekliyor">Bekliyor</option>
