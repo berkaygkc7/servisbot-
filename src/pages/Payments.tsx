@@ -662,7 +662,7 @@ const Payments = () => {
             // Fetch ALL payments for these students, regardless of month filter
             const { data: allPayments, error: payErr } = await supabase
                 .from('payments')
-                .select('student_id, month, status, amount, payment_date, payment_method')
+                .select('student_id, month, status, amount, payment_date, payment_method, created_at')
                 .in('student_id', studentIds);
 
             if (payErr) throw payErr;
@@ -683,8 +683,10 @@ const Payments = () => {
                     const payment = studentPayments.find(p => p.month && (p.month === month || p.month.startsWith(month + ' ') || p.month.startsWith(month.toLowerCase() + ' ')));
                     if (payment) {
                         if (payment.status === 'Ödendi') {
-                            const dateStr = payment.payment_date 
-                                ? new Date(payment.payment_date).toLocaleDateString('tr-TR') 
+                            // payment_date varsa onu kullan, yoksa created_at'i fallback olarak kullan
+                            const effectiveDate = payment.payment_date || payment.created_at;
+                            const dateStr = effectiveDate 
+                                ? new Date(effectiveDate).toLocaleDateString('tr-TR') 
                                 : '';
                             const method = payment.payment_method ? `\r\n(${payment.payment_method})` : '';
                             row[monthUpper] = dateStr ? `${dateStr}\r\n${payment.amount} ₺${method}` : `Tarih Yok\r\n${payment.amount} ₺${method}`;
