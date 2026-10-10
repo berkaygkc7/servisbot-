@@ -688,7 +688,7 @@ const Payments = () => {
                             ? new Date(payment.payment_date).toLocaleDateString('tr-TR') 
                             : '';
                         const method = payment.payment_method ? `\n(${payment.payment_method})` : '';
-                        row[monthUpper] = dateStr ? `${dateStr} - ${payment.amount} ₺${method}` : `${payment.amount} ₺${method} (Tarih Yok)`;
+                        row[monthUpper] = dateStr ? `${dateStr}\n${payment.amount} ₺${method}` : `Tarih Yok\n${payment.amount} ₺${method}`;
                     } else {
                         row[monthUpper] = ''; // Boş kalacak
                     }
@@ -737,7 +737,12 @@ const Payments = () => {
             });
 
             // Tüm hücrelere stil uygulama (kalın font, kenarlık, metni kaydırma)
-            worksheet.eachRow((row) => {
+            worksheet.eachRow((row, rowNumber) => {
+                // Veri satırları için yüksekliği artır (Tarih, tutar ve ödeme yöntemi alt alta sığsın)
+                if (rowNumber > 2) {
+                    row.height = 55;
+                }
+                
                 row.eachCell((cell) => {
                     // Tüm yazılar kalın font (plaka dahil hepsi zaten kalın isteniyor)
                     // Plaka hücresinin boyutu üstte 22 ayarlandığı için burada ezmemek adına size'a dokunmuyoruz.
