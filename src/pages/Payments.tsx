@@ -691,7 +691,7 @@ const Payments = () => {
                         const dateStr = payment.payment_date 
                             ? new Date(payment.payment_date).toLocaleDateString('tr-TR') 
                             : '';
-                        row[monthUpper] = dateStr ? `${dateStr}\n${payment.amount} ₺` : `Tarih Yok\n${payment.amount} ₺`;
+                        row[monthUpper] = dateStr ? `${dateStr} - ${payment.amount} ₺` : `${payment.amount} ₺ (Tarih Yok)`;
                     } else {
                         row[monthUpper] = ''; // Boş kalacak
                     }
@@ -706,9 +706,10 @@ const Payments = () => {
 
             // Sütun genişlikleri ayarlanıyor (Başlıkları manuel gireceğiz)
             const columns = [
-                { key: 'No', width: 5 },
-                { key: 'Öğrenci Adı', width: 17.3 }, // İstenen genişlik
+                { header: 'No', key: 'No', width: 5 },
+                { header: 'Öğrenci Adı', key: 'Öğrenci Adı', width: 17.3 }, // İstenen genişlik
                 ...months.map(m => ({ 
+                    header: m.toLocaleUpperCase('tr-TR'),
                     key: m.toLocaleUpperCase('tr-TR'), 
                     width: 8.38 // İstenen genişlik
                 }))
@@ -716,18 +717,6 @@ const Payments = () => {
             worksheet.columns = columns;
 
             const headerText = selectedVehiclePlate ? selectedVehiclePlate : 'Ödemeler Raporu';
-
-            // 1. Satır: Üst Bilgi (Araç plakası, boyut 22, kalın font)
-            worksheet.addRow([headerText]);
-            worksheet.mergeCells('A1:L1'); // No + Öğrenci + 10 Ay = Toplam 12 Sütun (L'ye kadar)
-            const titleRow = worksheet.getRow(1);
-            titleRow.height = 40;
-            titleRow.getCell(1).font = { bold: true, size: 22 };
-            titleRow.getCell(1).alignment = { vertical: 'middle', horizontal: 'center' };
-
-            // 2. Satır: Sütun Başlıkları
-            const headerRowData = ['No', 'Öğrenci Adı', ...months.map(m => m.toLocaleUpperCase('tr-TR'))];
-            worksheet.addRow(headerRowData);
 
             // Veri satırları
             exportData.forEach(row => {
@@ -740,21 +729,10 @@ const Payments = () => {
             });
 
             // Tüm hücrelere stil uygulama (kalın font, kenarlık, metni kaydırma)
-            worksheet.eachRow((row, rowNumber) => {
+            worksheet.eachRow((row) => {
                 row.eachCell((cell) => {
-                    // 1. satır (plaka) zaten özel boyutlu, 2. satır (başlıklar) kalın ve gri
-                    if (rowNumber === 2) {
-                        cell.font = { bold: true }; 
-                        row.height = 25; // Başlık satırı
-                        cell.fill = {
-                            type: 'pattern',
-                            pattern: 'solid',
-                            fgColor: { argb: 'FFE0E0E0' }
-                        };
-                    } else if (rowNumber > 2) {
-                        cell.font = { bold: false };
-                        row.height = 35; // Veri satırları (tarih ve tutar alt alta sığsın diye)
-                    }
+                    // Tüm yazılar kalın font
+                    cell.font = { bold: true }; 
                     
                     // Tüm kenarlık
                     cell.border = { 
@@ -764,10 +742,15 @@ const Payments = () => {
                         right: { style: 'thin' }
                     };
                     
-                    // Ortalama ve Metni Kaydır (Genişlik dar olduğu için tarih ve fiyat alt alta sığsın)
+                    // Ortalama
                     cell.alignment = { vertical: 'middle', horizontal: 'center', wrapText: true };
                 });
             });
+
+            // Yazdırırken üst bilgi (Header) - Araç plakası, boyut 22, kalın
+            worksheet.headerFooter = {
+                oddHeader: `&C&22&B${headerText}`, // Center, Size 22, Bold
+            };
 
             // Sayfa yapısı (A4, dikey sığdırma)
             worksheet.pageSetup = {
