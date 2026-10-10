@@ -646,12 +646,8 @@ const Payments = () => {
             if (vehicleFilter !== 'all') {
                 sq = sq.eq('vehicle_id', vehicleFilter);
             }
-            if (schoolLevelFilter !== 'all') {
-                sq = sq.eq('school_level', schoolLevelFilter);
-            }
-            if (searchQuery) {
-                sq = sq.or(`full_name.ilike.%${searchQuery}%,parent_name.ilike.%${searchQuery}%`);
-            }
+            // UI'daki arama (searchQuery) ve okul filtresini dışa aktarmada yoksayıyoruz
+            // Çünkü kullanıcı araca göre rapor alırken tüm öğrencileri görmek istiyor.
             // Exclude pending ones just in case
             sq = sq.neq('status', 'pending');
 
@@ -668,7 +664,7 @@ const Payments = () => {
             // Fetch ALL payments for these students, regardless of month filter
             const { data: allPayments, error: payErr } = await supabase
                 .from('payments')
-                .select('student_id, month, status, amount, payment_date')
+                .select('student_id, month, status, amount, payment_date, payment_method')
                 .in('student_id', studentIds);
 
             if (payErr) throw payErr;
@@ -691,7 +687,8 @@ const Payments = () => {
                         const dateStr = payment.payment_date 
                             ? new Date(payment.payment_date).toLocaleDateString('tr-TR') 
                             : '';
-                        row[monthUpper] = dateStr ? `${dateStr} - ${payment.amount} ₺` : `${payment.amount} ₺ (Tarih Yok)`;
+                        const method = payment.payment_method ? `\n(${payment.payment_method})` : '';
+                        row[monthUpper] = dateStr ? `${dateStr} - ${payment.amount} ₺${method}` : `${payment.amount} ₺${method} (Tarih Yok)`;
                     } else {
                         row[monthUpper] = ''; // Boş kalacak
                     }
