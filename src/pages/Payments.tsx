@@ -741,48 +741,18 @@ const Payments = () => {
                 worksheet.addRow(rowData);
             });
 
-            // Öğrenci sayısına göre dinamik satır yüksekliği ve font boyutu hesapla
-            // Tek A4 sayfasına sığması için ayarlama
-            const studentCount = exportData.length;
-            let dataRowHeight = 75;
-            let dataFontSize = 10;
-            let titleFontSize = 22;
-
-            if (studentCount > 40) {
-                dataRowHeight = 30;
-                dataFontSize = 6;
-                titleFontSize = 12;
-            } else if (studentCount > 30) {
-                dataRowHeight = 35;
-                dataFontSize = 7;
-                titleFontSize = 14;
-            } else if (studentCount > 20) {
-                dataRowHeight = 45;
-                dataFontSize = 8;
-                titleFontSize = 16;
-            } else if (studentCount > 15) {
-                dataRowHeight = 55;
-                dataFontSize = 9;
-                titleFontSize = 18;
-            }
-
-            // Başlık satırı font boyutunu güncelle
-            titleRow.getCell(1).font = { bold: true, size: titleFontSize };
-
             // Tüm hücrelere stil uygulama (kalın font, kenarlık, metni kaydırma)
             worksheet.eachRow((row, rowNumber) => {
-                // Veri satırları için yüksekliği ayarla
+                // Veri satırları için yüksekliği artır (Tarih, tutar ve ödeme yöntemi alt alta sığsın)
                 if (rowNumber > 2) {
-                    row.height = dataRowHeight;
+                    row.height = 75;
                 }
                 
                 row.eachCell((cell) => {
-                    // Tüm yazılar kalın font
+                    // Tüm yazılar kalın font (plaka dahil hepsi zaten kalın isteniyor)
+                    // Plaka hücresinin boyutu üstte 22 ayarlandığı için burada ezmemek adına size'a dokunmuyoruz.
                     if (rowNumber > 2) {
-                        cell.font = { bold: true, size: dataFontSize };
-                    } else if (rowNumber === 2) {
-                        // Başlık satırı (No, Öğrenci Adı, aylar)
-                        cell.font = { bold: true, size: dataFontSize + 1 };
+                        cell.font = { bold: true, size: 10 }; // Veri satırlarını sığması için biraz küçültüyoruz
                     } else if (!cell.font || !cell.font.size) {
                         cell.font = { bold: true }; 
                     } else {
@@ -802,17 +772,17 @@ const Payments = () => {
                 });
             });
 
-            // Sayfa yapısı (A4, tek sayfaya sığdır)
+            // Sayfa yapısı (A4, dikey sığdırma)
             worksheet.pageSetup = {
                 paperSize: 9, // A4
                 orientation: 'landscape', 
                 fitToPage: true,
                 fitToWidth: 1,
-                fitToHeight: 1, // Tüm satırları tek sayfaya sığdır
+                fitToHeight: 0,
                 margins: {
-                    left: 0.1, right: 0.1,
-                    top: 0.1, bottom: 0.1,
-                    header: 0.1, footer: 0.1
+                    left: 0.25, right: 0.25,
+                    top: 0.25, bottom: 0.25,
+                    header: 0.2, footer: 0.2
                 }
             };
 
