@@ -647,9 +647,7 @@ const Payments = () => {
                 sq = sq.eq('vehicle_id', vehicleFilter);
             }
             // UI'daki arama (searchQuery) ve okul filtresini dışa aktarmada yoksayıyoruz
-            // Çünkü kullanıcı araca göre rapor alırken tüm öğrencileri görmek istiyor.
-            // Exclude pending ones just in case
-            sq = sq.neq('status', 'pending');
+            // Tüm öğrencileri (pending dahil) getirmek için başka filtre koymuyoruz.
 
             const { data: students, error: stErr } = await sq.order('full_name');
             if (stErr) throw stErr;
@@ -687,8 +685,8 @@ const Payments = () => {
                         const dateStr = payment.payment_date 
                             ? new Date(payment.payment_date).toLocaleDateString('tr-TR') 
                             : '';
-                        const method = payment.payment_method ? `\n(${payment.payment_method})` : '';
-                        row[monthUpper] = dateStr ? `${dateStr}\n${payment.amount} ₺${method}` : `Tarih Yok\n${payment.amount} ₺${method}`;
+                        const method = payment.payment_method ? `\r\n(${payment.payment_method})` : '';
+                        row[monthUpper] = dateStr ? `${dateStr}\r\n${payment.amount} ₺${method}` : `Tarih Yok\r\n${payment.amount} ₺${method}`;
                     } else {
                         row[monthUpper] = ''; // Boş kalacak
                     }
@@ -740,13 +738,15 @@ const Payments = () => {
             worksheet.eachRow((row, rowNumber) => {
                 // Veri satırları için yüksekliği artır (Tarih, tutar ve ödeme yöntemi alt alta sığsın)
                 if (rowNumber > 2) {
-                    row.height = 55;
+                    row.height = 75;
                 }
                 
                 row.eachCell((cell) => {
                     // Tüm yazılar kalın font (plaka dahil hepsi zaten kalın isteniyor)
                     // Plaka hücresinin boyutu üstte 22 ayarlandığı için burada ezmemek adına size'a dokunmuyoruz.
-                    if (!cell.font || !cell.font.size) {
+                    if (rowNumber > 2) {
+                        cell.font = { bold: true, size: 10 }; // Veri satırlarını sığması için biraz küçültüyoruz
+                    } else if (!cell.font || !cell.font.size) {
                         cell.font = { bold: true }; 
                     } else {
                         cell.font = { bold: true, size: cell.font.size };
