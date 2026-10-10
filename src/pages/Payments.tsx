@@ -679,8 +679,8 @@ const Payments = () => {
 
                 months.forEach(month => {
                     const monthUpper = month.toLocaleUpperCase('tr-TR');
-                    // Find payment for this month that is PAID
-                    const payment = studentPayments.find(p => p.month === month);
+                    // Find payment for this month (DB stores "Eylül 2026", we match with "Eylül")
+                    const payment = studentPayments.find(p => p.month && (p.month === month || p.month.startsWith(month + ' ') || p.month.startsWith(month.toLowerCase() + ' ')));
                     if (payment) {
                         if (payment.status === 'Ödendi') {
                             const dateStr = payment.payment_date 
