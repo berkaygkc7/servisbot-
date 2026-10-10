@@ -785,7 +785,9 @@ const Payments = () => {
             };
 
             // Build filename
-            const datePart = new Date().toISOString().split('T')[0];
+            const dateStr = new Date().toISOString().split('T')[0];
+            const timeStr = new Date().toTimeString().split(' ')[0].replace(/:/g, '-');
+            const datePart = `${dateStr}_${timeStr}`;
             const vehiclePart = selectedVehiclePlate ? `_${selectedVehiclePlate.replace(/\s+/g, '')}` : '';
             const fileName = `Odemeler_Raporu${vehiclePart}_${datePart}.xlsx`;
 
