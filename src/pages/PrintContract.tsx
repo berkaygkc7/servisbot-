@@ -1,6 +1,7 @@
 import React, { useEffect, useState } from 'react';
 import { useAuth } from '../contexts/AuthContext';
 import { ozhamleLogo } from '../assets/ozhamleLogo';
+import { supabase } from '../lib/supabase';
 
 const PrintContract: React.FC = () => {
     const { profile } = useAuth();
@@ -13,6 +14,32 @@ const PrintContract: React.FC = () => {
                 const data = JSON.parse(dataStr);
                 setPrintData(data);
                 
+                // If signature was not in localStorage data, fetch live from Supabase
+                if (data?.student?.id && !data.student.parent_signature) {
+                    (async () => {
+                        try {
+                            const { data: dbStudent } = await supabase
+                                .from('students')
+                                .select('parent_signature, contract_signed_at')
+                                .eq('id', data.student.id)
+                                .maybeSingle();
+
+                            if (dbStudent?.parent_signature) {
+                                setPrintData((prev: any) => ({
+                                    ...prev,
+                                    student: {
+                                        ...prev?.student,
+                                        parent_signature: dbStudent.parent_signature,
+                                        contract_signed_at: dbStudent.contract_signed_at
+                                    }
+                                }));
+                            }
+                        } catch (err: unknown) {
+                            console.log('Could not fetch student signature', err);
+                        }
+                    })();
+                }
+
                 setTimeout(() => {
                     window.print();
                 }, 800);
@@ -386,20 +413,31 @@ const PrintContract: React.FC = () => {
                 </ol>
 
                 <div className="mt-4 flex justify-between px-10">
-                    <div className="text-center min-w-[160px]">
+                    <div className="text-center min-w-[160px] flex flex-col items-center">
                         <p className="font-bold">VELİ</p>
+                        <p className="text-sm text-slate-700 mt-1">İmza</p>
                         {student?.parent_signature ? (
                             <div className="flex flex-col items-center mt-1">
-                                <img src={student.parent_signature} alt="Veli İmzası" className="max-h-14 max-w-36 object-contain" />
-                                <span className="text-[10px] text-gray-500 mt-0.5">Dijital İmzalandı</span>
+                                <img 
+                                    src={student.parent_signature} 
+                                    alt="Veli İmzası" 
+                                    className="h-16 max-w-44 object-contain my-1" 
+                                    style={{ WebkitPrintColorAdjust: 'exact', printColorAdjust: 'exact' }}
+                                />
+                                <span className="text-[9px] text-gray-500 mt-0.5">Dijital İmzalandı</span>
                             </div>
                         ) : (
-                            <p className="text-sm text-slate-500 mt-1">İmza</p>
+                            <div className="h-10 flex items-end">
+                                <p className="text-xs text-slate-400">................................................</p>
+                            </div>
                         )}
                     </div>
-                    <div className="text-center min-w-[160px]">
+                    <div className="text-center min-w-[160px] flex flex-col items-center">
                         <p className="font-bold">FİRMA YETKİLİSİ</p>
-                        <p className="text-sm text-slate-500 mt-1">İmza / Kaşe</p>
+                        <p className="text-sm text-slate-700 mt-1">İmza / Kaşe</p>
+                        <div className="h-10 flex items-end">
+                            <p className="text-xs text-slate-400">................................................</p>
+                        </div>
                     </div>
                 </div>
 

@@ -301,7 +301,9 @@ const Students: React.FC = () => {
                 login_token: s.login_token,
                 payment_status_this_month: paymentMap.get(s.id) || 'unpaid',
                 shift: s.shift,
-                payment_note: s.payment_note
+                payment_note: s.payment_note,
+                parent_signature: s.parent_signature,
+                contract_signed_at: s.contract_signed_at
             })) || [];
 
             return {

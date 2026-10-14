@@ -32,6 +32,8 @@ export interface Student {
     login_token?: string;
     payment_status_this_month?: string;
     payment_note?: string;
+    parent_signature?: string | null;
+    contract_signed_at?: string | null;
 
     // UI helpers
     name: string;

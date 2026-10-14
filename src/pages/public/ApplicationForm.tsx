@@ -1167,6 +1167,33 @@ const ApplicationForm: React.FC = () => {
                                     <p className="mt-4 font-bold text-slate-800 text-center border border-slate-300 rounded-xl py-2 px-4 bg-slate-50">⚠️ Bu sözleşme senet niteliği taşır.</p>
                                 </>
                             )}
+
+                            {/* Sözleşme İmza Bölümü */}
+                            <div className="mt-8 pt-5 border-t-2 border-dashed border-slate-200 flex justify-between items-start px-4">
+                                <div className="text-center min-w-[150px] flex flex-col items-center">
+                                    <p className="font-bold text-slate-800 text-sm">VELİ</p>
+                                    <p className="text-xs text-slate-500 mt-0.5">İmza</p>
+                                    {signature ? (
+                                        <div className="mt-2 p-1.5 bg-white border border-slate-200 rounded-xl shadow-sm flex flex-col items-center">
+                                            <img src={signature} alt="Veli İmzası" className="h-14 max-w-[160px] object-contain" />
+                                            <span className="text-[10px] text-emerald-600 font-bold mt-1">✓ İmzalandı</span>
+                                        </div>
+                                    ) : (
+                                        <div className="mt-2 p-2.5 bg-amber-50 border border-amber-200 rounded-xl text-center">
+                                            <span className="text-xs text-amber-800 font-semibold block">İmza Bekleniyor</span>
+                                            <span className="text-[10px] text-slate-400 block mt-0.5">(Kayıt formundaki kutudan imzalanacak)</span>
+                                        </div>
+                                    )}
+                                </div>
+                                <div className="text-center min-w-[150px] flex flex-col items-center">
+                                    <p className="font-bold text-slate-800 text-sm">FİRMA YETKİLİSİ</p>
+                                    <p className="text-xs text-slate-500 mt-0.5">İmza / Kaşe</p>
+                                    <div className="mt-2 p-2.5 bg-slate-50 border border-slate-200 rounded-xl text-center min-w-[130px]">
+                                        <span className="text-xs font-semibold text-slate-700 block">{companyName || 'Yetkili Onaylı'}</span>
+                                        <span className="text-[10px] text-slate-400 block mt-0.5">Taşımacılık Yetkilisi</span>
+                                    </div>
+                                </div>
+                            </div>
                         </div>
                         <div className="p-5 border-t border-slate-100 flex justify-end gap-3 bg-slate-50 rounded-b-2xl">
                             <button 
