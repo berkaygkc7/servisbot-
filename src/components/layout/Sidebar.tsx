@@ -12,7 +12,8 @@ import {
     Wallet,
     CreditCard,
     Layers,
-    ShieldAlert
+    ShieldAlert,
+    FileText
 } from 'lucide-react';
 import logo from '../../assets/servisbot_bus_logo.png';
 import { useAuth } from '../../contexts/AuthContext';
@@ -27,6 +28,7 @@ const Sidebar: React.FC = () => {
         { icon: Bus, label: 'Araçlar', path: '/dashboard/vehicles', allowedRoles: ['owner', 'admin', 'dispatcher'] },
         { icon: UserCheck, label: 'Şoförler', path: '/dashboard/drivers', allowedRoles: ['owner', 'admin', 'dispatcher'] },
         { icon: Users, label: 'Öğrenciler', path: '/dashboard/students', allowedRoles: ['owner', 'admin', 'dispatcher'] },
+        { icon: FileText, label: 'Sözleşmeler', path: '/dashboard/contracts', allowedRoles: ['owner', 'admin', 'dispatcher', 'accountant'] },
         { icon: Map, label: 'Rotalar', path: '/dashboard/routes', allowedRoles: ['owner', 'admin', 'dispatcher'] },
         { icon: CreditCard, label: 'Ödemeler', path: '/dashboard/payments', allowedRoles: ['owner', 'admin', 'accountant'] },
         { icon: Wallet, label: 'Gelir / Giderler', path: '/dashboard/expenses', allowedRoles: ['owner', 'admin', 'accountant'] },

@@ -191,6 +191,13 @@ const PrintContract: React.FC = () => {
                                     <p className="pl-14">..............................................................................................................................</p>
                                     <p className="mt-2">T.C. KİMLİK NO: <span className="font-semibold">{student?.parent_tc || '................................................................................................................'}</span></p>
                                 </div>
+                                {student?.parent_signature && (
+                                    <div className="w-44 flex flex-col items-center justify-center border-l-2 border-black pl-3 ml-2 text-center">
+                                        <span className="text-[11px] font-bold mb-1">Veli İmzası</span>
+                                        <img src={student.parent_signature} alt="Veli İmzası" className="max-h-16 max-w-full object-contain" />
+                                        <span className="text-[9px] text-gray-500 mt-1">Dijital Olarak İmzalandı</span>
+                                    </div>
+                                )}
                             </div>
                         </div>
                     </div>
@@ -300,8 +307,16 @@ const PrintContract: React.FC = () => {
                                 <p className="mt-4 font-bold">KEFİL</p>
                                 <p className="mt-2">Adı ve Adresi : ...................................................................................</p>
                             </div>
-                            <div className="w-1/3 text-center">
-                                <p>İmza</p>
+                            <div className="w-1/3 text-center flex flex-col items-center">
+                                <p className="font-bold">İmza</p>
+                                {student?.parent_signature ? (
+                                    <div className="flex flex-col items-center mt-1">
+                                        <img src={student.parent_signature} alt="Veli İmzası" className="max-h-14 max-w-32 object-contain" />
+                                        <span className="text-[9px] text-gray-500 mt-0.5">Dijital İmzalandı</span>
+                                    </div>
+                                ) : (
+                                    <p className="text-gray-400 text-xs mt-4">................................................</p>
+                                )}
                             </div>
                         </div>
                     </div>
@@ -371,11 +386,18 @@ const PrintContract: React.FC = () => {
                 </ol>
 
                 <div className="mt-4 flex justify-between px-10">
-                    <div className="text-center">
+                    <div className="text-center min-w-[160px]">
                         <p className="font-bold">VELİ</p>
-                        <p className="text-sm text-slate-500 mt-1">İmza</p>
+                        {student?.parent_signature ? (
+                            <div className="flex flex-col items-center mt-1">
+                                <img src={student.parent_signature} alt="Veli İmzası" className="max-h-14 max-w-36 object-contain" />
+                                <span className="text-[10px] text-gray-500 mt-0.5">Dijital İmzalandı</span>
+                            </div>
+                        ) : (
+                            <p className="text-sm text-slate-500 mt-1">İmza</p>
+                        )}
                     </div>
-                    <div className="text-center">
+                    <div className="text-center min-w-[160px]">
                         <p className="font-bold">FİRMA YETKİLİSİ</p>
                         <p className="text-sm text-slate-500 mt-1">İmza / Kaşe</p>
                     </div>
@@ -417,6 +439,13 @@ const PrintContract: React.FC = () => {
                                     <p className="pl-14">........................................................................................................</p>
                                     <p>T.C. KİMLİK NO: <span className="font-semibold text-[10px]">{student?.parent_tc || '........................................................................................................'}</span></p>
                                 </div>
+                                {student?.parent_signature && (
+                                    <div className="w-36 flex flex-col items-center justify-center border-l border-black pl-2 ml-2 text-center">
+                                        <span className="text-[10px] font-bold mb-1">Veli İmzası</span>
+                                        <img src={student.parent_signature} alt="Veli İmzası" className="max-h-12 max-w-full object-contain" />
+                                        <span className="text-[8px] text-gray-500">Dijital İmzalandı</span>
+                                    </div>
+                                )}
                             </div>
                         </div>
                     </div>

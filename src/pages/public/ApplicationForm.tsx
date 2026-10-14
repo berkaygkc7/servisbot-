@@ -4,6 +4,7 @@ import { Send, CheckCircle2, User, Phone, MapPin, AlertCircle, Loader2, Graduati
 import { supabase } from '../../lib/supabase';
 import { Map, AdvancedMarker, useMapsLibrary } from '@vis.gl/react-google-maps';
 import AddressCombobox, { type AddressOption } from '../../components/shared/AddressCombobox';
+import SignaturePad from '../../components/shared/SignaturePad';
 
 function safeRender(val: any): string {
     if (val === null || val === undefined) return '';
@@ -72,6 +73,7 @@ const ApplicationForm: React.FC = () => {
     const [submitted, setSubmitted] = useState(false);
     const [error, setError] = useState<string | null>(null);
     const [contractAccepted, setContractAccepted] = useState(false);
+    const [signature, setSignature] = useState<string | null>(null);
     const [isTermsModalOpen, setIsTermsModalOpen] = useState(false);
     const [isScrolledToBottom, setIsScrolledToBottom] = useState(false);
     const [companyName, setCompanyName] = useState<string>('');
@@ -458,6 +460,16 @@ const ApplicationForm: React.FC = () => {
             return;
         }
 
+        if (!contractAccepted) {
+            setError("Lütfen sözleşme metnini okuyup kabul ettiğinizi onaylayınız.");
+            return;
+        }
+
+        if (!signature) {
+            setError("Lütfen sözleşmenin altındaki imza alanına dokunmatik olarak parmağınızla imzanızı atınız.");
+            return;
+        }
+
         setSubmitting(true);
         setError(null);
 
@@ -476,7 +488,7 @@ const ApplicationForm: React.FC = () => {
         const calculatedTotalDebt = (ruleAnnualPrice !== null && ruleAnnualPrice > 0) ? ruleAnnualPrice : (monthlyPrice * installmentMultiplier);
 
         try {
-            const { data, error } = await supabase.rpc('submit_student_application', {
+            const rpcParams: any = {
                 p_public_token: token,
                 p_full_name: formData.studentName,
                 p_parent_name: formData.parentName,
@@ -491,8 +503,19 @@ const ApplicationForm: React.FC = () => {
                 p_neighborhood: formData.neighborhood || null,
                 p_total_debt: calculatedTotalDebt,
                 p_custom_price: monthlyPrice,
-                p_shift: formData.shift || null
-            });
+                p_shift: formData.shift || null,
+                p_signature: signature || null
+            };
+
+            let { data, error } = await supabase.rpc('submit_student_application', rpcParams);
+
+            // Backward compatibility fallback if database RPC has not been migrated yet with p_signature
+            if (error && (error.message?.includes('p_signature') || error.code === 'PGRST202')) {
+                const { p_signature, ...legacyParams } = rpcParams;
+                const retryRes = await supabase.rpc('submit_student_application', legacyParams);
+                data = retryRes.data;
+                error = retryRes.error;
+            }
 
             if (error) throw error;
 
@@ -986,11 +1009,19 @@ const ApplicationForm: React.FC = () => {
                             </div>
                         </div>
 
+                        {/* Veli Dokunmatik İmza Alanı */}
+                        <div className="pt-2">
+                            <SignaturePad
+                                onSignatureChange={(sig) => setSignature(sig)}
+                                disabled={submitting}
+                            />
+                        </div>
+
                         <div className="pt-2">
                             <button
                                 type="submit"
-                                disabled={submitting || !contractAccepted}
-                                className="w-full py-4 px-4 border border-transparent rounded-xl shadow-lg shadow-blue-500/30 text-base font-bold text-white bg-blue-600 hover:bg-blue-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-blue-500 disabled:opacity-70 disabled:cursor-not-allowed flex items-center justify-center transition-all"
+                                disabled={submitting || !contractAccepted || !signature}
+                                className="w-full py-4 px-4 border border-transparent rounded-xl shadow-lg shadow-blue-500/30 text-base font-bold text-white bg-blue-600 hover:bg-blue-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-blue-500 disabled:opacity-60 disabled:cursor-not-allowed flex items-center justify-center transition-all"
                             >
                                 {submitting ? (
                                     <><Loader2 className="animate-spin -ml-1 mr-2 h-5 w-5" /> Gönderiliyor...</>
@@ -998,6 +1029,13 @@ const ApplicationForm: React.FC = () => {
                                     <><Send className="-ml-1 mr-2 h-5 w-5" /> Başvuruyu Gönder</>
                                 )}
                             </button>
+                            {(!contractAccepted || !signature) && (
+                                <p className="text-center text-xs text-amber-700 bg-amber-50 border border-amber-200/80 rounded-lg py-1.5 px-3 font-medium mt-2">
+                                    {!contractAccepted 
+                                        ? '⚠️ Lütfen önce sözleşme metnini onaylayınız.' 
+                                        : '✍️ Lütfen başvuruyu tamamlamak için yukarıdaki kutucuğa dokunmatik olarak imzanızı atınız.'}
+                                </p>
+                            )}
                         </div>
                     </form>
                 </div>

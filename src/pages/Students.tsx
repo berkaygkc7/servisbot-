@@ -364,12 +364,28 @@ const Students: React.FC = () => {
     const handleEditClick = (student: Student) => {
         setEditingStudent(student);
         const installCount = getFormInstallmentCount(student.school_id);
-        const initialAnnual = (student.total_debt !== undefined && student.total_debt !== null)
-            ? Number(student.total_debt)
-            : (student.custom_price ? Number(student.custom_price) * installCount : undefined);
+        
+        let contractAnnual: number | undefined = undefined;
+        if (student.neighborhood) {
+            const filteredRules = getFilteredNeighborhoodRules(student.school_id);
+            const normNbr = student.neighborhood.toLocaleLowerCase('tr-TR').trim();
+            const rule = filteredRules.find(r => r.school_level?.toLocaleLowerCase('tr-TR').trim() === normNbr);
+            if (rule && rule.annual_amount) {
+                contractAnnual = Number(rule.annual_amount);
+            } else if (rule && rule.amount) {
+                contractAnnual = Number(rule.amount) * installCount;
+            }
+        }
+        if (!contractAnnual && student.custom_price) {
+            contractAnnual = Number(student.custom_price) * installCount;
+        }
+        if (!contractAnnual && student.total_debt !== undefined && student.total_debt !== null) {
+            contractAnnual = Number(student.total_debt);
+        }
+
         setFormData({ 
             ...student,
-            annual_fee: initialAnnual
+            annual_fee: contractAnnual
         } as any);
         setPickerCoordinates(student.coordinates && student.coordinates[0] !== 0 ? student.coordinates : null);
 
@@ -473,41 +489,113 @@ const Students: React.FC = () => {
     };
 
     const handleFixDebts = async () => {
-        if (!window.confirm("Tüm öğrencilerin borçlarını (varsa) yıllık mahalle fiyatlarına göre güncelleyeyim mi? Bu işlem biraz sürebilir.")) return;
+        if (!profile?.company_id) return;
+        if (!window.confirm("Tüm öğrencilerin borçlarını yıllık fiyatlandırma kurallarına ve yapılmış ödemelere göre doğru şekilde güncelleyeyim mi? Bu işlem biraz sürebilir.")) return;
         
         try {
-            const { data: studentsData } = await supabase.from('students').select('*').in('status', ['active', 'pending']);
-            const { data: rules } = await supabase.from('pricing_rules').select('*');
-            const { data: payments } = await supabase.from('payments').select('*');
-            const { data: _companies } = await supabase.from('companies').select('*');
+            // Şirket adından taksit çarpanını belirle
+            const { data: compData } = await supabase.from('companies').select('company_name').eq('id', profile.company_id).single();
+            const compName = (compData?.company_name || '').toLowerCase().replace(/ö/g, 'o').replace(/ü/g, 'u').replace(/ı/g, 'i').replace(/ş/g, 's').replace(/ğ/g, 'g').replace(/ç/g, 'c');
+            const isHalegul = compName.includes('halegul');
+            const isGuroz = compName.includes('guroz');
+            const isOzhamle = compName.includes('ozhamle');
 
-            if (!studentsData || !rules) {
-                alert('Veriler alınamadı.');
+            // Şirkete ait tüm aktif ve bekleyen öğrencileri çek
+            const { data: studentsData, error: sErr } = await supabase
+                .from('students')
+                .select('id, full_name, neighborhood, school_id, custom_price, total_debt, tags, status, schools(name)')
+                .eq('company_id', profile.company_id)
+                .in('status', ['active', 'pending']);
+
+            // Şirkete ait tüm fiyatlandırma kurallarını çek
+            const { data: rules, error: rErr } = await supabase
+                .from('pricing_rules')
+                .select('*')
+                .eq('company_id', profile.company_id);
+
+            // Şirkete ait tüm ödemeleri çek (limit 50000 ile sınır kaldırıldı)
+            const { data: payments, error: pErr } = await supabase
+                .from('payments')
+                .select('student_id, amount, status')
+                .eq('company_id', profile.company_id)
+                .limit(50000);
+
+            if (sErr || rErr || pErr || !studentsData) {
+                alert('Veriler alınamadı: ' + (sErr?.message || rErr?.message || pErr?.message || 'Bilinmeyen hata'));
                 return;
             }
 
+            // Öğrenci başına yapılan toplam 'Ödendi' ödemeleri hesapla
+            const paidMap = new Map<string, number>();
+            (payments || []).forEach(p => {
+                if (p.status === 'Ödendi' && p.student_id) {
+                    const current = paidMap.get(p.student_id) || 0;
+                    paidMap.set(p.student_id, current + (Number(p.amount) || 0));
+                }
+            });
+
             let updateCount = 0;
+            const updatePromises: any[] = [];
+
             for (const student of studentsData) {
-                if (!student.neighborhood) continue;
+                // Peşin ödeyenlerde borç her zaman 0 olmalı
+                const isPesin = student.tags?.includes('Peşin Ödedi');
+                if (isPesin) {
+                    if (Number(student.total_debt) !== 0) {
+                        updatePromises.push(supabase.from('students').update({ total_debt: 0 }).eq('id', student.id));
+                        updateCount++;
+                    }
+                    continue;
+                }
 
-                const normNbr = student.neighborhood.toLocaleLowerCase('tr-TR').trim();
-                const rule = rules.find(r => r.school_id === student.school_id && r.school_level?.toLocaleLowerCase('tr-TR').trim() === normNbr);
+                // Okul bazlı taksit çarpanını belirle
+                const schoolName = ((student as any).schools?.name || '').toLowerCase().replace(/ö/g, 'o').replace(/ü/g, 'u').replace(/ı/g, 'i').replace(/ş/g, 's').replace(/ğ/g, 'g').replace(/ç/g, 'c').replace(/\s+/g, '');
+                const isHakanGuvencer = isOzhamle && schoolName.includes('hakanguvencer');
+                const multiplier = isHakanGuvencer ? 11 : (isHalegul || isGuroz) ? 9 : 10;
 
-                if (rule && rule.annual_amount) {
-                    const annualPrice = Number(rule.annual_amount);
+                const normNbr = student.neighborhood?.toLocaleLowerCase('tr-TR')?.trim();
+                
+                // 1) Okula özel mahalle kuralı
+                let rule = rules?.find(r => 
+                    r.school_id === student.school_id && 
+                    r.school_level?.toLocaleLowerCase('tr-TR')?.trim() === normNbr
+                );
+                // 2) Genel mahalle kuralı (okul belirtilmemişse)
+                if (!rule) {
+                    rule = rules?.find(r => 
+                        !r.school_id && 
+                        r.school_level?.toLocaleLowerCase('tr-TR')?.trim() === normNbr
+                    );
+                }
 
-                    const studentPayments = (payments || []).filter(p => p.student_id === student.id && p.status === 'Ödendi');
-                    const totalPaid = studentPayments.reduce((acc, p) => acc + (Number(p.amount) || 0), 0);
-                    
+                let annualPrice: number | null = null;
+                if (rule && rule.annual_amount && Number(rule.annual_amount) > 0) {
+                    annualPrice = Number(rule.annual_amount);
+                } else if (rule && rule.amount && Number(rule.amount) > 0) {
+                    annualPrice = Number(rule.amount) * multiplier;
+                } else if (student.custom_price && Number(student.custom_price) > 0) {
+                    annualPrice = Number(student.custom_price) * multiplier;
+                } else if (student.total_debt && Number(student.total_debt) > 0 && !paidMap.has(student.id)) {
+                    annualPrice = Number(student.total_debt);
+                }
+
+                if (annualPrice !== null) {
+                    const totalPaid = paidMap.get(student.id) || 0;
                     const newDebt = Math.max(0, annualPrice - totalPaid);
-                    
+
                     if (Number(student.total_debt) !== newDebt) {
-                        await supabase.from('students').update({ total_debt: newDebt }).eq('id', student.id);
+                        updatePromises.push(supabase.from('students').update({ total_debt: newDebt }).eq('id', student.id));
                         updateCount++;
                     }
                 }
             }
-            alert(`İşlem tamamlandı! ${updateCount} öğrencinin borcu güncellendi.`);
+
+            // Güncellemeleri 20'şerli gruplar halinde paralel çalıştır
+            for (let i = 0; i < updatePromises.length; i += 20) {
+                await Promise.all(updatePromises.slice(i, i + 20));
+            }
+
+            alert(`İşlem tamamlandı! Toplam ${updateCount} öğrencinin kalan borcu güncellendi.`);
             queryClient.invalidateQueries({ queryKey: ['students'] });
         } catch (err: any) {
             console.error(err);
@@ -861,7 +949,20 @@ const Students: React.FC = () => {
             }
 
             const isPaidInAdvance = (formData as any).is_paid_in_advance === true;
-            const finalTotalDebt = isPaidInAdvance ? 0 : calculatedTotalDebt;
+            let finalTotalDebt = isPaidInAdvance ? 0 : calculatedTotalDebt;
+            
+            // Düzenleme modunda ve peşin değilse, yapılmış olan 'Ödendi' ödemelerini yıllık sözleşme tutarından düş
+            if (editingStudent && !isPaidInAdvance) {
+                const { data: pastPayments } = await supabase
+                    .from('payments')
+                    .select('amount')
+                    .eq('student_id', editingStudent.id)
+                    .eq('status', 'Ödendi');
+                const totalPaid = (pastPayments || []).reduce((acc, p) => acc + (Number(p.amount) || 0), 0);
+                if (totalPaid > 0) {
+                    finalTotalDebt = Math.max(0, calculatedTotalDebt - totalPaid);
+                }
+            }
             
             // Etiketlere Peşin Ödedi ekle (zaten yoksa)
             let finalTags = formData.tags || [];

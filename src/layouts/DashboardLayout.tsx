@@ -72,6 +72,7 @@ const DashboardLayout: React.FC = () => {
                 const menus = [
                     { name: 'Panel', path: '/dashboard' },
                     { name: 'Öğrenciler', path: '/dashboard/students' },
+                    { name: 'Sözleşmeler', path: '/dashboard/contracts' },
                     { name: 'Araçlar', path: '/dashboard/vehicles' },
                     { name: 'Şoförler', path: '/dashboard/drivers' },
                     { name: 'Rotalar', path: '/dashboard/routes' },

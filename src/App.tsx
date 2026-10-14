@@ -11,6 +11,7 @@ import DashboardLayout from './layouts/DashboardLayout';
 const DashboardHome = lazy(() => import('./pages/DashboardHome'));
 const Vehicles = lazy(() => import('./pages/Vehicles'));
 const Students = lazy(() => import('./pages/Students'));
+const Contracts = lazy(() => import('./pages/Contracts'));
 const RoutesPage = lazy(() => import('./pages/RoutesPage'));
 const Drivers = lazy(() => import('./pages/Drivers'));
 const Settings = lazy(() => import('./pages/Settings'));
@@ -123,6 +124,7 @@ function App() {
                 <Route path="vehicles" element={<ProtectedRoute allowedRoles={['owner', 'admin', 'dispatcher']}><Vehicles /></ProtectedRoute>} />
                 <Route path="drivers" element={<ProtectedRoute allowedRoles={['owner', 'admin', 'dispatcher']}><Drivers /></ProtectedRoute>} />
                 <Route path="students" element={<ProtectedRoute allowedRoles={['owner', 'admin', 'dispatcher']}><Students /></ProtectedRoute>} />
+                <Route path="contracts" element={<ProtectedRoute allowedRoles={['owner', 'admin', 'dispatcher', 'accountant']}><Contracts /></ProtectedRoute>} />
                 <Route path="routes" element={<ProtectedRoute allowedRoles={['owner', 'admin', 'dispatcher']}><RoutesPage /></ProtectedRoute>} />
                 <Route path="expenses" element={<ProtectedRoute allowedRoles={['owner', 'admin', 'accountant']}><Expenses /></ProtectedRoute>} />
                 <Route path="payments" element={<ProtectedRoute allowedRoles={['owner', 'admin', 'accountant']}><Payments /></ProtectedRoute>} />

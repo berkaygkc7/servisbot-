@@ -56,19 +56,6 @@ const Payments = () => {
     useEffect(() => {
         if (!authLoading) {
             if (profile?.company_id) {
-                // One-time fix for Sevde Sungur's debt
-                const fixSevde = async () => {
-                    const { data } = await supabase.from('students').select('id, total_debt').ilike('full_name', '%Sevde%').eq('company_id', profile.company_id);
-                    if (data && data.length > 0) {
-                         const sevde = data.find(s => s.total_debt === 45000);
-                         if (sevde) {
-                             await supabase.from('students').update({ total_debt: 40000 }).eq('id', sevde.id);
-                             console.log("Fixed Sevde Sungur's debt!");
-                         }
-                    }
-                };
-                fixSevde();
-
                 // Reset pagination and fetch payments when filters or archived status changes
                 pageRef.current = 0;
                 hasMoreRef.current = true;
@@ -167,15 +154,18 @@ const Payments = () => {
 
             const { data: activeStudents } = await supabase
                 .from('students')
-                .select('id, total_debt')
+                .select('id, total_debt, tags')
                 .eq('company_id', profile.company_id)
                 .neq('status', 'pending');
 
             if (activeStudents) {
                 activeStudents.forEach((s: any) => {
-                    const debt = Number(s.total_debt) || 0;
-                    if (debt > 0) {
-                        totalAnnualRemaining += debt;
+                    const isPesin = s.tags?.includes('Peşin Ödedi');
+                    if (!isPesin) {
+                        const debt = Number(s.total_debt) || 0;
+                        if (debt > 0) {
+                            totalAnnualRemaining += debt;
+                        }
                     }
                 });
             }
@@ -896,7 +886,113 @@ const Payments = () => {
         }
     };
 
+    const handleFixDebts = async () => {
+        if (!profile?.company_id) return;
+        if (!window.confirm("Tüm öğrencilerin kalan borçlarını (yıllık mahalle fiyatları ve yapılan ödemelere göre) yeniden hesaplayıp güncellemek istiyor musunuz?")) return;
+        
+        try {
+            setLoading(true);
+            const { data: compData } = await supabase.from('companies').select('company_name').eq('id', profile.company_id).single();
+            const compName = (compData?.company_name || '').toLowerCase().replace(/ö/g, 'o').replace(/ü/g, 'u').replace(/ı/g, 'i').replace(/ş/g, 's').replace(/ğ/g, 'g').replace(/ç/g, 'c');
+            const isHalegul = compName.includes('halegul');
+            const isGuroz = compName.includes('guroz');
+            const isOzhamle = compName.includes('ozhamle');
 
+            const { data: studentsData, error: sErr } = await supabase
+                .from('students')
+                .select('id, full_name, neighborhood, school_id, custom_price, total_debt, tags, status, schools(name)')
+                .eq('company_id', profile.company_id)
+                .in('status', ['active', 'pending']);
+
+            const { data: rules, error: rErr } = await supabase
+                .from('pricing_rules')
+                .select('*')
+                .eq('company_id', profile.company_id);
+
+            const { data: allPayments, error: pErr } = await supabase
+                .from('payments')
+                .select('student_id, amount, status')
+                .eq('company_id', profile.company_id)
+                .limit(50000);
+
+            if (sErr || rErr || pErr || !studentsData) {
+                alert('Veriler alınamadı: ' + (sErr?.message || rErr?.message || pErr?.message || 'Bilinmeyen hata'));
+                return;
+            }
+
+            const paidMap = new Map<string, number>();
+            (allPayments || []).forEach(p => {
+                if (p.status === 'Ödendi' && p.student_id) {
+                    const current = paidMap.get(p.student_id) || 0;
+                    paidMap.set(p.student_id, current + (Number(p.amount) || 0));
+                }
+            });
+
+            let updateCount = 0;
+            const updatePromises: any[] = [];
+
+            for (const student of studentsData) {
+                const isPesin = student.tags?.includes('Peşin Ödedi');
+                if (isPesin) {
+                    if (Number(student.total_debt) !== 0) {
+                        updatePromises.push(supabase.from('students').update({ total_debt: 0 }).eq('id', student.id));
+                        updateCount++;
+                    }
+                    continue;
+                }
+
+                const schoolName = ((student as any).schools?.name || '').toLowerCase().replace(/ö/g, 'o').replace(/ü/g, 'u').replace(/ı/g, 'i').replace(/ş/g, 's').replace(/ğ/g, 'g').replace(/ç/g, 'c').replace(/\s+/g, '');
+                const isHakanGuvencer = isOzhamle && schoolName.includes('hakanguvencer');
+                const multiplier = isHakanGuvencer ? 11 : (isHalegul || isGuroz) ? 9 : 10;
+
+                const normNbr = student.neighborhood?.toLocaleLowerCase('tr-TR')?.trim();
+                
+                let rule = rules?.find(r => 
+                    r.school_id === student.school_id && 
+                    r.school_level?.toLocaleLowerCase('tr-TR')?.trim() === normNbr
+                );
+                if (!rule) {
+                    rule = rules?.find(r => 
+                        !r.school_id && 
+                        r.school_level?.toLocaleLowerCase('tr-TR')?.trim() === normNbr
+                    );
+                }
+
+                let annualPrice: number | null = null;
+                if (rule && rule.annual_amount && Number(rule.annual_amount) > 0) {
+                    annualPrice = Number(rule.annual_amount);
+                } else if (rule && rule.amount && Number(rule.amount) > 0) {
+                    annualPrice = Number(rule.amount) * multiplier;
+                } else if (student.custom_price && Number(student.custom_price) > 0) {
+                    annualPrice = Number(student.custom_price) * multiplier;
+                } else if (student.total_debt && Number(student.total_debt) > 0 && !paidMap.has(student.id)) {
+                    annualPrice = Number(student.total_debt);
+                }
+
+                if (annualPrice !== null) {
+                    const totalPaid = paidMap.get(student.id) || 0;
+                    const newDebt = Math.max(0, annualPrice - totalPaid);
+
+                    if (Number(student.total_debt) !== newDebt) {
+                        updatePromises.push(supabase.from('students').update({ total_debt: newDebt }).eq('id', student.id));
+                        updateCount++;
+                    }
+                }
+            }
+
+            for (let i = 0; i < updatePromises.length; i += 20) {
+                await Promise.all(updatePromises.slice(i, i + 20));
+            }
+
+            alert(`İşlem tamamlandı! Toplam ${updateCount} öğrencinin kalan borcu güncellendi.`);
+            fetchPayments(true);
+        } catch (err: any) {
+            console.error(err);
+            alert('Hata oluştu: ' + err.message);
+        } finally {
+            setLoading(false);
+        }
+    };
 
     const handleDeleteAll = async () => {
         if (!window.confirm('DİKKAT: Tüm ödeme kayıtlarını (faturaları) kalıcı olarak silmek istediğinize emin misiniz? Bu işlem geri alınamaz!')) return;
@@ -968,6 +1064,15 @@ const Payments = () => {
                     <p className="text-slate-500 mt-2 font-medium">Öğrenci ödemelerini, gecikmiş alacakları ve tahsilatları yönetin.</p>
                 </div>
                 <div className="flex gap-3 w-full md:w-auto flex-wrap">
+                    <button
+                        onClick={handleFixDebts}
+                        className="flex-1 md:flex-none flex items-center justify-center gap-2 px-6 py-3 bg-amber-500 hover:bg-amber-600 text-white rounded-xl font-bold transition-all shadow-md active:scale-95"
+                        title="Tüm öğrencilerin kalan borçlarını yıllık kurallara ve yapılan ödemelere göre yeniden hesapla"
+                    >
+                        <RotateCcw size={20} />
+                        <span className="hidden sm:inline">Borçları Düzelt</span>
+                    </button>
+
                     <button
                         onClick={handleDeleteAll}
                         className="flex-1 md:flex-none flex items-center justify-center gap-2 px-6 py-3 bg-red-600 hover:bg-red-700 text-white rounded-xl font-bold transition-all shadow-md active:scale-95"
