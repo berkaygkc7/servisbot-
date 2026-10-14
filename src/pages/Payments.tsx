@@ -6,7 +6,6 @@ import PaymentList, { type Payment } from '../components/dashboard/PaymentList';
 import BulkBillingModal from '../components/dashboard/BulkBillingModal';
 import EditPaymentModal from '../components/dashboard/EditPaymentModal';
 import CollectPaymentModal from '../components/dashboard/CollectPaymentModal';
-import ExcelJS from 'exceljs';
 import { saveAs } from 'file-saver';
 const Payments = () => {
     const { profile, loading: authLoading } = useAuth();
@@ -694,6 +693,7 @@ const Payments = () => {
                 return row;
             });
 
+            const ExcelJS = (await import('exceljs')).default;
             const workbook = new ExcelJS.Workbook();
             const sheetName = selectedVehiclePlate ? `${selectedVehiclePlate}` : 'Ödemeler Raporu';
             const worksheet = workbook.addWorksheet(sheetName.substring(0, 31));

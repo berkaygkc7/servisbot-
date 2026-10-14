@@ -1,9 +1,10 @@
 import React, { useState, useRef, useEffect } from 'react';
 import { Outlet, useNavigate } from 'react-router-dom';
 import Sidebar from '../components/layout/Sidebar';
-import { Search, User, Settings, LogOut, Car, Map, UserSquare, X, Mail, Building, ShieldCheck, Settings2, Monitor } from 'lucide-react';
+import { Search, User, Settings, LogOut, Car, Map, UserSquare, X, Mail, Building, ShieldCheck, Settings2, Monitor, Loader2 } from 'lucide-react';
 import { useAuth } from '../contexts/AuthContext';
 import { supabase } from '../lib/supabase';
+import { preloadCommonRoutes } from '../utils/routePreloader';
 
 const DashboardLayout: React.FC = () => {
     const { profile, signOut } = useAuth();
@@ -16,6 +17,10 @@ const DashboardLayout: React.FC = () => {
             setIsMobile(window.innerWidth < 768);
         };
         window.addEventListener('resize', handleResize);
+        
+        // Start preloading frequently used routes in browser idle time
+        preloadCommonRoutes();
+
         return () => window.removeEventListener('resize', handleResize);
     }, []);
 
@@ -305,7 +310,16 @@ const DashboardLayout: React.FC = () => {
                 </header>
 
                 <div className="flex-1 overflow-y-auto p-8">
-                    <Outlet />
+                    <React.Suspense fallback={
+                        <div className="flex h-64 w-full items-center justify-center">
+                            <div className="flex flex-col items-center gap-2">
+                                <Loader2 className="h-8 w-8 animate-spin text-blue-600" />
+                                <span className="text-xs font-semibold text-slate-400">Yükleniyor...</span>
+                            </div>
+                        </div>
+                    }>
+                        <Outlet />
+                    </React.Suspense>
                 </div>
 
                 {/* ACCOUNT MODAL */}

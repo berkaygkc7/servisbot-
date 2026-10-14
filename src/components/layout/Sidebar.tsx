@@ -17,6 +17,7 @@ import {
 } from 'lucide-react';
 import logo from '../../assets/servisbot_bus_logo.png';
 import { useAuth } from '../../contexts/AuthContext';
+import { preloadRoute } from '../../utils/routePreloader';
 
 const Sidebar: React.FC = () => {
     const { signOut, profile } = useAuth();
@@ -86,6 +87,8 @@ const Sidebar: React.FC = () => {
                         key={item.path}
                         to={item.path}
                         end={item.path === '/dashboard'}
+                        onMouseEnter={() => preloadRoute(item.path)}
+                        onFocus={() => preloadRoute(item.path)}
                         className={({ isActive }) =>
                             `flex items-center gap-3 px-4 py-3 rounded-xl transition-all duration-300 group animate-fade-up ${
                                 isActive

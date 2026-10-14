@@ -18,6 +18,7 @@ import {
 } from 'lucide-react';
 import { supabase } from '../lib/supabase';
 import { useAuth } from '../contexts/AuthContext';
+import { preloadRoute } from '../utils/routePreloader';
 
 interface StudentContract {
     id: string;
@@ -495,6 +496,7 @@ const Contracts: React.FC = () => {
                                                     </button>
                                                     <button
                                                         onClick={() => handlePrintContract(student)}
+                                                        onMouseEnter={() => preloadRoute('/print-contract')}
                                                         className="p-2 text-slate-500 hover:text-emerald-600 hover:bg-emerald-50 rounded-xl transition-colors"
                                                         title="Resmi Sözleşmeyi Yazdır / PDF"
                                                     >
@@ -545,6 +547,7 @@ const Contracts: React.FC = () => {
                                 </button>
                                 <button
                                     onClick={() => handlePrintContract(selectedContract)}
+                                    onMouseEnter={() => preloadRoute('/print-contract')}
                                     className="px-3.5 py-2 bg-blue-600 hover:bg-blue-700 text-white rounded-xl text-xs font-bold flex items-center gap-1.5 shadow-sm shadow-blue-500/20 transition-all"
                                 >
                                     <Printer size={15} />

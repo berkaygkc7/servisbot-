@@ -17,7 +17,8 @@ export default defineConfig({
           'vendor-react': ['react', 'react-dom', 'react-router-dom'],
           'vendor-charts': ['recharts'],
           'vendor-maps': ['@vis.gl/react-google-maps', '@turf/turf'],
-          'vendor-utils': ['xlsx', 'date-fns', 'framer-motion']
+          'vendor-utils': ['xlsx', 'date-fns', 'framer-motion'],
+          'vendor-excel': ['exceljs']
         }
       }
     }

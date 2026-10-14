@@ -11,10 +11,10 @@ const PrintPreview: React.FC = () => {
                 const data = JSON.parse(dataStr);
                 setPrintData(data);
                 
-                // Trigger print after a short delay to allow styles to load
+                // Trigger print swiftly after styles render
                 setTimeout(() => {
                     window.print();
-                }, 800);
+                }, 150);
             } catch (err) {
                 console.error("Error parsing print data", err);
             }

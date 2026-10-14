@@ -7,6 +7,7 @@ import { supabase } from '../lib/supabase';
 import { useAuth } from '../contexts/AuthContext';
 import MapScene from '../components/map/MapScene';
 import VehicleProfileModal from '../components/VehicleProfileModal';
+import { preloadRoute } from '../utils/routePreloader';
 
 
 
@@ -648,6 +649,7 @@ const Vehicles: React.FC = () => {
                                 </button>
                                 <button
                                     onClick={handlePrintStudents}
+                                    onMouseEnter={() => preloadRoute('/print-preview')}
                                     className="flex items-center gap-1.5 px-3 py-2 bg-white border border-slate-200 text-slate-700 rounded-xl hover:bg-slate-50 transition-colors text-xs font-bold shadow-sm active:scale-95"
                                     title="Listeyi Yazdır"
                                 >

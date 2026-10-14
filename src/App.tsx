@@ -154,9 +154,9 @@ function App() {
                 <Route path="account" element={<SuperAdminAccount />} />
               </Route>
 
-              {/* Print Route (Standalone) */}
-              <Route path="/print-preview" element={<ProtectedRoute><PrintPreview /></ProtectedRoute>} />
-              <Route path="/print-contract" element={<ProtectedRoute><PrintContract /></ProtectedRoute>} />
+              {/* Print Route (Standalone - Fast direct render from localStorage without auth network blocking) */}
+              <Route path="/print-preview" element={<PrintPreview />} />
+              <Route path="/print-contract" element={<PrintContract />} />
 
               {/* Fallback Catch-All Route */}
               <Route path="*" element={<Navigate to="/" replace />} />

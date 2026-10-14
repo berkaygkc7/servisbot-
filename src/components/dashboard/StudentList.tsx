@@ -1,6 +1,7 @@
 import React from 'react';
 import { Edit, Trash2, MapPin, Eye, CheckCircle, Circle, Printer, AlertTriangle, MessageCircle } from 'lucide-react';
 import { useAuth } from '../../contexts/AuthContext';
+import { preloadRoute } from '../../utils/routePreloader';
 
 export interface Student {
     id: string;
@@ -296,6 +297,7 @@ const StudentList: React.FC<StudentListProps> = ({
                                                 }));
                                                 window.open('/print-contract', '_blank');
                                             }}
+                                            onMouseEnter={() => preloadRoute('/print-contract')}
                                             className="p-2 hover:bg-slate-100 rounded-lg text-slate-400 hover:text-emerald-600 transition-colors"
                                             title="Sözleşmeyi Yazdır"
                                         >

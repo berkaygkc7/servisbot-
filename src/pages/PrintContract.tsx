@@ -36,13 +36,18 @@ const PrintContract: React.FC = () => {
                             }
                         } catch (err: unknown) {
                             console.log('Could not fetch student signature', err);
+                        } finally {
+                            setTimeout(() => {
+                                window.print();
+                            }, 150);
                         }
                     })();
+                } else {
+                    // Data already contains everything needed, trigger print swiftly
+                    setTimeout(() => {
+                        window.print();
+                    }, 150);
                 }
-
-                setTimeout(() => {
-                    window.print();
-                }, 800);
             } catch (err) {
                 console.error("Error parsing print data", err);
             }
