@@ -8,6 +8,7 @@ import { tr } from 'date-fns/locale';
 import StudentList, { type Student } from '../components/dashboard/StudentList';
 import QrCodeModal from '../components/shared/QrCodeModal';
 import PaymentHistoryModal from '../components/dashboard/PaymentHistoryModal';
+import CollectPaymentModal from '../components/dashboard/CollectPaymentModal';
 import { supabase } from '../lib/supabase';
 import { useAuth } from '../contexts/AuthContext';
 
@@ -27,6 +28,7 @@ const Students: React.FC = () => {
     const [isModalOpen, setIsModalOpen] = useState(false);
     const [editingStudent, setEditingStudent] = useState<Student | null>(null);
     const [formData, setFormData] = useState<Partial<Student>>({});
+    const [collectingStudent, setCollectingStudent] = useState<Student | null>(null);
 
     
     // Pagination & Search State
@@ -1337,6 +1339,7 @@ const Students: React.FC = () => {
                         onShowQr={handleShowQr}
                         onQuickPay={handleQuickPay}
                         onManualPay={handleManualPay}
+                        onCollectPayment={(student) => setCollectingStudent(student)}
                         onApprove={handleApprove}
                         onReject={handleReject}
                         whatsappTemplate={profile?.companies?.whatsapp_template}
@@ -2166,6 +2169,28 @@ const Students: React.FC = () => {
                     token={selectedQrStudent.login_token || '12345678-1234-1234-1234-123456789abc'}
                     type="parent"
                     userName={selectedQrStudent.parent}
+                />
+            )}
+
+            {/* Smart Multi-Month Collection Modal */}
+            {collectingStudent && (
+                <CollectPaymentModal
+                    isOpen={!!collectingStudent}
+                    onClose={() => setCollectingStudent(null)}
+                    student={{
+                        id: collectingStudent.id,
+                        full_name: collectingStudent.full_name || collectingStudent.name,
+                        parent_name: collectingStudent.parent_name || collectingStudent.parent,
+                        parent_phone: collectingStudent.parent_phone || collectingStudent.phone,
+                        school_name: collectingStudent.school_name || collectingStudent.school,
+                        custom_price: collectingStudent.custom_price,
+                        total_debt: collectingStudent.total_debt,
+                        tags: collectingStudent.tags,
+                        company_id: profile?.company_id
+                    }}
+                    onSuccess={() => {
+                        queryClient.invalidateQueries({ queryKey: ['students'] });
+                    }}
                 />
             )}
         </div >

@@ -52,13 +52,14 @@ interface StudentListProps {
     onAddSibling?: (student: Student) => void;
     onQuickPay?: (student: Student) => void;
     onManualPay?: (student: Student) => void;
+    onCollectPayment?: (student: Student) => void;
     onApprove?: (student: Student) => void;
     onReject?: (student: Student) => void;
     whatsappTemplate?: string;
 }
 
 const StudentList: React.FC<StudentListProps> = ({ 
-    students, onEdit, onDelete, onShowLocation, onShowDetails, onShowQr, onQuickPay, onManualPay, onApprove, onReject, whatsappTemplate 
+    students, onEdit, onDelete, onShowLocation, onShowDetails, onShowQr, onQuickPay, onManualPay, onCollectPayment, onApprove, onReject, whatsappTemplate 
 }) => {
     const { profile } = useAuth();
 
@@ -175,26 +176,33 @@ const StudentList: React.FC<StudentListProps> = ({
                                     ) : student.payment_status_this_month === 'Ödendi' ? (
                                         <div className="flex flex-col gap-1">
                                             <div className="flex items-center gap-1.5 text-emerald-600 cursor-default" title="Bu Ayın Taksiti Ödendi">
-                                                <CheckCircle size={20} className="fill-emerald-100" />
+                                                <CheckCircle size={20} className="fill-emerald-100 shrink-0" />
                                                 <span className="text-xs font-bold">Bu Ay Ödendi</span>
                                             </div>
+                                            <button
+                                                onClick={() => onCollectPayment ? onCollectPayment(student) : (onManualPay && onManualPay(student))}
+                                                className="flex items-center gap-1 text-emerald-700 bg-emerald-50 hover:bg-emerald-100 border border-emerald-200 transition-colors rounded-lg px-2 py-0.5 text-[11px] font-bold mt-0.5 w-fit cursor-pointer shadow-2xs"
+                                                title="Ay içinde 2. veya 3. ödeme al ya da sonraki ayları peşin tahsil et"
+                                            >
+                                                <span>+ Yeni Tahsilat</span>
+                                            </button>
                                         </div>
                                     ) : (
                                         <div className="flex flex-col gap-1">
                                             <button
-                                                onClick={() => onQuickPay && onQuickPay(student)}
-                                                className="flex items-center gap-1.5 text-slate-500 hover:text-emerald-600 transition-colors group"
-                                                title="Ödendi Olarak İşaretle"
+                                                onClick={() => onCollectPayment ? onCollectPayment(student) : (onQuickPay && onQuickPay(student))}
+                                                className="flex items-center gap-1.5 text-slate-500 hover:text-emerald-600 transition-colors group text-left cursor-pointer"
+                                                title="Ödeme / Çoklu Ay Tahsilatı Al"
                                             >
-                                                <Circle size={20} className="group-hover:fill-emerald-50 text-slate-400" />
+                                                <Circle size={20} className="group-hover:fill-emerald-50 text-slate-400 shrink-0" />
                                                 <span className="text-xs font-medium">Taksit Bekliyor</span>
                                             </button>
                                             <button
-                                                onClick={() => onManualPay && onManualPay(student)}
-                                                className="flex items-center gap-1 text-amber-600 hover:text-amber-700 hover:bg-amber-50 transition-colors rounded-lg px-2 py-0.5 text-[11px] font-bold border border-amber-200/60 mt-0.5"
-                                                title="Farklı tutarda ödeme gir"
+                                                onClick={() => onCollectPayment ? onCollectPayment(student) : (onManualPay && onManualPay(student))}
+                                                className="flex items-center gap-1 text-emerald-700 hover:text-emerald-800 bg-emerald-50 hover:bg-emerald-100 transition-colors rounded-lg px-2 py-0.5 text-[11px] font-bold border border-emerald-200/80 mt-0.5 w-fit cursor-pointer shadow-2xs"
+                                                title="Tek veya çoklu ay tahsilatı yap"
                                             >
-                                                💵 Manuel Öde
+                                                💵 Tahsilat Al
                                             </button>
                                             {(() => {
                                                 // Peşin ödeyenlerde kalan borç gösterme

@@ -1,10 +1,11 @@
 import { useState, useEffect, useMemo, useRef, useCallback } from 'react';
-import { Plus, Search, Filter, Loader2, TrendingUp, AlertTriangle, FileText, Download, CheckSquare, CheckCircle, Archive, Trash2, RotateCcw, Layers, Bus } from 'lucide-react';
+import { Plus, Search, Filter, Loader2, TrendingUp, AlertTriangle, FileText, Download, CheckSquare, CheckCircle, Archive, Trash2, RotateCcw, Layers, Bus, CreditCard } from 'lucide-react';
 import { supabase } from '../lib/supabase';
 import { useAuth } from '../contexts/AuthContext';
 import PaymentList, { type Payment } from '../components/dashboard/PaymentList';
 import BulkBillingModal from '../components/dashboard/BulkBillingModal';
 import EditPaymentModal from '../components/dashboard/EditPaymentModal';
+import CollectPaymentModal from '../components/dashboard/CollectPaymentModal';
 import ExcelJS from 'exceljs';
 import { saveAs } from 'file-saver';
 const Payments = () => {
@@ -17,6 +18,7 @@ const Payments = () => {
     const [monthFilter, setMonthFilter] = useState('all');
     const [schoolLevelFilter, setSchoolLevelFilter] = useState('all');
     const [isBulkBillingModalOpen, setIsBulkBillingModalOpen] = useState(false);
+    const [isCollectModalOpen, setIsCollectModalOpen] = useState(false);
     const [editingPayment, setEditingPayment] = useState<Payment | null>(null);
     const [availableMonths, setAvailableMonths] = useState<string[]>([]);
     const [availableSchoolLevels, setAvailableSchoolLevels] = useState<string[]>([]);
@@ -1083,6 +1085,15 @@ const Payments = () => {
                     </button>
 
                     <button
+                        onClick={() => setIsCollectModalOpen(true)}
+                        className="flex-1 md:flex-none flex items-center justify-center gap-2 px-6 py-3 bg-emerald-600 hover:bg-emerald-700 text-white rounded-xl font-bold transition-all shadow-md shadow-emerald-600/25 active:scale-95"
+                        title="Öğrenci için tek veya çoklu ay peşin tahsilat girişi yap"
+                    >
+                        <CreditCard size={20} />
+                        <span>Tahsilat Al (Ödeme Girişi)</span>
+                    </button>
+
+                    <button
                         onClick={() => setIsBulkBillingModalOpen(true)}
                         className="flex-1 md:flex-none flex items-center justify-center gap-2 px-6 py-3 bg-blue-600 hover:bg-blue-700 text-white rounded-xl font-bold transition-all shadow-md active:scale-95"
                     >
@@ -1392,6 +1403,14 @@ const Payments = () => {
                 payment={editingPayment}
                 onClose={() => setEditingPayment(null)}
                 onSave={handleEditSave}
+            />
+
+            <CollectPaymentModal
+                isOpen={isCollectModalOpen}
+                onClose={() => setIsCollectModalOpen(false)}
+                onSuccess={() => {
+                    fetchPayments(true);
+                }}
             />
         </div>
     );
