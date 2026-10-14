@@ -1,5 +1,5 @@
 import React from 'react';
-import { Edit, Trash2, MapPin, Eye, CheckCircle, Circle, Printer, AlertTriangle } from 'lucide-react';
+import { Edit, Trash2, MapPin, Eye, CheckCircle, Circle, Printer, AlertTriangle, MessageCircle } from 'lucide-react';
 import { useAuth } from '../../contexts/AuthContext';
 
 export interface Student {
@@ -292,6 +292,24 @@ const StudentList: React.FC<StudentListProps> = ({
                                             title="Sözleşmeyi Yazdır"
                                         >
                                             <Printer size={16} />
+                                        </button>
+                                        <button
+                                            onClick={() => {
+                                                const token = student.login_token || student.id;
+                                                const signUrl = `${window.location.origin}/imzala/${token}`;
+                                                const compName = (profile as any)?.companies?.company_name || 'Servis Firması';
+                                                const cleanPhone = (student.parent_phone || student.phone || '').replace(/\D/g, '').slice(-10);
+                                                const msg = `Sayın ${student.parent_name || student.parent || 'Velimiz'},\n\nÖğrencimiz *${student.full_name || student.name}* için hazırlanan *${compName}* servis taşımacılığı sözleşmesini telefonunuzdan inceleyip dokunmatik olarak imzalamak için lütfen aşağıdaki bağlantıya tıklayınız:\n\n👉 ${signUrl}\n\nİyi günler dileriz.`;
+                                                if (cleanPhone.length === 10) {
+                                                    window.open(`https://wa.me/90${cleanPhone}?text=${encodeURIComponent(msg)}`, '_blank');
+                                                } else {
+                                                    alert('Geçerli bir veli telefon numarası bulunamadı.');
+                                                }
+                                            }}
+                                            className="p-2 hover:bg-emerald-50 rounded-lg text-slate-400 hover:text-emerald-600 transition-colors"
+                                            title="WhatsApp ile Sözleşme İmza Linki Gönder"
+                                        >
+                                            <MessageCircle size={16} />
                                         </button>
                                         <button
                                             onClick={() => onEdit(student)}

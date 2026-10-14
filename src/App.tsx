@@ -23,6 +23,7 @@ import ProtectedRoute from './components/auth/ProtectedRoute';
 const Login = lazy(() => import('./pages/auth/Login'));
 const Register = lazy(() => import('./pages/auth/Register'));
 const ApplicationForm = lazy(() => import('./pages/public/ApplicationForm'));
+const SignContract = lazy(() => import('./pages/public/SignContract'));
 import { KVKK, PrivacyPolicy, TermsOfService } from './pages/public/LegalPages';
 const PrintPreview = lazy(() => import('./pages/PrintPreview'));
 const PrintContract = lazy(() => import('./pages/PrintContract'));
@@ -114,6 +115,8 @@ function App() {
               <Route path="/login" element={<Login />} />
               <Route path="/register" element={<Register />} />
               <Route path="/apply/:token" element={<ApplicationForm />} />
+              <Route path="/imzala/:token" element={<SignContract />} />
+              <Route path="/sign/:token" element={<SignContract />} />
               <Route path="/kvkk" element={<KVKK />} />
               <Route path="/gizlilik-politikasi" element={<PrivacyPolicy />} />
               <Route path="/kullanim-sartlari" element={<TermsOfService />} />

@@ -11,13 +11,17 @@ import {
     User, 
     Phone, 
     PenTool, 
-    ShieldCheck
+    ShieldCheck,
+    MessageCircle,
+    Copy,
+    Check
 } from 'lucide-react';
 import { supabase } from '../lib/supabase';
 import { useAuth } from '../contexts/AuthContext';
 
 interface StudentContract {
     id: string;
+    login_token?: string;
     full_name: string;
     parent_name: string;
     parent_phone: string;
@@ -43,6 +47,7 @@ const Contracts: React.FC = () => {
     const [selectedContract, setSelectedContract] = useState<StudentContract | null>(null);
     const [isViewerOpen, setIsViewerOpen] = useState(false);
     const [selectedSignaturePreview, setSelectedSignaturePreview] = useState<string | null>(null);
+    const [copiedId, setCopiedId] = useState<string | null>(null);
 
     // Fetch Schools for filtering
     const { data: schools = [] } = useQuery({
@@ -65,6 +70,7 @@ const Contracts: React.FC = () => {
                 .from('students')
                 .select(`
                     id,
+                    login_token,
                     full_name,
                     parent_name,
                     parent_phone,
@@ -92,6 +98,37 @@ const Contracts: React.FC = () => {
         },
         enabled: !!profile?.company_id
     });
+
+    const getSignUrl = (student: StudentContract) => {
+        const token = student.login_token || student.id;
+        return `${window.location.origin}/imzala/${token}`;
+    };
+
+    const handleSendWhatsAppLink = (student: StudentContract, e?: React.MouseEvent) => {
+        if (e) e.stopPropagation();
+        const cleanPhone = (student.parent_phone || '').replace(/\D/g, '').slice(-10);
+        if (cleanPhone.length !== 10) {
+            alert('Velinin geçerli bir telefon numarası bulunamadı!');
+            return;
+        }
+
+        const companyName = profile?.companies?.company_name || 'Servis Firması';
+        const signUrl = getSignUrl(student);
+        const msg = `Sayın ${student.parent_name || 'Velimiz'},\n\nÖğrencimiz *${student.full_name}* için hazırlanan *${companyName}* servis taşımacılığı sözleşmesini telefonunuzdan inceleyip dokunmatik olarak imzalamak için lütfen aşağıdaki bağlantıya tıklayınız:\n\n👉 ${signUrl}\n\nİyi günler dileriz.`;
+
+        window.open(`https://wa.me/90${cleanPhone}?text=${encodeURIComponent(msg)}`, '_blank');
+    };
+
+    const handleCopySignLink = (student: StudentContract, e?: React.MouseEvent) => {
+        if (e) e.stopPropagation();
+        const signUrl = getSignUrl(student);
+        navigator.clipboard.writeText(signUrl).then(() => {
+            setCopiedId(student.id);
+            setTimeout(() => setCopiedId(null), 2500);
+        }).catch(() => {
+            alert(`İmza bağlantısı: ${signUrl}`);
+        });
+    };
 
     // Stats calculations
     const stats = useMemo(() => {
@@ -436,6 +473,20 @@ const Contracts: React.FC = () => {
                                             <td className="py-3.5 px-5 text-right">
                                                 <div className="flex items-center justify-end gap-1.5">
                                                     <button
+                                                        onClick={(e) => handleSendWhatsAppLink(student, e)}
+                                                        className="p-2 text-emerald-600 hover:text-emerald-700 hover:bg-emerald-50 rounded-xl transition-colors"
+                                                        title="WhatsApp ile Veliye İmza Linki Gönder"
+                                                    >
+                                                        <MessageCircle size={17} />
+                                                    </button>
+                                                    <button
+                                                        onClick={(e) => handleCopySignLink(student, e)}
+                                                        className="p-2 text-slate-400 hover:text-blue-600 hover:bg-blue-50 rounded-xl transition-colors"
+                                                        title="İmza Bağlantısını Kopyala (SMS veya Mesaj için)"
+                                                    >
+                                                        {copiedId === student.id ? <Check size={17} className="text-emerald-600" /> : <Copy size={17} />}
+                                                    </button>
+                                                    <button
                                                         onClick={() => openViewer(student)}
                                                         className="p-2 text-slate-500 hover:text-blue-600 hover:bg-blue-50 rounded-xl transition-colors"
                                                         title="Sözleşmeyi İncele"
@@ -476,6 +527,22 @@ const Contracts: React.FC = () => {
                                 </p>
                             </div>
                             <div className="flex items-center gap-2">
+                                <button
+                                    onClick={() => handleSendWhatsAppLink(selectedContract)}
+                                    className="px-3.5 py-2 bg-emerald-600 hover:bg-emerald-700 text-white rounded-xl text-xs font-bold flex items-center gap-1.5 shadow-sm shadow-emerald-500/20 transition-all"
+                                    title="Veliye WhatsApp ile imza linki gönder"
+                                >
+                                    <MessageCircle size={15} />
+                                    WhatsApp Linki
+                                </button>
+                                <button
+                                    onClick={() => handleCopySignLink(selectedContract)}
+                                    className="px-3 py-2 bg-slate-100 hover:bg-slate-200 text-slate-700 rounded-xl text-xs font-bold flex items-center gap-1.5 transition-all"
+                                    title="İmza bağlantısını kopyala"
+                                >
+                                    {copiedId === selectedContract.id ? <Check size={15} className="text-emerald-600" /> : <Copy size={15} />}
+                                    {copiedId === selectedContract.id ? 'Kopyalandı' : 'Linki Kopyala'}
+                                </button>
                                 <button
                                     onClick={() => handlePrintContract(selectedContract)}
                                     className="px-3.5 py-2 bg-blue-600 hover:bg-blue-700 text-white rounded-xl text-xs font-bold flex items-center gap-1.5 shadow-sm shadow-blue-500/20 transition-all"
@@ -539,7 +606,7 @@ const Contracts: React.FC = () => {
                                         <h4 className="font-bold text-sm text-slate-800">Veli Dijital Islak İmzası</h4>
                                     </div>
                                     <p className="text-xs text-slate-500 mt-1 max-w-sm">
-                                        Veli, online kayıt formunu doldururken cep telefonu/dokunmatik ekrandan bu imzayı bizzat çizmiş ve kabul etmiştir.
+                                        Veli, online kayıt formunu doldururken veya WhatsApp ile iletilen imzalama bağlantısından cep telefonu/dokunmatik ekrandan bu imzayı bizzat çizmiş ve kabul etmiştir.
                                     </p>
                                     {selectedContract.contract_signed_at && (
                                         <div className="text-[11px] text-emerald-700 font-semibold mt-2 flex items-center gap-1">
@@ -562,8 +629,17 @@ const Contracts: React.FC = () => {
                                             </span>
                                         </>
                                     ) : (
-                                        <div className="py-6 text-center text-slate-400 text-xs italic">
-                                            İmza bulunmuyor
+                                        <div className="py-3 px-2 text-center flex flex-col items-center gap-2">
+                                            <span className="text-amber-600 font-bold text-xs flex items-center gap-1">
+                                                <AlertCircle size={14} /> İmza Bekliyor
+                                            </span>
+                                            <button
+                                                onClick={() => handleSendWhatsAppLink(selectedContract)}
+                                                className="px-3 py-1.5 bg-emerald-600 hover:bg-emerald-700 text-white rounded-lg text-xs font-bold flex items-center gap-1 shadow-sm transition-all"
+                                            >
+                                                <MessageCircle size={13} />
+                                                WhatsApp ile İmzalat
+                                            </button>
                                         </div>
                                     )}
                                 </div>
