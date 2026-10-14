@@ -172,7 +172,7 @@ const CollectPaymentModal: React.FC<CollectPaymentModalProps> = ({ isOpen, onClo
                 // Fetch existing payments
                 const { data: payments } = await supabase
                     .from('payments')
-                    .select('id, month, amount, status, payment_date, payment_method, is_archived')
+                    .select('id, month, amount, status, due_date, payment_date, payment_method, is_archived')
                     .eq('student_id', selectedStudent.id);
 
                 const seasonMonths = getAcademicSeasonMonths();
@@ -202,7 +202,7 @@ const CollectPaymentModal: React.FC<CollectPaymentModalProps> = ({ isOpen, onClo
                         shortMonth: sm.shortMonth,
                         year: sm.year,
                         monthIndex: sm.monthIndex,
-                        dueDate: sm.dueDate,
+                        dueDate: existing?.due_date ? existing.due_date.split('T')[0] : sm.dueDate,
                         isPaid,
                         paidAmount: isPaid ? Number(existing?.amount) : undefined,
                         paidDate: isPaid ? existing?.payment_date : undefined,
@@ -271,6 +271,16 @@ const CollectPaymentModal: React.FC<CollectPaymentModalProps> = ({ isOpen, onClo
         });
     };
 
+    // Handle month due date change (allows user to change the small date under the month)
+    const handleDueDateChange = (index: number, val: string) => {
+        if (!val) return;
+        setMonthItems(prev => {
+            const copy = [...prev];
+            copy[index].dueDate = val;
+            return copy;
+        });
+    };
+
     // Select all unpaid months or unselect all
     const handleSelectAllUnpaid = (select: boolean) => {
         setMonthItems(prev => prev.map(m => m.isPaid ? m : { ...m, selected: select }));
@@ -322,6 +332,7 @@ const CollectPaymentModal: React.FC<CollectPaymentModalProps> = ({ isOpen, onClo
                         .update({
                             status: 'Ödendi',
                             amount: item.amountToPay,
+                            due_date: item.dueDate,
                             payment_method: paymentMethod,
                             payment_date: effectivePaymentDate,
                             invoice_no: itemInvNo || undefined
@@ -598,9 +609,23 @@ const CollectPaymentModal: React.FC<CollectPaymentModalProps> = ({ isOpen, onClo
                                                             <CheckCircle2 size={11} /> Ödendi ({m.paidAmount?.toLocaleString('tr-TR')} ₺)
                                                         </span>
                                                     ) : (
-                                                        <span className="text-[10px] text-slate-400">
-                                                            Vade: {new Date(m.dueDate).toLocaleDateString('tr-TR')}
-                                                        </span>
+                                                        <div 
+                                                            className="flex items-center gap-1 mt-0.5" 
+                                                            onClick={(e) => e.stopPropagation()}
+                                                        >
+                                                            <span className="text-[10px] text-slate-400 font-medium">Vade:</span>
+                                                            <input
+                                                                type="date"
+                                                                value={m.dueDate}
+                                                                onChange={(e) => handleDueDateChange(idx, e.target.value)}
+                                                                className={`text-[10px] font-semibold px-1.5 py-0.5 rounded border transition-colors cursor-pointer ${
+                                                                    m.selected
+                                                                        ? 'border-emerald-300 bg-white text-emerald-950 focus:ring-1 focus:ring-emerald-500 shadow-2xs'
+                                                                        : 'border-slate-200 bg-slate-50 text-slate-600 hover:border-slate-300 focus:bg-white'
+                                                                }`}
+                                                                title="Vade tarihini elle değiştirebilirsiniz (değiştirmedikleriniz aynı kalır)"
+                                                            />
+                                                        </div>
                                                     )}
                                                 </div>
                                             </div>
