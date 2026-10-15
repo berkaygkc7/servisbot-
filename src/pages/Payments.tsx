@@ -637,8 +637,6 @@ const Payments = () => {
             if (vehicleFilter !== 'all') {
                 sq = sq.eq('vehicle_id', vehicleFilter);
             }
-            // UI'daki arama (searchQuery) ve okul filtresini dışa aktarmada yoksayıyoruz
-            // Tüm öğrencileri (pending dahil) getirmek için başka filtre koymuyoruz.
 
             const { data: students, error: stErr } = await sq.order('full_name');
             if (stErr) throw stErr;
@@ -660,37 +658,58 @@ const Payments = () => {
 
             const months = ['Eylül', 'Ekim', 'Kasım', 'Aralık', 'Ocak', 'Şubat', 'Mart', 'Nisan', 'Mayıs', 'Haziran'];
 
-            const exportData = students.map((student, index) => {
+            // Helper: Nakit/Elden kontrolü (büyük/küçük harf duyarsız)
+            const isNakitPayment = (method: string | null | undefined): boolean => {
+                if (!method) return false;
+                const m = method.toLocaleLowerCase('tr-TR').trim();
+                return m === 'nakit' || m === 'elden' || m === 'nakit/elden' || m === 'nakit / elden';
+            };
+
+            // Helper: IBAN kontrolü (büyük/küçük harf duyarsız)
+            const isIbanPayment = (method: string | null | undefined): boolean => {
+                if (!method) return false;
+                const m = method.toLocaleLowerCase('tr-TR').trim();
+                return m === 'iban' || m === 'İban'.toLocaleLowerCase('tr-TR') || m === 'İBAN'.toLocaleLowerCase('tr-TR');
+            };
+
+            // Her öğrenci için satır verisi ve renk bilgisi oluştur
+            type CellInfo = { text: string; bgColor: 'green' | 'red' | 'none' };
+            const exportData: { no: number; name: string; cells: Record<string, CellInfo> }[] = students.map((student, index) => {
                 const studentPayments = (allPayments || []).filter(p => p.student_id === student.id);
                 
-                const row: Record<string, any> = {
-                    "No": index + 1,
-                    "Öğrenci Adı": student.full_name || ''
-                };
+                const cells: Record<string, CellInfo> = {};
 
                 months.forEach(month => {
                     const monthUpper = month.toLocaleUpperCase('tr-TR');
-                    // Find payment for this month (DB stores "Eylül 2026", we match with "Eylül")
                     const payment = studentPayments.find(p => p.month && (p.month === month || p.month.startsWith(month + ' ') || p.month.startsWith(month.toLowerCase() + ' ')));
-                    if (payment) {
-                        if (payment.status === 'Ödendi') {
-                            // payment_date varsa onu kullan, yoksa created_at'i fallback olarak kullan
-                            const effectiveDate = payment.payment_date || payment.created_at;
-                            const dateStr = effectiveDate 
-                                ? new Date(effectiveDate).toLocaleDateString('tr-TR') 
-                                : '';
-                            const method = payment.payment_method ? `\r\n(${payment.payment_method})` : '';
-                            row[monthUpper] = dateStr ? `${dateStr}\r\n${payment.amount} ₺${method}` : `Tarih Yok\r\n${payment.amount} ₺${method}`;
-                        } else {
-                            // Ödenmediyse (Bekliyor, Gecikti vb.)
-                            row[monthUpper] = `${payment.amount} ₺\r\n(${payment.status})`;
+                    if (payment && payment.status === 'Ödendi') {
+                        // Tarih: sadece GG.AA formatında
+                        const effectiveDate = payment.payment_date || payment.created_at;
+                        let dateStr = '';
+                        if (effectiveDate) {
+                            const d = new Date(effectiveDate);
+                            const day = String(d.getDate()).padStart(2, '0');
+                            const monthNum = String(d.getMonth() + 1).padStart(2, '0');
+                            dateStr = `${day}.${monthNum}`;
                         }
+                        // Format: "GG.AA MiktarTL" (tarih + boşluk + miktarTL)
+                        const cellText = dateStr ? `${dateStr} ${payment.amount}TL` : `${payment.amount}TL`;
+
+                        // Renk belirleme
+                        let bgColor: 'green' | 'red' | 'none' = 'none';
+                        if (isNakitPayment(payment.payment_method)) {
+                            bgColor = 'green';
+                        } else if (isIbanPayment(payment.payment_method)) {
+                            bgColor = 'red';
+                        }
+
+                        cells[monthUpper] = { text: cellText, bgColor };
                     } else {
-                        row[monthUpper] = ''; // Boş kalacak
+                        cells[monthUpper] = { text: '', bgColor: 'none' };
                     }
                 });
 
-                return row;
+                return { no: index + 1, name: student.full_name || '', cells };
             });
 
             const ExcelJS = (await import('exceljs')).default;
@@ -698,108 +717,120 @@ const Payments = () => {
             const sheetName = selectedVehiclePlate ? `${selectedVehiclePlate}` : 'Ödemeler Raporu';
             const worksheet = workbook.addWorksheet(sheetName.substring(0, 31));
 
-            // Sütun genişlikleri ayarlanıyor
+            // Sütun genişlikleri: S.N (dar), Öğrenci Adı (17.3), Aylar (11.14)
             const columns = [
-                { key: 'No', width: 5 },
-                { key: 'Öğrenci Adı', width: 18 },
+                { key: 'SN', width: 4 },
+                { key: 'OgrenciAdi', width: 17.3 },
                 ...months.map(m => ({ 
                     key: m.toLocaleUpperCase('tr-TR'), 
-                    width: 8.8
+                    width: 11.14
                 }))
             ];
             worksheet.columns = columns;
 
-            const headerText = selectedVehiclePlate ? selectedVehiclePlate : 'Ödemeler Raporu';
+            // Ortak font ve kenarlık stilleri
+            const calibriBold11: Partial<import('exceljs').Font> = { name: 'Calibri', bold: true, size: 11 };
+            const allBorders: Partial<import('exceljs').Borders> = {
+                top: { style: 'thin' },
+                left: { style: 'thin' },
+                bottom: { style: 'thin' },
+                right: { style: 'thin' }
+            };
+            const centerAlign: Partial<import('exceljs').Alignment> = { vertical: 'middle', horizontal: 'center', wrapText: false };
 
-            // 1. Satır: Üst Bilgi (Araç plakası, boyut 18, kalın font)
-            worksheet.addRow([headerText]);
-            worksheet.mergeCells('A1:L1'); // No + Öğrenci + 10 Ay = Toplam 12 Sütun
-            const titleRow = worksheet.getRow(1);
-            titleRow.height = 30;
-            titleRow.getCell(1).font = { bold: true, size: 18 };
-            titleRow.getCell(1).alignment = { vertical: 'middle', horizontal: 'center' };
-
-            // 2. Satır: Sütun Başlıkları
-            const headerRowData = ['No', 'Öğrenci Adı', ...months.map(m => m.toLocaleUpperCase('tr-TR'))];
-            worksheet.addRow(headerRowData);
-            const headerRow = worksheet.getRow(2);
-            headerRow.height = 22;
-
-            // Veri satırları
-            exportData.forEach(row => {
-                const rowData = [
-                    row['No'], 
-                    row['Öğrenci Adı'], 
-                    ...months.map(m => row[m.toLocaleUpperCase('tr-TR')])
-                ];
-                worksheet.addRow(rowData);
+            // 1. Satır: Sütun Başlıkları (S.N, ÖĞRENCİ ADI, EYLÜL, EKİM, ...)
+            const headerRowData = ['S.N', 'ÖĞRENCİ ADI', ...months.map(m => m.toLocaleUpperCase('tr-TR'))];
+            const headerRow = worksheet.addRow(headerRowData);
+            headerRow.height = 15;
+            headerRow.eachCell((cell) => {
+                cell.font = calibriBold11;
+                cell.alignment = centerAlign;
+                cell.border = allBorders;
             });
 
-            // Sayfa dağılımı ve satır yüksekliği hesabı (30 öğrencide 2 sayfaya eşit ve taşmadan sığdırma)
-            const studentCount = exportData.length;
-            let dataRowHeight = 33;
-            let dataFontSize = 8.5;
-            let fitToHeight = 2;
+            // Veri satırları
+            exportData.forEach(rowData => {
+                const values = [
+                    rowData.no,
+                    rowData.name,
+                    ...months.map(m => rowData.cells[m.toLocaleUpperCase('tr-TR')].text)
+                ];
+                const row = worksheet.addRow(values);
+                row.height = 15;
 
-            if (studentCount <= 15) {
-                fitToHeight = 1;
-                dataRowHeight = 35;
-                dataFontSize = 9;
-            } else if (studentCount <= 34) {
-                fitToHeight = 2;
-                dataRowHeight = 33;
-                dataFontSize = 8.5;
-                // 30 öğrenciyi (veya 16-34 arası) 2 sayfaya eşit dağıtmak için orta noktada sayfa sonu
-                const midPoint = Math.ceil(studentCount / 2);
-                worksheet.getRow(2 + midPoint).addPageBreak();
-            } else {
-                fitToHeight = Math.ceil(studentCount / 17);
-                dataRowHeight = 32;
-                dataFontSize = 8;
-                for (let r = 17; r < studentCount; r += 17) {
-                    worksheet.getRow(2 + r).addPageBreak();
-                }
-            }
+                row.eachCell((cell, colNumber) => {
+                    cell.font = calibriBold11;
+                    cell.alignment = colNumber <= 2 ? { ...centerAlign, horizontal: colNumber === 2 ? 'left' : 'center' } : centerAlign;
+                    cell.border = allBorders;
 
-            // Tüm hücrelere stil uygulama (kalın font, kenarlık, metni kaydırma)
-            worksheet.eachRow((row, rowNumber) => {
-                if (rowNumber === 1) {
-                    row.height = 30;
-                } else if (rowNumber === 2) {
-                    row.height = 22;
-                } else {
-                    row.height = dataRowHeight;
-                }
-                
-                row.eachCell((cell) => {
-                    if (rowNumber === 1) {
-                        // Plaka hücresinin boyutu üstte ayarlandı
-                    } else if (rowNumber === 2) {
-                        cell.font = { bold: true, size: 10 };
-                        cell.alignment = { vertical: 'middle', horizontal: 'center', wrapText: true };
-                    } else {
-                        cell.font = { bold: true, size: dataFontSize };
-                        cell.alignment = { vertical: 'middle', horizontal: 'center', wrapText: true };
+                    // Ay sütunlarına renk uygula (3. sütundan itibaren ay sütunları)
+                    if (colNumber >= 3 && colNumber <= 12) {
+                        const monthIndex = colNumber - 3;
+                        const monthKey = months[monthIndex].toLocaleUpperCase('tr-TR');
+                        const cellInfo = rowData.cells[monthKey];
+                        if (cellInfo && cellInfo.bgColor === 'green') {
+                            cell.fill = {
+                                type: 'pattern',
+                                pattern: 'solid',
+                                fgColor: { argb: 'FF00B050' } // Yeşil (Excel'deki standart yeşil)
+                            };
+                            cell.font = { ...calibriBold11, color: { argb: 'FF000000' } };
+                        } else if (cellInfo && cellInfo.bgColor === 'red') {
+                            cell.fill = {
+                                type: 'pattern',
+                                pattern: 'solid',
+                                fgColor: { argb: 'FFFF0000' } // Kırmızı
+                            };
+                            cell.font = { ...calibriBold11, color: { argb: 'FF000000' } };
+                        }
                     }
-                    
-                    // Tüm kenarlık
-                    cell.border = { 
-                        top: { style: 'thin' },
-                        left: { style: 'thin' },
-                        bottom: { style: 'thin' },
-                        right: { style: 'thin' }
-                    };
                 });
             });
 
-            // Sayfa yapısı (A4, tam 2 sayfaya sığdırma ve başlıkları 2. sayfada tekrarlama)
+            // Alt kısma 2 satır boşluk bırakıp açıklama (legend) ekle
+            const lastDataRow = exportData.length + 1; // +1 header satırı
+            const legendStartRow = lastDataRow + 3;
+
+            // NAKİT açıklaması
+            const nakitRow = worksheet.getRow(legendStartRow);
+            nakitRow.height = 15;
+            // A ve B sütunları yeşil kutu
+            const nakitCellA = nakitRow.getCell(1);
+            const nakitCellB = nakitRow.getCell(2);
+            nakitCellA.fill = { type: 'pattern', pattern: 'solid', fgColor: { argb: 'FF00B050' } };
+            nakitCellA.border = allBorders;
+            nakitCellB.fill = { type: 'pattern', pattern: 'solid', fgColor: { argb: 'FF00B050' } };
+            nakitCellB.border = allBorders;
+            // C sütununa "NAKİT" yazısı
+            const nakitLabelCell = nakitRow.getCell(3);
+            nakitLabelCell.value = 'NAKİT';
+            nakitLabelCell.font = calibriBold11;
+            nakitLabelCell.alignment = { vertical: 'middle', horizontal: 'left' };
+            nakitLabelCell.border = allBorders;
+
+            // İBAN açıklaması
+            const ibanRow = worksheet.getRow(legendStartRow + 1);
+            ibanRow.height = 15;
+            const ibanCellA = ibanRow.getCell(1);
+            const ibanCellB = ibanRow.getCell(2);
+            ibanCellA.fill = { type: 'pattern', pattern: 'solid', fgColor: { argb: 'FFFF0000' } };
+            ibanCellA.border = allBorders;
+            ibanCellB.fill = { type: 'pattern', pattern: 'solid', fgColor: { argb: 'FFFF0000' } };
+            ibanCellB.border = allBorders;
+            // C sütununa "İBAN" yazısı
+            const ibanLabelCell = ibanRow.getCell(3);
+            ibanLabelCell.value = 'İBAN';
+            ibanLabelCell.font = calibriBold11;
+            ibanLabelCell.alignment = { vertical: 'middle', horizontal: 'left' };
+            ibanLabelCell.border = allBorders;
+
+            // Sayfa yapısı: A4 kağıt, yatay yönlendirme
             worksheet.pageSetup = {
                 paperSize: 9, // A4
                 orientation: 'landscape', 
                 fitToPage: true,
                 fitToWidth: 1,
-                fitToHeight: fitToHeight,
-                printTitlesRow: '1:2', // Plaka ve ay başlıkları 2. sayfada da çıksın
+                fitToHeight: 0,
                 margins: {
                     left: 0.25, right: 0.25,
                     top: 0.25, bottom: 0.25,
