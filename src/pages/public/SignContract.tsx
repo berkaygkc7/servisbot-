@@ -200,17 +200,36 @@ const SignContract: React.FC = () => {
     const isSigned = isSuccess || Boolean(contract.parent_signature);
 
     return (
-        <div className="min-h-screen bg-slate-100 py-6 px-3 sm:px-6 flex justify-center">
+        <div className="min-h-screen bg-slate-100 py-6 px-3 sm:px-6 flex justify-center print:p-0 print:m-0 print:bg-white print:min-h-0">
             <style>{`
                 @media print {
-                    @page { size: A4 portrait; margin: 8mm; }
-                    body { background: white !important; -webkit-print-color-adjust: exact !important; print-color-adjust: exact !important; }
+                    @page {
+                        size: A4 portrait;
+                        margin: 4mm 6mm !important;
+                    }
+                    html, body {
+                        width: 100% !important;
+                        height: 100% !important;
+                        margin: 0 !important;
+                        padding: 0 !important;
+                        background: white !important;
+                        overflow: hidden !important;
+                        -webkit-print-color-adjust: exact !important;
+                        print-color-adjust: exact !important;
+                    }
                     .no-print { display: none !important; }
-                    .print-full { max-width: 100% !important; margin: 0 !important; box-shadow: none !important; border: none !important; }
+                    .print-full {
+                        max-width: 100% !important;
+                        width: 100% !important;
+                        margin: 0 !important;
+                        padding: 0 !important;
+                        box-shadow: none !important;
+                        border: none !important;
+                    }
                 }
             `}</style>
 
-            <div className="w-full max-w-4xl space-y-4 print-full">
+            <div className="w-full max-w-4xl space-y-4 print:space-y-0 print-full">
                 {/* Header (hidden in print) */}
                 <div className="no-print bg-white rounded-3xl p-5 sm:p-6 shadow-sm border border-slate-200 flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4">
                     <div className="flex items-center gap-4">
@@ -279,7 +298,7 @@ const SignContract: React.FC = () => {
                 </div>
 
                 {/* The FULL Personalized Contract Document */}
-                <div className="bg-white rounded-3xl shadow-md border border-slate-200 overflow-hidden">
+                <div className="bg-white rounded-3xl shadow-md border border-slate-200 overflow-hidden print:border-none print:shadow-none print:rounded-none print:overflow-visible">
                     <PersonalizedContractDocument
                         student={contract}
                         companyName={companyName}
