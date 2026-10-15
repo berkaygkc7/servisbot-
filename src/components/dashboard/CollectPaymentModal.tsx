@@ -97,7 +97,7 @@ const CollectPaymentModal: React.FC<CollectPaymentModalProps> = ({ isOpen, onClo
     // Form state
     const [loadingPlan, setLoadingPlan] = useState(false);
     const [monthItems, setMonthItems] = useState<MonthItem[]>([]);
-    const [paymentMethod, setPaymentMethod] = useState<'Nakit' | 'Havale/EFT' | 'Kredi Kartı' | 'Diğer'>('Havale/EFT');
+    const [paymentMethod, setPaymentMethod] = useState<'Nakit' | 'İBAN' | 'Kredi Kartı' | 'Diğer'>('İBAN');
     const [paymentDate, setPaymentDate] = useState(() => new Date().toISOString().split('T')[0]);
     const [invoiceNo, setInvoiceNo] = useState('');
     const [sendWhatsApp, setSendWhatsApp] = useState(false);
@@ -682,7 +682,7 @@ const CollectPaymentModal: React.FC<CollectPaymentModalProps> = ({ isOpen, onClo
                                     Ödeme Yöntemi / Kasa
                                 </label>
                                 <div className="grid grid-cols-2 gap-2">
-                                    {(['Havale/EFT', 'Nakit', 'Kredi Kartı', 'Diğer'] as const).map(method => (
+                                    {(['İBAN', 'Nakit', 'Kredi Kartı', 'Diğer'] as const).map(method => (
                                         <button
                                             key={method}
                                             type="button"
@@ -694,7 +694,7 @@ const CollectPaymentModal: React.FC<CollectPaymentModalProps> = ({ isOpen, onClo
                                             }`}
                                         >
                                             {method === 'Nakit' && <Banknote size={14} />}
-                                            {method === 'Havale/EFT' && <Building size={14} />}
+                                            {method === 'İBAN' && <Building size={14} />}
                                             {method === 'Kredi Kartı' && <CreditCard size={14} />}
                                             {method}
                                         </button>

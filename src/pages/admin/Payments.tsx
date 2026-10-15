@@ -653,10 +653,10 @@ const Payments = () => {
                                 <span className="opacity-0 group-hover:opacity-100 transition-opacity">Seç &rarr;</span>
                             </button>
                             <button
-                                onClick={() => handleMarkAsPaid(quickPayStudentId, 'Havale/EFT')}
+                                onClick={() => handleMarkAsPaid(quickPayStudentId, 'İBAN')}
                                 className="w-full py-4 px-4 bg-blue-50 hover:bg-blue-600 hover:text-white text-blue-700 font-bold rounded-xl border border-blue-200 hover:border-blue-700 transition-all flex items-center justify-between group"
                             >
-                                <span className="text-lg">🏦 Havale / EFT</span>
+                                <span className="text-lg">🏦 İBAN</span>
                                 <span className="opacity-0 group-hover:opacity-100 transition-opacity">Seç &rarr;</span>
                             </button>
                         </div>
@@ -689,11 +689,11 @@ const Payments = () => {
                                 <span className="opacity-0 group-hover:opacity-100 transition-opacity font-black">&rarr;</span>
                             </button>
                             <button
-                                onClick={() => handleBulkMarkAsPaid('Havale/EFT')}
+                                onClick={() => handleBulkMarkAsPaid('İBAN')}
                                 className="w-full py-4 px-4 bg-blue-50 hover:bg-blue-600 hover:text-white text-blue-700 font-bold rounded-xl border border-blue-200 hover:border-blue-700 transition-all flex items-center justify-between group"
                             >
                                 <div className="flex flex-col items-start">
-                                    <span className="text-lg">🏦 Havale / EFT</span>
+                                    <span className="text-lg">🏦 İBAN</span>
                                     <span className="text-[10px] text-blue-600 group-hover:text-white/80 uppercase font-black tracking-widest">Banka Girişi</span>
                                 </div>
                                 <span className="opacity-0 group-hover:opacity-100 transition-opacity font-black">&rarr;</span>
@@ -822,7 +822,7 @@ const Payments = () => {
                                     >
                                         <option value="">Seçiniz (İsteğe Bağlı)</option>
                                         <option value="Kredi Kartı">Kredi Kartı</option>
-                                        <option value="Havale/EFT">Havale/EFT</option>
+                                        <option value="İBAN">İBAN</option>
                                         <option value="Nakit">Nakit</option>
                                     </select>
                                 </div>

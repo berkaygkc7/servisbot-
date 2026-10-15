@@ -202,7 +202,7 @@ const PaymentHistoryModal: React.FC<PaymentHistoryModalProps> = ({ studentId, st
     const getPaymentMethodIcon = (method: string | null) => {
         if (!method) return '-';
         if (method === 'Nakit') return '💵 Nakit';
-        if (method.includes('Havale') || method.includes('EFT')) return '🏦 Havale/EFT';
+        if (method.includes('Havale') || method.includes('EFT') || method.includes('İBAN') || method.includes('IBAN') || method.includes('iban')) return '🏦 İBAN';
         if (method.includes('Kredi')) return '💳 Kredi Kartı';
         return method;
     };
