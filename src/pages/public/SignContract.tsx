@@ -7,13 +7,11 @@ import {
     Send, 
     Loader2, 
     ShieldCheck, 
-    School, 
-    User, 
-    Phone, 
-    MapPin
+    Printer
 } from 'lucide-react';
 import { supabase } from '../../lib/supabase';
 import SignaturePad from '../../components/shared/SignaturePad';
+import PersonalizedContractDocument from '../../components/contracts/PersonalizedContractDocument';
 
 interface ContractData {
     id: string;
@@ -199,153 +197,100 @@ const SignContract: React.FC = () => {
     }
 
     const companyName = contract.company_name || 'Öğrenci Servis Taşımacılığı';
+    const isSigned = isSuccess || Boolean(contract.parent_signature);
 
     return (
-        <div className="min-h-screen bg-gradient-to-b from-slate-100 to-slate-200 py-6 px-3 sm:px-6 flex justify-center">
-            <div className="w-full max-w-2xl bg-white rounded-3xl shadow-xl border border-slate-200 overflow-hidden flex flex-col">
-                {/* Header */}
-                <div className="bg-gradient-to-r from-slate-900 via-blue-950 to-slate-900 text-white p-6 relative overflow-hidden">
-                    <div className="relative z-10 flex items-center gap-4">
-                        <div className="w-14 h-14 rounded-2xl bg-white/10 backdrop-blur-md border border-white/20 flex items-center justify-center font-bold text-2xl shadow-inner shrink-0">
+        <div className="min-h-screen bg-slate-100 py-6 px-3 sm:px-6 flex justify-center">
+            <style>{`
+                @media print {
+                    @page { size: A4 portrait; margin: 8mm; }
+                    body { background: white !important; -webkit-print-color-adjust: exact !important; print-color-adjust: exact !important; }
+                    .no-print { display: none !important; }
+                    .print-full { max-width: 100% !important; margin: 0 !important; box-shadow: none !important; border: none !important; }
+                }
+            `}</style>
+
+            <div className="w-full max-w-4xl space-y-4 print-full">
+                {/* Header (hidden in print) */}
+                <div className="no-print bg-white rounded-3xl p-5 sm:p-6 shadow-sm border border-slate-200 flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4">
+                    <div className="flex items-center gap-4">
+                        <div className="w-12 h-12 rounded-2xl bg-slate-900 text-white flex items-center justify-center font-bold shadow-sm shrink-0">
                             {contract.company_logo ? (
                                 <img src={contract.company_logo} alt="Firma Logo" className="w-full h-full object-cover rounded-2xl" />
                             ) : (
-                                <FileText className="text-blue-400" size={28} />
+                                <FileText className="text-blue-400" size={24} />
                             )}
                         </div>
                         <div>
-                            <span className="text-[11px] font-bold uppercase tracking-widest text-blue-400 block">
+                            <span className="text-[11px] font-bold uppercase tracking-widest text-blue-600 block">
                                 {companyName}
                             </span>
-                            <h1 className="text-lg sm:text-xl font-black tracking-tight text-white mt-0.5">
-                                Öğrenci Taşıma Sözleşmesi & Senet Onayı
+                            <h1 className="text-lg sm:text-xl font-black text-slate-800 tracking-tight">
+                                {isSigned ? 'Onaylı Öğrenci Servis Sözleşmesi' : 'Öğrenci Servis Sözleşmesi ve Senet Onayı'}
                             </h1>
                         </div>
                     </div>
+
+                    <div className="flex items-center gap-2 w-full sm:w-auto justify-end">
+                        {isSigned && (
+                            <button
+                                type="button"
+                                onClick={() => window.print()}
+                                className="px-4 py-2.5 bg-blue-600 hover:bg-blue-700 text-white rounded-xl text-xs font-bold flex items-center gap-1.5 shadow-sm shadow-blue-500/20 transition-all cursor-pointer"
+                            >
+                                <Printer size={15} />
+                                Sözleşmeyi Yazdır / PDF
+                            </button>
+                        )}
+                    </div>
                 </div>
 
-                {/* Content */}
-                <div className="p-5 sm:p-7 space-y-6 flex-1">
-                    {/* Student Info Card */}
-                    <div className="bg-slate-50 rounded-2xl p-4 sm:p-5 border border-slate-200/80 space-y-3">
-                        <h3 className="text-xs font-bold uppercase tracking-wider text-slate-500 border-b border-slate-200 pb-2">
-                            Öğrenci ve Veli Bilgileri
-                        </h3>
-                        <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 text-xs">
-                            <div className="flex items-center gap-2">
-                                <User size={15} className="text-blue-600 shrink-0" />
-                                <div>
-                                    <span className="text-slate-400 block text-[10px]">Öğrenci Adı Soyadı</span>
-                                    <strong className="text-slate-800 text-sm">{contract.full_name}</strong>
-                                </div>
+                {/* Status Notice Banner (hidden in print) */}
+                <div className="no-print">
+                    {isSigned ? (
+                        <div className="bg-emerald-50 border border-emerald-200 rounded-2xl p-4 sm:p-5 flex items-start gap-3">
+                            <div className="w-9 h-9 rounded-xl bg-emerald-600 text-white flex items-center justify-center shrink-0 shadow-sm mt-0.5">
+                                <CheckCircle2 size={20} />
                             </div>
-
-                            <div className="flex items-center gap-2">
-                                <User size={15} className="text-slate-400 shrink-0" />
-                                <div>
-                                    <span className="text-slate-400 block text-[10px]">Veli Adı Soyadı</span>
-                                    <strong className="text-slate-800">{contract.parent_name || 'Belirtilmedi'}</strong>
-                                </div>
-                            </div>
-
-                            <div className="flex items-center gap-2">
-                                <School size={15} className="text-slate-400 shrink-0" />
-                                <div>
-                                    <span className="text-slate-400 block text-[10px]">Okul / Sınıf</span>
-                                    <span className="font-semibold text-slate-800">
-                                        {contract.school_name || '-'} {contract.grade ? `(${contract.grade}. Sınıf)` : ''}
-                                    </span>
-                                </div>
-                            </div>
-
-                            <div className="flex items-center gap-2">
-                                <Phone size={15} className="text-slate-400 shrink-0" />
-                                <div>
-                                    <span className="text-slate-400 block text-[10px]">İletişim Telefonu</span>
-                                    <span className="font-semibold text-slate-800">{contract.parent_phone}</span>
-                                </div>
-                            </div>
-
-                            {contract.total_debt ? (
-                                <div className="col-span-1 sm:col-span-2 bg-blue-50/70 border border-blue-200/80 p-3 rounded-xl flex items-center justify-between">
-                                    <span className="font-medium text-blue-900 text-xs">Sezonluk Servis Ücreti:</span>
-                                    <span className="font-black text-blue-700 text-base">
-                                        {Number(contract.total_debt).toLocaleString('tr-TR')} ₺
-                                    </span>
-                                </div>
-                            ) : null}
-
-                            {contract.address && (
-                                <div className="col-span-1 sm:col-span-2 flex items-start gap-2 pt-1 border-t border-slate-200">
-                                    <MapPin size={15} className="text-slate-400 shrink-0 mt-0.5" />
-                                    <span className="text-slate-600 leading-snug">{contract.address}</span>
-                                </div>
-                            )}
-                        </div>
-                    </div>
-
-                    {/* If Already Signed */}
-                    {isSuccess ? (
-                        <div className="bg-emerald-50 border-2 border-emerald-300 rounded-3xl p-6 text-center space-y-4 animate-in zoom-in-95 duration-300">
-                            <div className="w-16 h-16 bg-emerald-600 text-white rounded-full flex items-center justify-center mx-auto shadow-lg shadow-emerald-600/30">
-                                <CheckCircle2 size={36} />
-                            </div>
-                            <div>
-                                <h3 className="text-xl font-black text-emerald-900">
-                                    Sözleşme Başarıyla İmzalandı!
+                            <div className="flex-1">
+                                <h3 className="text-sm font-bold text-emerald-900">
+                                    Sözleşmeniz Resmi Olarak Onaylanmıştır
                                 </h3>
-                                <p className="text-xs text-emerald-700 mt-1 max-w-sm mx-auto font-medium">
-                                    Sayın {contract.parent_name}, öğrenciniz {contract.full_name} için servis taşıma sözleşmesini dokunmatik olarak onayladınız ve imzanız firmanızın sistemine resmi olarak kaydedildi.
+                                <p className="text-xs text-emerald-700 mt-0.5 leading-relaxed">
+                                    Sayın <strong>{contract.parent_name}</strong>, öğrenciniz <strong>{contract.full_name}</strong> için servis taşıma sözleşmesi ve senet taahhüdü onaylanmış olup, ıslak imzanız resmi nüshaya kaydedilmiştir. Aşağıdan sözleşmenizi inceleyebilir, çıktısını alabilir veya PDF olarak saklayabilirsiniz.
                                 </p>
                             </div>
-
-                            {/* Rendered Signature Card */}
-                            {(contract.parent_signature || signature) && (
-                                <div className="bg-white p-4 rounded-2xl border border-emerald-200 max-w-xs mx-auto shadow-sm">
-                                    <span className="text-[10px] text-slate-400 uppercase tracking-wider font-bold block mb-1">
-                                        Kayıtlı Veli Islak İmzası
-                                    </span>
-                                    <img 
-                                        src={contract.parent_signature || signature!} 
-                                        alt="Kaydedilen Veli İmzası" 
-                                        className="h-16 max-w-full object-contain mx-auto my-1" 
-                                    />
-                                    {contract.contract_signed_at && (
-                                        <span className="text-[10px] text-slate-500 font-medium block mt-1 border-t border-slate-100 pt-1">
-                                            İmza Tarihi: {new Date(contract.contract_signed_at).toLocaleString('tr-TR')}
-                                        </span>
-                                    )}
-                                </div>
-                            )}
-
-                            <p className="text-[11px] text-emerald-600 font-medium">
-                                Bu pencereyi kapatabilirsiniz. İyi ve güvenli bir eğitim-öğretim yılı dileriz.
-                            </p>
                         </div>
                     ) : (
-                        /* Signing Form */
-                        <form onSubmit={handleSignSubmit} className="space-y-6">
-                            {/* Contract Clauses Box */}
-                            <div className="border border-slate-200 rounded-2xl p-4 sm:p-5 max-h-72 overflow-y-auto text-xs text-slate-600 space-y-3 bg-slate-50/50 leading-relaxed custom-scrollbar">
-                                <h4 className="font-bold text-sm text-slate-800 border-b border-slate-200 pb-2">
-                                    Sözleşme Maddeleri ve Şartları
-                                </h4>
-                                <ol className="list-decimal pl-4 space-y-2">
-                                    <li>Servis araçlarımız İçişleri Bakanlığı Okul Servis Araçları Yönetmeliği'ne tam uyumludur.</li>
-                                    <li>Servis araçları öğrenciyi aldığı durağa gecikmesi halinde öğrenci velisi firma yetkilisi ile irtibata geçer.</li>
-                                    <li>Servis konusunda velinin doğrudan muhatabı ilgili taşıma firmasıdır.</li>
-                                    <li>Öğrencinin araçtaki hal ve hareketleri genel ahlak ve disiplin kurallarına uygun olacaktır.</li>
-                                    <li>Servis araçlarımızın ulaşım hattı belediye güzergahına ve öğrenci ikamet adresine uygun olarak planlanır.</li>
-                                    <li>Servis ücreti peşin veya anlaşılan taksitler halinde belirtilen tarihlerde ödenir.</li>
-                                    <li>Ücretlendirmede yetkili kurumlarca belirlenen fiyat tarifesi ve akaryakıt güncellemeleri esas alınır.</li>
-                                    <li>Sözleşme eğitim-öğretim yılı boyunca geçerli olup, keyfi olarak sözleşme feshedilemez.</li>
-                                    <li>İş bu sözleşme karşılıklı mutabakatla düzenlenmiş olup veli tarafından dokunmatik olarak imzalanarak senet niteliği taşımaktadır.</li>
-                                </ol>
-                                <p className="font-bold text-center text-slate-800 pt-2 border-t border-slate-200">
-                                    ⚠️ İş bu sözleşme veli ve firma arasında senet niteliği taşımaktadır.
+                        <div className="bg-blue-50 border border-blue-200 rounded-2xl p-4 flex items-start gap-3">
+                            <div className="w-8 h-8 rounded-xl bg-blue-600 text-white flex items-center justify-center shrink-0 shadow-sm mt-0.5">
+                                <FileText size={18} />
+                            </div>
+                            <div>
+                                <h3 className="text-xs sm:text-sm font-bold text-blue-900">
+                                    Lütfen Sözleşmenizi İnceleyip Aşağıdan İmzalayınız
+                                </h3>
+                                <p className="text-[11px] sm:text-xs text-blue-700 mt-0.5 leading-relaxed">
+                                    Sayın <strong>{contract.parent_name}</strong>, öğrenciniz <strong>{contract.full_name}</strong> için <strong>{companyName}</strong> tarafından hazırlanan resmi servis taşıma sözleşmesi aşağıdadır. Maddeleri ve senet taahhüdünü inceledikten sonra alt kısımdaki imza kutusundan imzanızı atarak onaylayabilirsiniz.
                                 </p>
                             </div>
+                        </div>
+                    )}
+                </div>
 
+                {/* The FULL Personalized Contract Document */}
+                <div className="bg-white rounded-3xl shadow-md border border-slate-200 overflow-hidden">
+                    <PersonalizedContractDocument
+                        student={contract}
+                        companyName={companyName}
+                        companyLogo={contract.company_logo}
+                    />
+                </div>
+
+                {/* Signing Area (if unsigned, hidden in print) */}
+                {!isSigned && (
+                    <div className="no-print bg-white rounded-3xl p-5 sm:p-7 shadow-md border border-slate-200">
+                        <form onSubmit={handleSignSubmit} className="space-y-5">
                             {/* Checkbox */}
                             <div 
                                 onClick={() => setContractAccepted(!contractAccepted)}
@@ -361,8 +306,8 @@ const SignContract: React.FC = () => {
                                     readOnly
                                     className="mt-0.5 h-4 w-4 rounded text-blue-600 border-slate-300 focus:ring-blue-500"
                                 />
-                                <span className="text-xs sm:text-sm text-slate-700 leading-snug">
-                                    Yukarıdaki sözleşme metnini ve senet taahhüt şartlarını okudum, aynen kabul ve taahhüt ediyorum.
+                                <span className="text-xs sm:text-sm text-slate-700 leading-snug font-medium">
+                                    Yukarıdaki öğrenci taşıma sözleşmesi metnini ve senet taahhüt şartlarını okudum, aynen kabul ve taahhüt ediyorum.
                                 </span>
                             </div>
 
@@ -380,7 +325,7 @@ const SignContract: React.FC = () => {
                                 <button
                                     type="submit"
                                     disabled={submitting || !contractAccepted || !signature}
-                                    className="w-full py-4 px-6 rounded-2xl shadow-lg shadow-blue-600/30 text-white bg-blue-600 hover:bg-blue-700 font-bold text-base transition-all disabled:opacity-50 disabled:cursor-not-allowed flex items-center justify-center gap-2"
+                                    className="w-full py-4 px-6 rounded-2xl shadow-lg shadow-blue-600/30 text-white bg-blue-600 hover:bg-blue-700 font-bold text-base transition-all disabled:opacity-50 disabled:cursor-not-allowed flex items-center justify-center gap-2 cursor-pointer"
                                 >
                                     {submitting ? (
                                         <>
@@ -403,13 +348,13 @@ const SignContract: React.FC = () => {
                                 )}
                             </div>
                         </form>
-                    )}
-                </div>
+                    </div>
+                )}
 
                 {/* Footer Security Badge */}
-                <div className="bg-slate-50 py-3.5 px-6 border-t border-slate-100 flex items-center justify-center gap-2 text-xs font-semibold text-slate-400">
+                <div className="no-print bg-white rounded-2xl py-3 px-6 border border-slate-200 flex items-center justify-center gap-2 text-xs font-semibold text-slate-400">
                     <ShieldCheck size={16} className="text-emerald-600" />
-                    256-bit SSL ile güvenli dijital onay sistemi
+                    256-bit SSL ile güvenli dijital sözleşme sistemi
                 </div>
             </div>
         </div>

@@ -309,7 +309,10 @@ const StudentList: React.FC<StudentListProps> = ({
                                                 const signUrl = `${window.location.origin}/imzala/${token}`;
                                                 const compName = (profile as any)?.companies?.company_name || 'Servis Firması';
                                                 const cleanPhone = (student.parent_phone || student.phone || '').replace(/\D/g, '').slice(-10);
-                                                const msg = `Sayın ${student.parent_name || student.parent || 'Velimiz'},\n\nÖğrencimiz *${student.full_name || student.name}* için hazırlanan *${compName}* servis taşımacılığı sözleşmesini telefonunuzdan inceleyip dokunmatik olarak imzalamak için lütfen aşağıdaki bağlantıya tıklayınız:\n\n👉 ${signUrl}\n\nİyi günler dileriz.`;
+                                                const hasSignature = Boolean(student.parent_signature || student.contract_signed_at);
+                                                const msg = hasSignature
+                                                    ? `Sayın ${student.parent_name || student.parent || 'Velimiz'},\n\nÖğrencimiz *${student.full_name || student.name}* için onayladığınız *${compName}* resmi servis taşımacılığı sözleşmenizi ve senet taahhüt nüshasını aşağıdaki bağlantıdan görüntüleyip inceleyebilirsiniz:\n\n👉 ${signUrl}\n\nİyi günler dileriz.`
+                                                    : `Sayın ${student.parent_name || student.parent || 'Velimiz'},\n\nÖğrencimiz *${student.full_name || student.name}* için hazırlanan *${compName}* resmi servis taşımacılığı sözleşmesini ve senet taahhüdünü telefonunuzdan inceleyip dokunmatik olarak imzalamak için lütfen aşağıdaki bağlantıya tıklayınız:\n\n👉 ${signUrl}\n\nİyi günler dileriz.`;
                                                 if (cleanPhone.length === 10) {
                                                     window.open(`https://wa.me/90${cleanPhone}?text=${encodeURIComponent(msg)}`, '_blank');
                                                 } else {
@@ -317,7 +320,7 @@ const StudentList: React.FC<StudentListProps> = ({
                                                 }
                                             }}
                                             className="p-2 hover:bg-emerald-50 rounded-lg text-slate-400 hover:text-emerald-600 transition-colors"
-                                            title="WhatsApp ile Sözleşme İmza Linki Gönder"
+                                            title={student.parent_signature || student.contract_signed_at ? "WhatsApp ile Onaylı Sözleşmeyi Gönder" : "WhatsApp ile Sözleşme İmza Linki Gönder"}
                                         >
                                             <MessageCircle size={16} />
                                         </button>

@@ -19,6 +19,7 @@ import {
 import { supabase } from '../lib/supabase';
 import { useAuth } from '../contexts/AuthContext';
 import { preloadRoute } from '../utils/routePreloader';
+import PersonalizedContractDocument from '../components/contracts/PersonalizedContractDocument';
 
 interface StudentContract {
     id: string;
@@ -113,9 +114,12 @@ const Contracts: React.FC = () => {
             return;
         }
 
+        const hasSignature = Boolean(student.parent_signature);
         const companyName = profile?.companies?.company_name || 'Servis Firması';
         const signUrl = getSignUrl(student);
-        const msg = `Sayın ${student.parent_name || 'Velimiz'},\n\nÖğrencimiz *${student.full_name}* için hazırlanan *${companyName}* servis taşımacılığı sözleşmesini telefonunuzdan inceleyip dokunmatik olarak imzalamak için lütfen aşağıdaki bağlantıya tıklayınız:\n\n👉 ${signUrl}\n\nİyi günler dileriz.`;
+        const msg = hasSignature
+            ? `Sayın ${student.parent_name || 'Velimiz'},\n\nÖğrencimiz *${student.full_name}* için onayladığınız *${companyName}* resmi servis taşımacılığı sözleşmenizi ve senet taahhüt nüshasını aşağıdaki bağlantıdan görüntüleyip inceleyebilirsiniz:\n\n👉 ${signUrl}\n\nİyi günler dileriz.`
+            : `Sayın ${student.parent_name || 'Velimiz'},\n\nÖğrencimiz *${student.full_name}* için hazırlanan *${companyName}* resmi servis taşımacılığı sözleşmesini ve senet taahhüdünü telefonunuzdan inceleyip dokunmatik olarak imzalamak için lütfen aşağıdaki bağlantıya tıklayınız:\n\n👉 ${signUrl}\n\nİyi günler dileriz.`;
 
         window.open(`https://wa.me/90${cleanPhone}?text=${encodeURIComponent(msg)}`, '_blank');
     };
@@ -515,12 +519,12 @@ const Contracts: React.FC = () => {
 
             {/* Contract Viewer Modal */}
             {isViewerOpen && selectedContract && (
-                <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-slate-900/60 backdrop-blur-sm animate-in fade-in duration-200">
-                    <div className="bg-white rounded-3xl shadow-2xl w-full max-w-3xl max-h-[90vh] flex flex-col animate-in zoom-in-95 duration-200 overflow-hidden border border-slate-100">
+                <div className="fixed inset-0 z-50 flex items-center justify-center p-3 sm:p-4 bg-slate-900/60 backdrop-blur-sm animate-in fade-in duration-200">
+                    <div className="bg-white rounded-3xl shadow-2xl w-full max-w-4xl max-h-[92vh] flex flex-col animate-in zoom-in-95 duration-200 overflow-hidden border border-slate-100">
                         {/* Modal Header */}
-                        <div className="p-6 border-b border-slate-100 flex justify-between items-center bg-slate-50">
+                        <div className="p-4 sm:p-5 border-b border-slate-100 flex flex-col sm:flex-row justify-between items-start sm:items-center gap-3 bg-slate-50">
                             <div>
-                                <h3 className="text-lg font-bold text-slate-900 flex items-center gap-2">
+                                <h3 className="text-base sm:text-lg font-bold text-slate-900 flex items-center gap-2">
                                     <ShieldCheck className="text-emerald-600" size={22} />
                                     Öğrenci Taşıma ve Servis Sözleşmesi
                                 </h3>
@@ -528,19 +532,19 @@ const Contracts: React.FC = () => {
                                     Öğrenci: <strong className="text-slate-800">{selectedContract.full_name}</strong> | Veli: <strong className="text-slate-800">{selectedContract.parent_name}</strong>
                                 </p>
                             </div>
-                            <div className="flex items-center gap-2">
+                            <div className="flex flex-wrap items-center gap-2 w-full sm:w-auto justify-end">
                                 <button
                                     onClick={() => handleSendWhatsAppLink(selectedContract)}
-                                    className="px-3.5 py-2 bg-emerald-600 hover:bg-emerald-700 text-white rounded-xl text-xs font-bold flex items-center gap-1.5 shadow-sm shadow-emerald-500/20 transition-all"
-                                    title="Veliye WhatsApp ile imza linki gönder"
+                                    className="px-3.5 py-2 bg-emerald-600 hover:bg-emerald-700 text-white rounded-xl text-xs font-bold flex items-center gap-1.5 shadow-sm shadow-emerald-500/20 transition-all cursor-pointer"
+                                    title={selectedContract.parent_signature ? "Veliye onaylı sözleşmeyi WhatsApp ile gönder" : "Veliye WhatsApp ile imza linki gönder"}
                                 >
                                     <MessageCircle size={15} />
-                                    WhatsApp Linki
+                                    {selectedContract.parent_signature ? 'WhatsApp ile Gönder' : 'WhatsApp Linki'}
                                 </button>
                                 <button
                                     onClick={() => handleCopySignLink(selectedContract)}
-                                    className="px-3 py-2 bg-slate-100 hover:bg-slate-200 text-slate-700 rounded-xl text-xs font-bold flex items-center gap-1.5 transition-all"
-                                    title="İmza bağlantısını kopyala"
+                                    className="px-3 py-2 bg-slate-100 hover:bg-slate-200 text-slate-700 rounded-xl text-xs font-bold flex items-center gap-1.5 transition-all cursor-pointer"
+                                    title="Sözleşme bağlantısını kopyala"
                                 >
                                     {copiedId === selectedContract.id ? <Check size={15} className="text-emerald-600" /> : <Copy size={15} />}
                                     {copiedId === selectedContract.id ? 'Kopyalandı' : 'Linki Kopyala'}
@@ -548,122 +552,65 @@ const Contracts: React.FC = () => {
                                 <button
                                     onClick={() => handlePrintContract(selectedContract)}
                                     onMouseEnter={() => preloadRoute('/print-contract')}
-                                    className="px-3.5 py-2 bg-blue-600 hover:bg-blue-700 text-white rounded-xl text-xs font-bold flex items-center gap-1.5 shadow-sm shadow-blue-500/20 transition-all"
+                                    className="px-3.5 py-2 bg-blue-600 hover:bg-blue-700 text-white rounded-xl text-xs font-bold flex items-center gap-1.5 shadow-sm shadow-blue-500/20 transition-all cursor-pointer"
+                                    title="Resmi Sözleşmeyi Yazdır / PDF İndir"
                                 >
                                     <Printer size={15} />
                                     Yazdır / İndir
                                 </button>
                                 <button 
                                     onClick={() => setIsViewerOpen(false)}
-                                    className="text-slate-400 hover:text-slate-600 p-2 rounded-xl hover:bg-slate-200 transition-colors"
+                                    className="text-slate-400 hover:text-slate-600 p-2 rounded-xl hover:bg-slate-200 transition-colors cursor-pointer"
                                 >
                                     <X size={20} />
                                 </button>
                             </div>
                         </div>
 
-                        {/* Modal Content */}
-                        <div className="p-6 overflow-y-auto space-y-6 text-sm text-slate-700">
-                            {/* Summary Box */}
-                            <div className="grid grid-cols-2 sm:grid-cols-4 gap-3 bg-slate-50 p-4 rounded-2xl border border-slate-200/70 text-xs">
-                                <div>
-                                    <span className="text-slate-400 font-medium block">Okul</span>
-                                    <span className="font-bold text-slate-800 mt-0.5 block truncate">{selectedContract.schools?.name || '-'}</span>
-                                </div>
-                                <div>
-                                    <span className="text-slate-400 font-medium block">Sınıf</span>
-                                    <span className="font-bold text-slate-800 mt-0.5 block">{selectedContract.grade ? `${selectedContract.grade}. Sınıf` : '-'}</span>
-                                </div>
-                                <div>
-                                    <span className="text-slate-400 font-medium block">Veli Telefon</span>
-                                    <span className="font-bold text-slate-800 mt-0.5 block">{selectedContract.parent_phone || '-'}</span>
-                                </div>
-                                <div>
-                                    <span className="text-slate-400 font-medium block">Yıllık Tutar</span>
-                                    <span className="font-bold text-emerald-700 mt-0.5 block">
-                                        {selectedContract.total_debt ? `${Number(selectedContract.total_debt).toLocaleString('tr-TR')} ₺` : '-'}
-                                    </span>
-                                </div>
-                                <div className="col-span-2 sm:col-span-4 mt-1 border-t border-slate-200 pt-2">
-                                    <span className="text-slate-400 font-medium block">Adres</span>
-                                    <span className="font-semibold text-slate-800 mt-0.5 block">{selectedContract.address || '-'}</span>
-                                </div>
-                            </div>
-
-                            {/* Contract Clauses Summary */}
-                            <div className="border border-slate-200 rounded-2xl p-5 space-y-3 bg-white text-xs leading-relaxed text-slate-600">
-                                <h4 className="font-bold text-sm text-slate-900 border-b border-slate-100 pb-2">
-                                    Sözleşme Şartları ve Taahhütler
-                                </h4>
-                                <p>1. Servis araçlarımız İçişleri Bakanlığı Okul Servis Araçları Yönetmeliği'ne uygundur.</p>
-                                <p>2. Servis ücretleri yıllık hesaplanmakta olup, taksit ödemeleri düzenli olarak her ay yapılacaktır.</p>
-                                <p>3. Servis araçları güzergah doğrultusunda öğrenciyi ikamet adresine en yakın noktada indirir ve alır.</p>
-                                <p>4. Bu sözleşme taraflarca okunup kabul edilmiş olup, veli tarafından dokunmatik olarak imzalanarak senet ve sözleşme niteliği taşımaktadır.</p>
-                            </div>
-
-                            {/* Digital Signature Card */}
-                            <div className="border-2 border-dashed border-slate-300 rounded-2xl p-5 bg-slate-50/70 flex flex-col sm:flex-row items-center justify-between gap-4">
-                                <div>
-                                    <div className="flex items-center gap-2">
-                                        <PenTool size={16} className="text-blue-600" />
-                                        <h4 className="font-bold text-sm text-slate-800">Veli Dijital Islak İmzası</h4>
-                                    </div>
-                                    <p className="text-xs text-slate-500 mt-1 max-w-sm">
-                                        Veli, online kayıt formunu doldururken veya WhatsApp ile iletilen imzalama bağlantısından cep telefonu/dokunmatik ekrandan bu imzayı bizzat çizmiş ve kabul etmiştir.
-                                    </p>
-                                    {selectedContract.contract_signed_at && (
-                                        <div className="text-[11px] text-emerald-700 font-semibold mt-2 flex items-center gap-1">
-                                            <CheckCircle2 size={13} />
-                                            İmza Zaman Damgası: {new Date(selectedContract.contract_signed_at).toLocaleString('tr-TR')}
-                                        </div>
-                                    )}
-                                </div>
-
-                                <div className="bg-white p-3 rounded-xl border border-slate-200 shadow-sm min-w-[200px] flex flex-col items-center">
-                                    {selectedContract.parent_signature ? (
-                                        <>
-                                            <img 
-                                                src={selectedContract.parent_signature} 
-                                                alt="Veli İmzası" 
-                                                className="max-h-20 max-w-[220px] object-contain my-1" 
-                                            />
-                                            <span className="text-[10px] text-slate-400 border-t border-slate-100 pt-1 w-full text-center">
-                                                {selectedContract.parent_name}
-                                            </span>
-                                        </>
-                                    ) : (
-                                        <div className="py-3 px-2 text-center flex flex-col items-center gap-2">
-                                            <span className="text-amber-600 font-bold text-xs flex items-center gap-1">
-                                                <AlertCircle size={14} /> İmza Bekliyor
-                                            </span>
-                                            <button
-                                                onClick={() => handleSendWhatsAppLink(selectedContract)}
-                                                className="px-3 py-1.5 bg-emerald-600 hover:bg-emerald-700 text-white rounded-lg text-xs font-bold flex items-center gap-1 shadow-sm transition-all"
-                                            >
-                                                <MessageCircle size={13} />
-                                                WhatsApp ile İmzalat
-                                            </button>
-                                        </div>
-                                    )}
-                                </div>
-                            </div>
+                        {/* Modal Content - Full Personalized Contract Document */}
+                        <div className="p-4 sm:p-6 overflow-y-auto max-h-[75vh] bg-slate-100/70">
+                            <PersonalizedContractDocument
+                                student={selectedContract}
+                                companyName={profile?.companies?.company_name}
+                                companyLogo={profile?.companies?.logo_url}
+                            />
                         </div>
 
                         {/* Modal Footer */}
-                        <div className="p-4 border-t border-slate-100 flex justify-end gap-3 bg-slate-50">
-                            <button
-                                onClick={() => setIsViewerOpen(false)}
-                                className="px-5 py-2.5 bg-slate-200 hover:bg-slate-300 text-slate-700 rounded-xl text-xs font-bold transition-all"
-                            >
-                                Kapat
-                            </button>
-                            <button
-                                onClick={() => handlePrintContract(selectedContract)}
-                                className="px-5 py-2.5 bg-blue-600 hover:bg-blue-700 text-white rounded-xl text-xs font-bold flex items-center gap-2 shadow-sm transition-all"
-                            >
-                                <Printer size={15} />
-                                Resmi Nüshayı Yazdır
-                            </button>
+                        <div className="p-3 sm:p-4 border-t border-slate-100 flex flex-wrap justify-between items-center gap-2 bg-slate-50">
+                            <div className="text-xs text-slate-500 font-medium">
+                                {selectedContract.parent_signature ? (
+                                    <span className="text-emerald-700 font-semibold flex items-center gap-1">
+                                        <CheckCircle2 size={14} /> Veli tarafından dijital olarak imzalanmıştır.
+                                    </span>
+                                ) : (
+                                    <span className="text-amber-700 font-semibold flex items-center gap-1">
+                                        <AlertCircle size={14} /> Henüz imzalanmadı (İmza linkini veliye iletebilirsiniz).
+                                    </span>
+                                )}
+                            </div>
+                            <div className="flex items-center gap-2">
+                                <button
+                                    onClick={() => handleSendWhatsAppLink(selectedContract)}
+                                    className="px-4 py-2 bg-emerald-600 hover:bg-emerald-700 text-white rounded-xl text-xs font-bold flex items-center gap-1.5 shadow-sm transition-all cursor-pointer"
+                                >
+                                    <MessageCircle size={14} />
+                                    {selectedContract.parent_signature ? 'Veliye WhatsApp ile İlet' : 'Veliye WhatsApp İle Gönder'}
+                                </button>
+                                <button
+                                    onClick={() => handlePrintContract(selectedContract)}
+                                    className="px-4 py-2 bg-blue-600 hover:bg-blue-700 text-white rounded-xl text-xs font-bold flex items-center gap-1.5 shadow-sm transition-all cursor-pointer"
+                                >
+                                    <Printer size={14} />
+                                    Resmi Nüshayı Yazdır
+                                </button>
+                                <button
+                                    onClick={() => setIsViewerOpen(false)}
+                                    className="px-4 py-2 bg-slate-200 hover:bg-slate-300 text-slate-700 rounded-xl text-xs font-bold transition-all cursor-pointer"
+                                >
+                                    Kapat
+                                </button>
+                            </div>
                         </div>
                     </div>
                 </div>

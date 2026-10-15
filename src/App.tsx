@@ -117,6 +117,7 @@ function App() {
               <Route path="/apply/:token" element={<ApplicationForm />} />
               <Route path="/imzala/:token" element={<SignContract />} />
               <Route path="/sign/:token" element={<SignContract />} />
+              <Route path="/sozlesme/:token" element={<SignContract />} />
               <Route path="/kvkk" element={<KVKK />} />
               <Route path="/gizlilik-politikasi" element={<PrivacyPolicy />} />
               <Route path="/kullanim-sartlari" element={<TermsOfService />} />
