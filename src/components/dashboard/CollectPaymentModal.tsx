@@ -100,7 +100,7 @@ const CollectPaymentModal: React.FC<CollectPaymentModalProps> = ({ isOpen, onClo
     const [paymentMethod, setPaymentMethod] = useState<'Nakit' | 'Havale/EFT' | 'Kredi Kartı' | 'Diğer'>('Havale/EFT');
     const [paymentDate, setPaymentDate] = useState(() => new Date().toISOString().split('T')[0]);
     const [invoiceNo, setInvoiceNo] = useState('');
-    const [sendWhatsApp, setSendWhatsApp] = useState(true);
+    const [sendWhatsApp, setSendWhatsApp] = useState(false);
     const [isSubmitting, setIsSubmitting] = useState(false);
 
     // Sync initial student
