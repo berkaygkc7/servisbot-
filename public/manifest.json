@@ -1,0 +1,50 @@
+{
+  "name": "ServisBot - Akıllı Servis Takip ve Yönetim Sistemi",
+  "short_name": "ServisBot",
+  "description": "Öğrenci ve personel servis taşımacılığında canlı takip, rota optimizasyonu ve dijital yönetim platformu",
+  "start_url": "/",
+  "id": "/",
+  "scope": "/",
+  "display": "standalone",
+  "orientation": "portrait-primary",
+  "background_color": "#0f172a",
+  "theme_color": "#2563eb",
+  "categories": ["business", "productivity", "utilities"],
+  "icons": [
+    {
+      "src": "/pwa-192x192.png",
+      "sizes": "192x192",
+      "type": "image/png",
+      "purpose": "any"
+    },
+    {
+      "src": "/pwa-512x512.png",
+      "sizes": "512x512",
+      "type": "image/png",
+      "purpose": "any"
+    },
+    {
+      "src": "/maskable-icon-512x512.png",
+      "sizes": "512x512",
+      "type": "image/png",
+      "purpose": "maskable"
+    }
+  ],
+  "shortcuts": [
+    {
+      "name": "Giriş Yap",
+      "url": "/login",
+      "description": "ServisBot yönetim paneline giriş yapın"
+    },
+    {
+      "name": "Okul Servisleri",
+      "url": "/okul-servisi-takip-programi",
+      "description": "Okul servisi takip programı ve veli bilgilendirme"
+    },
+    {
+      "name": "Personel Servisleri",
+      "url": "/personel-servisi-takip-sistemi",
+      "description": "Personel servisi takip ve vardiya optimizasyonu"
+    }
+  ]
+}

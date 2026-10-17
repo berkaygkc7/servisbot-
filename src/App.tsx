@@ -47,6 +47,7 @@ const AdminUsers = lazy(() => import('./pages/superadmin/AdminUsers'));
 const PlatformSettings = lazy(() => import('./pages/superadmin/PlatformSettings'));
 const AuditLogs = lazy(() => import('./pages/superadmin/AuditLogs'));
 const SuperAdminAccount = lazy(() => import('./pages/superadmin/SuperAdminAccount'));
+import PwaInstallPrompt from './components/shared/PwaInstallPrompt';
 
 import { CheckCircle2, Loader2 } from 'lucide-react';
 import { APIProvider } from '@vis.gl/react-google-maps';
@@ -175,6 +176,7 @@ function App() {
               <Route path="*" element={<Navigate to="/" replace />} />
             </Routes>
           </Suspense>
+          <PwaInstallPrompt />
         </BrowserRouter>
       </AuthProvider>
     </APIProvider>
