@@ -296,7 +296,42 @@ const Vehicles: React.FC = () => {
                                 ...prev,
                                 current_latitude: updatedVehicle.current_latitude,
                                 current_longitude: updatedVehicle.current_longitude,
-                                // Update other fields if necessary
+                            };
+                        }
+                        return prev;
+                    });
+                }
+            )
+            .on(
+                'broadcast',
+                { event: 'location_update' },
+                ({ payload }) => {
+                    if (!payload) return;
+                    const lat = payload.current_latitude ?? payload.latitude;
+                    const lng = payload.current_longitude ?? payload.longitude;
+                    const id = payload.vehicle_id ?? payload.id;
+                    const plate = payload.plate_number ?? payload.plate;
+
+                    if (!lat || !lng) return;
+
+                    setVehicles(prev => prev.map(v => {
+                        if (v.id === id || v.plate === plate) {
+                            return {
+                                ...v,
+                                location: `${lat.toFixed(4)}, ${lng.toFixed(4)}`,
+                                current_latitude: lat,
+                                current_longitude: lng
+                            };
+                        }
+                        return v;
+                    }));
+
+                    setSelectedVehicleForLocation(prev => {
+                        if (prev && (prev.id === id || prev.plate === plate)) {
+                            return {
+                                ...prev,
+                                current_latitude: lat,
+                                current_longitude: lng
                             };
                         }
                         return prev;

@@ -47,6 +47,13 @@ const DashboardHome: React.FC = () => {
                     updateMarker(payload.new);
                 }
             )
+            .on(
+                'broadcast',
+                { event: 'location_update' },
+                ({ payload }) => {
+                    if (payload) updateMarker(payload);
+                }
+            )
             .subscribe();
 
         return () => {
@@ -236,20 +243,23 @@ const DashboardHome: React.FC = () => {
     }, [navigate]);
 
     const updateMarker = (vehicle: any) => {
-        if (!vehicle.current_latitude || !vehicle.current_longitude) return;
+        const lat = vehicle.current_latitude ?? vehicle.latitude;
+        const lng = vehicle.current_longitude ?? vehicle.longitude;
+        const plate = vehicle.plate_number ?? vehicle.plate ?? vehicle.id;
+        if (!lat || !lng || !plate) return;
 
         setMarkers(prev => {
-            const exists = prev.find(m => m.id === vehicle.plate_number);
+            const exists = prev.find(m => m.id === plate);
             if (exists) {
-                return prev.map(m => m.id === vehicle.plate_number ? {
+                return prev.map(m => m.id === plate ? {
                     ...m,
-                    position: [vehicle.current_longitude, vehicle.current_latitude] as [number, number]
+                    position: [lng, lat] as [number, number]
                 } : m);
             } else {
                 return [...prev, {
-                    id: vehicle.plate_number,
-                    position: [vehicle.current_longitude, vehicle.current_latitude] as [number, number],
-                    title: vehicle.plate_number,
+                    id: plate,
+                    position: [lng, lat] as [number, number],
+                    title: plate,
                     type: 'vehicle'
                 }];
             }

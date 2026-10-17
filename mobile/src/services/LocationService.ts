@@ -9,6 +9,10 @@ const UPDATE_INTERVAL = 5000;
 class LocationService {
     private subscriber: Location.LocationSubscription | null = null;
     private currentVehicleId: string | null = null;
+    private vehicleChannel: any = null;
+    private globalChannel: any = null;
+    private lastDbWriteTime: number = 0;
+    private lastLocation: { latitude: number; longitude: number } | null = null;
 
     async requestPermissions(): Promise<boolean> {
         try {
@@ -31,6 +35,19 @@ class LocationService {
         }
 
         this.currentVehicleId = vehicleId;
+        this.lastDbWriteTime = 0;
+        this.lastLocation = null;
+
+        // Persistent Realtime Broadcast Channels
+        try {
+            this.vehicleChannel = supabase.channel(`public:vehicles:${vehicleId}`);
+            this.vehicleChannel.subscribe();
+
+            this.globalChannel = supabase.channel('public:vehicles');
+            this.globalChannel.subscribe();
+        } catch (chanErr) {
+            console.warn('Realtime channel init warning:', chanErr);
+        }
 
         try {
             const hasServicesEnabled = await Location.hasServicesEnabledAsync();
@@ -63,13 +80,40 @@ class LocationService {
         }
     }
 
-    stopTracking(): void {
+    async stopTracking(): Promise<void> {
         if (this.subscriber) {
             this.subscriber.remove();
             this.subscriber = null;
-            this.currentVehicleId = null;
-            console.log('Location tracking stopped');
         }
+
+        // Son park konumunu kalıcı olarak DB'ye yaz
+        if (this.currentVehicleId && this.lastLocation) {
+            try {
+                await supabase.rpc('update_driver_location', {
+                    p_vehicle_id: this.currentVehicleId,
+                    p_latitude: this.lastLocation.latitude,
+                    p_longitude: this.lastLocation.longitude
+                });
+            } catch (e) {
+                console.warn('Final location write error:', e);
+            }
+        }
+
+        // Kanalları güvenli şekilde kapat
+        if (this.vehicleChannel) {
+            supabase.removeChannel(this.vehicleChannel);
+            this.vehicleChannel = null;
+        }
+
+        if (this.globalChannel) {
+            supabase.removeChannel(this.globalChannel);
+            this.globalChannel = null;
+        }
+
+        this.currentVehicleId = null;
+        this.lastDbWriteTime = 0;
+        this.lastLocation = null;
+        console.log('Location tracking stopped');
     }
 
     private handleLocationUpdate = async (location: Location.LocationObject, onUpdate?: (loc: Location.LocationObject, status?: string) => void) => {
@@ -78,31 +122,60 @@ class LocationService {
             return;
         }
 
-        const { latitude, longitude } = location.coords;
+        const { latitude, longitude, heading, speed } = location.coords;
+        this.lastLocation = { latitude, longitude };
         if (onUpdate) onUpdate(location, 'Gönderiliyor...');
 
         try {
-            // First update DB via secure RPC
-            const { error } = await supabase.rpc('update_driver_location', {
-                p_vehicle_id: this.currentVehicleId,
-                p_latitude: latitude,
-                p_longitude: longitude
-            });
+            // 1. WebSocket Broadcast: Veli ve Web Paneline anlık ve sıfır DB maliyetiyle yayın
+            const broadcastPayload = {
+                vehicle_id: this.currentVehicleId,
+                id: this.currentVehicleId,
+                latitude,
+                longitude,
+                current_latitude: latitude,
+                current_longitude: longitude,
+                heading: heading || 0,
+                speed: speed || 0,
+                timestamp: location.timestamp
+            };
 
-            if (error) {
-                console.error('LocationService: Error updating vehicle location (RPC):', error);
-                if (onUpdate) onUpdate(location, `Hata (DB): ${error.message}`);
-            } else {
-                // Secondary fallback broadcast for parent apps actively listening without full Realtime Auth
-                await supabase.channel(`public:vehicles:${this.currentVehicleId}`)
-                    .send({
-                        type: 'broadcast',
-                        event: 'location_update',
-                        payload: { latitude, longitude }
-                    });
-
-                if (onUpdate) onUpdate(location, `Canlı: ${new Date().toLocaleTimeString()}`);
+            if (this.vehicleChannel) {
+                this.vehicleChannel.send({
+                    type: 'broadcast',
+                    event: 'location_update',
+                    payload: broadcastPayload
+                }).catch(() => {});
             }
+
+            if (this.globalChannel) {
+                this.globalChannel.send({
+                    type: 'broadcast',
+                    event: 'location_update',
+                    payload: broadcastPayload
+                }).catch(() => {});
+            }
+
+            // 2. Throttled DB Write: Veritabanına her 5 sn yerine 25 sn'de bir yaz (I/O yükünü %80 azaltır)
+            const now = Date.now();
+            const shouldWriteToDb = !this.lastDbWriteTime || (now - this.lastDbWriteTime >= 25000);
+
+            if (shouldWriteToDb) {
+                this.lastDbWriteTime = now;
+                const { error } = await supabase.rpc('update_driver_location', {
+                    p_vehicle_id: this.currentVehicleId,
+                    p_latitude: latitude,
+                    p_longitude: longitude
+                });
+
+                if (error) {
+                    console.error('LocationService: Error updating vehicle location (RPC):', error);
+                    if (onUpdate) onUpdate(location, `Hata (DB): ${error.message}`);
+                    return;
+                }
+            }
+
+            if (onUpdate) onUpdate(location, `Canlı: ${new Date().toLocaleTimeString()}`);
         } catch (error: any) {
             console.error('LocationService: Exception in handleLocationUpdate:', error);
             if (onUpdate) onUpdate(location, `İstisna: ${error.message}`);

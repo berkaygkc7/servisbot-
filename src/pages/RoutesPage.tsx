@@ -377,21 +377,36 @@ const RoutesPage: React.FC = () => {
     const [hoverPosition, setHoverPosition] = useState<[number, number] | null>(null);
 
     const setupRealtimeSubscription = () => {
+        const updateVehicleLocation = (v: any) => {
+            const lat = v.current_latitude ?? v.latitude;
+            const lng = v.current_longitude ?? v.longitude;
+            const plate = v.plate_number ?? v.plate ?? v.id;
+            if (!lat || !lng || !plate) return;
+
+            setLiveVehicles(prev => {
+                const exists = prev.find(m => m.id === plate);
+                if (exists) {
+                    return prev.map(m => m.id === plate ? { ...m, position: [lng, lat] } : m);
+                } else {
+                    return [...prev, { id: plate, position: [lng, lat], title: plate }];
+                }
+            });
+        };
+
         const channel = supabase
             .channel('public:vehicles')
             .on(
                 'postgres_changes',
                 { event: 'UPDATE', schema: 'public', table: 'vehicles' },
                 (payload) => {
-                    const v = payload.new;
-                    setLiveVehicles(prev => {
-                        const exists = prev.find(m => m.id === v.plate_number);
-                        if (exists) {
-                            return prev.map(m => m.id === v.plate_number ? { ...m, position: [v.current_longitude, v.current_latitude] } : m);
-                        } else {
-                            return [...prev, { id: v.plate_number, position: [v.current_longitude, v.current_latitude], title: v.plate_number }];
-                        }
-                    });
+                    updateVehicleLocation(payload.new);
+                }
+            )
+            .on(
+                'broadcast',
+                { event: 'location_update' },
+                ({ payload }) => {
+                    if (payload) updateVehicleLocation(payload);
                 }
             )
             .subscribe();
