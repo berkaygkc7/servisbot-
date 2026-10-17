@@ -5,6 +5,8 @@ import { Search, User, Settings, LogOut, Car, Map, UserSquare, X, Mail, Building
 import { useAuth } from '../contexts/AuthContext';
 import { supabase } from '../lib/supabase';
 import { preloadCommonRoutes } from '../utils/routePreloader';
+import NotificationBell from '../components/shared/NotificationBell';
+import NotificationPromptBanner from '../components/shared/NotificationPromptBanner';
 
 const DashboardLayout: React.FC = () => {
     const { profile, signOut } = useAuth();
@@ -246,7 +248,10 @@ const DashboardLayout: React.FC = () => {
                         </div>
                     </div>
 
-                    <div className="flex items-center gap-6 relative">
+                    <div className="flex items-center gap-4 relative">
+                        {/* WEB PUSH NOTIFICATION BELL */}
+                        <NotificationBell />
+
                         {/* PROFILE */}
                         <div className="relative" ref={profileRef}>
                             <button 
@@ -403,6 +408,8 @@ const DashboardLayout: React.FC = () => {
                     </div>
                 )}
 
+                {/* GENTLE WEB PUSH PERMISSION PROMPT */}
+                <NotificationPromptBanner />
             </main>
         </div>
     );

@@ -98,3 +98,73 @@ self.addEventListener('fetch', (event) => {
     })
   );
 });
+
+// ==============================================================================
+// 4. Web Push Bildirimleri (Web Push API & Background Notifications)
+// ==============================================================================
+self.addEventListener('push', (event) => {
+  let data = {
+    title: 'ServisBot Bildirimi',
+    body: 'Yeni bir operasyonel güncelleme mevcut.',
+    icon: '/pwa-192x192.png',
+    badge: '/pwa-192x192.png',
+    url: '/dashboard',
+    tag: 'servisbot-general-alert',
+  };
+
+  if (event.data) {
+    try {
+      const parsed = event.data.json();
+      data = { ...data, ...parsed };
+    } catch {
+      data.body = event.data.text();
+    }
+  }
+
+  const notificationOptions = {
+    body: data.body,
+    icon: data.icon || '/pwa-192x192.png',
+    badge: data.badge || '/pwa-192x192.png',
+    tag: data.tag || 'servisbot-push',
+    vibrate: [200, 100, 200],
+    data: {
+      url: data.url || '/dashboard',
+      timestamp: Date.now(),
+    },
+    actions: data.actions || [
+      { action: 'open', title: 'Görüntüle' },
+      { action: 'close', title: 'Kapat' },
+    ],
+  };
+
+  event.waitUntil(
+    self.registration.showNotification(data.title, notificationOptions)
+  );
+});
+
+// Bildirime Tıklandığında İlgili Sayfayı Açma veya Öne Getirme
+self.addEventListener('notificationclick', (event) => {
+  event.notification.close();
+
+  if (event.action === 'close') {
+    return;
+  }
+
+  const targetUrl = event.notification.data?.url || '/dashboard';
+
+  event.waitUntil(
+    clients.matchAll({ type: 'window', includeUncontrolled: true }).then((windowClients) => {
+      // Zaten açık bir ServisBot sekmesi varsa onu odakla ve hedefe yönlendir
+      for (const client of windowClients) {
+        if (client.url.includes(self.location.origin) && 'focus' in client) {
+          client.navigate(targetUrl);
+          return client.focus();
+        }
+      }
+      // Açık sekme yoksa yeni pencere/sekme aç
+      if (clients.openWindow) {
+        return clients.openWindow(targetUrl);
+      }
+    })
+  );
+});
