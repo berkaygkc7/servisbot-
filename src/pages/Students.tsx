@@ -143,15 +143,19 @@ const Students: React.FC = () => {
         queryFn: async () => {
             const { data } = await supabase.from('schools').select('id, name, has_shifts');
             return data || [];
-        }
+        },
+        staleTime: 5 * 60 * 1000,
+        gcTime: 1000 * 60 * 60 * 24,
     });
 
     const { data: vehicles = [] } = useQuery({
-        queryKey: ['vehicles'],
+        queryKey: ['vehicles', profile?.company_id],
         queryFn: async () => {
             const { data } = await supabase.from('vehicles').select('id, plate_number').order('plate_number');
             return data || [];
-        }
+        },
+        staleTime: 5 * 60 * 1000,
+        gcTime: 1000 * 60 * 60 * 24,
     });
 
     const { data: tagsData = [] } = useQuery({
@@ -159,7 +163,9 @@ const Students: React.FC = () => {
         queryFn: async () => {
             const { data } = await supabase.from('tags').select('id, name').order('name');
             return data || [];
-        }
+        },
+        staleTime: 10 * 60 * 1000,
+        gcTime: 1000 * 60 * 60 * 24,
     });
 
     useEffect(() => {
@@ -176,7 +182,9 @@ const Students: React.FC = () => {
                 .order('school_level');
             return data || [];
         },
-        enabled: !!profile?.company_id
+        enabled: !!profile?.company_id,
+        staleTime: 5 * 60 * 1000,
+        gcTime: 1000 * 60 * 60 * 24,
     });
 
     const queryClient = useQueryClient();
@@ -314,7 +322,9 @@ const Students: React.FC = () => {
             };
         },
         enabled: !!profile?.company_id,
-        staleTime: 60 * 1000, // Keep data fresh for 60 seconds
+        placeholderData: (previousData) => previousData,
+        staleTime: 2 * 60 * 1000, // 2 dakika boyunca taze kabul et
+        gcTime: 1000 * 60 * 60 * 24, // 24 saat IndexedDB kalıcı önbelleğinde sakla (0ms açılış)
     });
 
     useEffect(() => {

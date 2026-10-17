@@ -1,5 +1,5 @@
 import React, { useState } from 'react';
-import { useQuery, useQueryClient } from '@tanstack/react-query';
+import { useQuery } from '@tanstack/react-query';
 import { Plus, Search, Filter, X, Users, Printer, Phone, MessageSquare, School, Share2, Download } from 'lucide-react';
 import VehicleList, { type Vehicle } from '../components/dashboard/VehicleList';
 import { supabase } from '../lib/supabase';
@@ -7,6 +7,7 @@ import { useAuth } from '../contexts/AuthContext';
 import MapScene from '../components/map/MapScene';
 import VehicleProfileModal from '../components/VehicleProfileModal';
 import { preloadRoute } from '../utils/routePreloader';
+import { useVehiclesQuery } from '../hooks/queries/useVehiclesQuery';
 
 
 
@@ -39,57 +40,25 @@ const Vehicles: React.FC = () => {
     // Form State
     const [formData, setFormData] = useState<Partial<Vehicle>>({});
 
-    const queryClient = useQueryClient();
-
     const { data: driversData = [] } = useQuery({
-        queryKey: ['drivers'],
+        queryKey: ['drivers', profile?.company_id],
         queryFn: async () => {
             const { data } = await supabase.from('drivers').select('id, full_name, phone').eq('status', 'active');
             return data || [];
-        }
+        },
+        staleTime: 5 * 60 * 1000,
+        gcTime: 1000 * 60 * 60 * 24,
     });
 
     React.useEffect(() => {
         if (driversData.length > 0) setDrivers(driversData);
     }, [driversData]);
 
-    const { data: vehiclesData, isLoading: isVehiclesLoading } = useQuery({
-        queryKey: ['vehicles', profile?.company_id],
-        queryFn: async () => {
-            const { data, error } = await supabase.from('vehicles').select('*').order('plate_number');
-            if (error) throw error;
-
-            // Fetch student count per vehicle
-            const { data: studentCounts } = await supabase
-                .from('students')
-                .select('vehicle_id')
-                .not('vehicle_id', 'is', null)
-                .neq('status', 'pending');
-
-            const countMap: Record<string, number> = {};
-            studentCounts?.forEach(s => {
-                if (s.vehicle_id) {
-                    countMap[s.vehicle_id] = (countMap[s.vehicle_id] || 0) + 1;
-                }
-            });
-
-            return data?.map((v: any) => ({
-                id: v.id,
-                plate: v.plate_number,
-                driver: v.driver_name || '',
-                driver_id: v.driver_id,
-                capacity: v.capacity || 16,
-                status: v.status || 'active',
-                student_count: countMap[v.id] || 0,
-                color: v.color || undefined,
-                location: v.current_latitude && v.current_longitude ? `${v.current_latitude.toFixed(4)}, ${v.current_longitude.toFixed(4)}` : 'Konum Yok',
-                current_latitude: v.current_latitude,
-                current_longitude: v.current_longitude
-            })) || [];
-        },
-        enabled: !!profile?.company_id,
-        staleTime: 60 * 1000
-    });
+    const {
+        vehicles: vehiclesData,
+        isLoading: isVehiclesLoading,
+        invalidateVehicles
+    } = useVehiclesQuery();
 
     React.useEffect(() => {
         if (vehiclesData) {
@@ -103,8 +72,7 @@ const Vehicles: React.FC = () => {
     }, [isVehiclesLoading]);
 
     const fetchVehicles = async () => {
-        // Fallback for manual refresh if needed
-        await queryClient.invalidateQueries({ queryKey: ['vehicles'] });
+        await invalidateVehicles();
     };
 
     const handleShowStudents = async (vehicle: Vehicle) => {
