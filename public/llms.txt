@@ -1,0 +1,65 @@
+# ServisBot - Akıllı Servis Yönetim ve Takip Platformu
+
+> ServisBot; okul, kolej, fabrika ve kurumsal şirket taşımacılığı yapan servis firmaları, kooperatifler ve filo yöneticileri için geliştirilmiş yeni nesil yapay zeka destekli servis yönetim ve takip sistemidir.
+
+## Genel Bakış (Overview)
+ServisBot, klasik ve pahalı araç takip cihazlarına (GPS kutuları, aylık SIM kart abonelikleri) ve karmaşık Excel tablolarına olan ihtiyacı ortadan kaldırır. Sürücünün veya rehber personelin akıllı telefonu üzerinden yüksek doğrulukla canlı konum yayını yapar; yapay zeka destekli güzergah optimizasyonuyla akaryakıt maliyetlerini %25'e varan oranda düşürür.
+
+## Temel Yetenekler ve Modüller
+1. **Yapay Zeka Destekli Rota Optimizasyonu:**
+   - Yüzlerce durak/öğrenci/personel adresini analiz ederek en kısa süren ve en az yakıt tüketen rotayı saniyeler içinde hesaplar.
+   - Trafik yoğunluğuna göre dinamik güzergah güncellemeleri sunar.
+
+2. **Uygulamasız Canlı Takip (Veli & Personel):**
+   - Yolcuların veya velilerin mobil uygulama indirmesi veya şifre ezberlemesi gerekmez.
+   - SMS veya WhatsApp ile iletilen güvenli tek kullanımlık link üzerinden haritada servisin anlık konumu ve tahmini varış süresi (ETA) izlenir.
+   - Kapıya 3 durak veya 5 dakika kala otomatik yaklaşma bildirimi gönderilir.
+
+3. **Zaman Damgalı Dijital Sözleşme ve Senet Yönetimi:**
+   - 6098 sayılı Türk Borçlar Kanunu ve Elektronik Ticaret mevzuatına tam uyumlu e-onay altyapısı.
+   - Veliler veya kurumsal müşteriler sözleşmelerini akıllı telefonlarından 30 saniyede dijital olarak imzalar.
+   - IP adresi ve zaman damgasıyla tescillenmiş resmi PDF çıktısı alınabilir.
+
+4. **Otomatik Sefer Puantajı ve Hak Ediş Cetvelleri:**
+   - Gerçekleşen günlük seferler, gecikmeler ve QR kodlu yolcu binişleri anlık kaydedilir.
+   - Ay sonunda şoför ve taşeron hak edişleri tek tıkla Excel ve PDF formatında hesaplanır.
+
+5. **Sıfır Donanım ve Montaj Maliyeti:**
+   - Araçlara pahalı GPS donanımları takılmasına ve araç başına aylık veri hat ücreti ödenmesine gerek yoktur.
+   - iOS ve Android akıllı telefonlar üzerinden 5 dakikada devreye alınır.
+
+## Hedef Kitle (Target Audience)
+- **Okul Servis Şirketleri ve Şoförler:** Anaokulu, ilkokul ve kolej servis operasyonları.
+- **Fabrikalar ve Sanayi Tesisleri:** OSB'lerde vardiyalı çalışan personel servis filoları.
+- **Servis Kooperatifleri ve Filo Yöneticileri:** Yüzlerce aracı ve şoförü tek merkezden yönetmek isteyen işletmeler.
+- **Özel Okul ve Kurumsal Firma Yönetimleri:** Servis taşeronlarını ve sefer saatlerini denetlemek isteyen kurumlar.
+
+## Fiyatlandırma Modeli
+- **Ücretsiz Başlangıç:** 15 öğrenciye / personele kadar kredi kartı gerekmeden ücretsiz kullanım.
+- **Büyüyen Filolar:** Araç ve öğrenci kapasitesine göre esnek, bütçe dostu aylık veya yıllık abonelik planları.
+
+## Sayfalar ve Dokümantasyon Bağlantıları
+- Ana Sayfa: https://www.servisbot.pro/
+- Okul Servisi Takip Programı: https://www.servisbot.pro/okul-servisi-takip-programi
+- Personel Servisi Takip Sistemi: https://www.servisbot.pro/personel-servisi-takip-sistemi
+- Ücretsiz Kayıt Ol: https://www.servisbot.pro/register
+- Sisteme Giriş Yap: https://www.servisbot.pro/login
+- KVKK Aydınlatma Metni: https://www.servisbot.pro/kvkk
+- Gizlilik Politikası: https://www.servisbot.pro/gizlilik-politikasi
+- Kullanım Şartları: https://www.servisbot.pro/kullanim-sartlari
+
+## Sıkça Sorulan Sorular (Quick FAQ)
+- **S: Velilerin veya çalışanların uygulama indirmesi şart mı?**
+  *C:* Hayır. SMS veya WhatsApp ile iletilen tarayıcı linkiyle harita canlı izlenir.
+- **S: Araçlara GPS cihazı taktırmak gerekiyor mu?**
+  *C:* Hayır. Sürücünün akıllı telefonu canlı konum yayını için yeterlidir.
+- **S: Dijital sözleşme hukuki geçerliliğe sahip mi?**
+  *C:* Evet. Türk Borçlar Kanunu kapsamında zaman damgası ve IP kaydıyla e-imzalanır.
+- **S: Rota optimizasyonu ne kadar tasarruf sağlar?**
+  *C:* Servis araçlarında ortalama %22 ila %28 akaryakıt ve sefer başına 35-40 dakika zaman tasarrufu sağlar.
+
+## İletişim & Destek
+- Web: https://www.servisbot.pro
+- Telefon / WhatsApp Satış: +90 (505) 417 12 99
+- Telefon Müşteri Hizmetleri: +90 (505) 045 17 11
+- E-posta: iletisim@servisbot.pro

@@ -61,9 +61,9 @@ const Navbar: React.FC<NavbarProps> = ({ forceSolid = false }) => {
         {
             title: 'Çözümler',
             items: [
-                { label: 'Okul Servisleri', desc: 'Okul ve kreş taşımacılığı' },
-                { label: 'Personel Servisleri', desc: 'Fabrika ve şirket taşımacılığı' },
-                { label: 'Kurumsal Firmalar', desc: 'Geniş filoya sahip operasyonlar' },
+                { label: 'Okul Servisleri', desc: 'Okul ve kreş taşımacılığı', href: '/okul-servisi-takip-programi' },
+                { label: 'Personel Servisleri', desc: 'Fabrika ve şirket taşımacılığı', href: '/personel-servisi-takip-sistemi' },
+                { label: 'Kurumsal Firmalar', desc: 'Geniş filoya sahip operasyonlar', href: '/personel-servisi-takip-sistemi' },
             ]
         },
         {
@@ -105,16 +105,32 @@ const Navbar: React.FC<NavbarProps> = ({ forceSolid = false }) => {
 
                                     {/* Dropdown */}
                                     <div className="absolute top-full left-1/2 -translate-x-1/2 opacity-0 invisible group-hover:opacity-100 group-hover:visible transition-all duration-200 translate-y-2 group-hover:translate-y-0 w-64 bg-white rounded-2xl shadow-xl border border-slate-100 p-3 before:content-[''] before:absolute before:-top-2 before:left-0 before:right-0 before:h-4">
-                                        {menu.items.map((item, idx) => (
-                                            <a 
-                                                key={idx} 
-                                                href={item.href || '#'} 
-                                                className="block p-3 rounded-xl hover:bg-slate-50 transition-colors group/item"
-                                            >
-                                                <div className="text-sm font-bold text-slate-800 group-hover/item:text-primary transition-colors">{item.label}</div>
-                                                <div className="text-xs text-slate-500 mt-1 leading-relaxed">{item.desc}</div>
-                                            </a>
-                                        ))}
+                                        {menu.items.map((item, idx) => {
+                                            const isInternal = item.href?.startsWith('/');
+                                            const content = (
+                                                <>
+                                                    <div className="text-sm font-bold text-slate-800 group-hover/item:text-primary transition-colors">{item.label}</div>
+                                                    <div className="text-xs text-slate-500 mt-1 leading-relaxed">{item.desc}</div>
+                                                </>
+                                            );
+                                            return isInternal ? (
+                                                <Link 
+                                                    key={idx} 
+                                                    to={item.href!} 
+                                                    className="block p-3 rounded-xl hover:bg-slate-50 transition-colors group/item"
+                                                >
+                                                    {content}
+                                                </Link>
+                                            ) : (
+                                                <a 
+                                                    key={idx} 
+                                                    href={item.href || '#'} 
+                                                    className="block p-3 rounded-xl hover:bg-slate-50 transition-colors group/item"
+                                                >
+                                                    {content}
+                                                </a>
+                                            );
+                                        })}
                                     </div>
                                 </div>
                             ))}
@@ -163,17 +179,30 @@ const Navbar: React.FC<NavbarProps> = ({ forceSolid = false }) => {
                                         {menu.title}
                                     </div>
                                     <div className="flex flex-col space-y-4 border-l-2 border-slate-100 pl-4">
-                                        {menu.items.map((item, idx) => (
-                                            <a 
-                                                key={idx}
-                                                href={item.href || '#'}
-                                                onClick={() => setIsMobileMenuOpen(false)}
-                                                className="flex flex-col"
-                                            >
-                                                <span className="text-lg font-bold text-slate-800">{item.label}</span>
-                                                <span className="text-sm text-slate-500 mt-0.5">{item.desc}</span>
-                                            </a>
-                                        ))}
+                                        {menu.items.map((item, idx) => {
+                                            const isInternal = item.href?.startsWith('/');
+                                            return isInternal ? (
+                                                <Link 
+                                                    key={idx}
+                                                    to={item.href!}
+                                                    onClick={() => setIsMobileMenuOpen(false)}
+                                                    className="flex flex-col"
+                                                >
+                                                    <span className="text-lg font-bold text-slate-800">{item.label}</span>
+                                                    <span className="text-sm text-slate-500 mt-0.5">{item.desc}</span>
+                                                </Link>
+                                            ) : (
+                                                <a 
+                                                    key={idx}
+                                                    href={item.href || '#'}
+                                                    onClick={() => setIsMobileMenuOpen(false)}
+                                                    className="flex flex-col"
+                                                >
+                                                    <span className="text-lg font-bold text-slate-800">{item.label}</span>
+                                                    <span className="text-sm text-slate-500 mt-0.5">{item.desc}</span>
+                                                </a>
+                                            );
+                                        })}
                                     </div>
                                 </div>
                             ))}

@@ -1,0 +1,47 @@
+# ServisBot - robots.txt
+# Canlı Domain: https://www.servisbot.pro
+
+User-agent: *
+Allow: /
+Allow: /llms.txt
+Allow: /okul-servisi-takip-programi
+Allow: /personel-servisi-takip-sistemi
+Allow: /kvkk
+Allow: /gizlilik-politikasi
+Allow: /kullanim-sartlari
+Allow: /login
+Allow: /register
+
+# Gizli ve Yetkili Sistem Yolları (İndekslenmemesi gereken rotalar)
+Disallow: /dashboard/
+Disallow: /superadmin/
+Disallow: /driver/
+Disallow: /share/
+Disallow: /apply/
+Disallow: /imzala/
+Disallow: /sign/
+Disallow: /sozlesme/
+Disallow: /print-preview
+Disallow: /print-contract
+
+# Yapay Zeka Arama Motorları (GEO - Generative Engine Optimization)
+User-agent: GPTBot
+Allow: /
+
+User-agent: ChatGPT-User
+Allow: /
+
+User-agent: PerplexityBot
+Allow: /
+
+User-agent: ClaudeBot
+Allow: /
+
+User-agent: Google-Extended
+Allow: /
+
+User-agent: Applebot-Extended
+Allow: /
+
+# Sitemap
+Sitemap: https://www.servisbot.pro/sitemap.xml

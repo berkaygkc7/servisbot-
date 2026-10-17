@@ -5,6 +5,9 @@ import Hero from './components/home/Hero';
 import LiveStatsSection from './components/home/LiveStatsSection';
 import FeatureSection from './components/home/FeatureSection';
 import MobileAppShowcase from './components/home/MobileAppShowcase';
+import ComparisonSection from './components/home/ComparisonSection';
+import Pricing from './components/home/Pricing';
+import FaqSection from './components/home/FaqSection';
 
 import Footer from './components/layout/Footer';
 import DashboardLayout from './layouts/DashboardLayout';
@@ -22,6 +25,8 @@ import { AuthProvider } from './contexts/AuthContext';
 import ProtectedRoute from './components/auth/ProtectedRoute';
 const Login = lazy(() => import('./pages/auth/Login'));
 const Register = lazy(() => import('./pages/auth/Register'));
+const SchoolBusLanding = lazy(() => import('./pages/public/SchoolBusLanding'));
+const PersonnelBusLanding = lazy(() => import('./pages/public/PersonnelBusLanding'));
 const ApplicationForm = lazy(() => import('./pages/public/ApplicationForm'));
 const SignContract = lazy(() => import('./pages/public/SignContract'));
 import { KVKK, PrivacyPolicy, TermsOfService } from './pages/public/LegalPages';
@@ -70,6 +75,9 @@ const LandingPage = () => {
       <LiveStatsSection />
       <FeatureSection />
       <MobileAppShowcase />
+      <ComparisonSection />
+      <Pricing />
+      <FaqSection />
       <Footer />
 
       {showConfirmPopup && (
@@ -112,6 +120,10 @@ function App() {
           <Suspense fallback={<LoadingFallback />}>
             <Routes>
               <Route path="/" element={<LandingPage />} />
+              <Route path="/okul-servisi-takip-programi" element={<SchoolBusLanding />} />
+              <Route path="/okul-servisi" element={<SchoolBusLanding />} />
+              <Route path="/personel-servisi-takip-sistemi" element={<PersonnelBusLanding />} />
+              <Route path="/personel-servisi" element={<PersonnelBusLanding />} />
               <Route path="/login" element={<Login />} />
               <Route path="/register" element={<Register />} />
               <Route path="/apply/:token" element={<ApplicationForm />} />

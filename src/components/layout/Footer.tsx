@@ -20,10 +20,13 @@ const Footer: React.FC = () => {
 
                     {/* Platform */}
                     <div className="text-center md:text-left">
-                        <h4 className="text-white font-bold mb-4 uppercase text-sm tracking-wider">Platform</h4>
+                        <h4 className="text-white font-bold mb-4 uppercase text-sm tracking-wider">Platform & Çözümler</h4>
                         <ul className="space-y-2 text-sm">
                             <li><a href="#özellikler" className="hover:text-secondary transition-colors">Özellikler</a></li>
-                            <li><a href="#fiyatlandırma" className="hover:text-secondary transition-colors">Fiyatlandırma</a></li>
+                            <li><Link to="/okul-servisi-takip-programi" className="hover:text-secondary transition-colors">Okul Servis Takip</Link></li>
+                            <li><Link to="/personel-servisi-takip-sistemi" className="hover:text-secondary transition-colors">Personel Servis Takip</Link></li>
+                            <li><a href="#karsilastirma" className="hover:text-secondary transition-colors">Neden ServisBot?</a></li>
+                            <li><a href="#sss" className="hover:text-secondary transition-colors">Sıkça Sorulan Sorular</a></li>
                             <li><a href="/dashboard" className="hover:text-secondary transition-colors">Yönetim Paneli</a></li>
                         </ul>
                     </div>
