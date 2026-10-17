@@ -4,19 +4,27 @@ import './index.css'
 import App from './App.tsx'
 
 import ErrorBoundary from './components/layout/ErrorBoundary.tsx'
-import { QueryClient, QueryClientProvider } from '@tanstack/react-query'
+import { QueryClient } from '@tanstack/react-query'
+import { PersistQueryClientProvider } from '@tanstack/react-query-persist-client'
+import { createIdbPersister } from './lib/queryPersister'
 import { supabase } from './lib/supabase'
+import { initTelemetry } from './utils/telemetry'
 
-// Create a client
+// Initialize APM & client error monitoring
+initTelemetry();
+
+// Create a client with 24-hour cache time for offline readiness
 const queryClient = new QueryClient({
   defaultOptions: {
     queries: {
       staleTime: 5 * 60 * 1000, // Data remains fresh for 5 minutes
-      gcTime: 10 * 60 * 1000, // Cache kept for 10 minutes (formerly cacheTime)
+      gcTime: 1000 * 60 * 60 * 24, // 24 hours cache retention
       refetchOnWindowFocus: false, // Don't refetch on window focus for dashboard apps by default
     },
   },
 })
+
+const idbPersister = createIdbPersister();
 
 // Handle Vite dynamic import chunk failures gracefully (e.g. after a new deployment)
 window.addEventListener('vite:preloadError', (event) => {
@@ -65,9 +73,21 @@ if ('serviceWorker' in navigator && import.meta.env.PROD) {
 createRoot(document.getElementById('root')!).render(
   <StrictMode>
     <ErrorBoundary>
-      <QueryClientProvider client={queryClient}>
+      <PersistQueryClientProvider
+        client={queryClient}
+        persistOptions={{
+          persister: idbPersister,
+          maxAge: 1000 * 60 * 60 * 24, // 24 hours
+          buster: 'v1.0.0',
+          dehydrateOptions: {
+            shouldDehydrateQuery: (query) => {
+              return query.state.status === 'success';
+            },
+          },
+        }}
+      >
         <App />
-      </QueryClientProvider>
+      </PersistQueryClientProvider>
     </ErrorBoundary>
   </StrictMode>,
 )
