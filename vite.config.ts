@@ -15,10 +15,12 @@ export default defineConfig({
       output: {
         manualChunks: {
           'vendor-react': ['react', 'react-dom', 'react-router-dom'],
+          'vendor-motion': ['framer-motion'],
           'vendor-charts': ['recharts'],
           'vendor-maps': ['@vis.gl/react-google-maps', '@turf/turf'],
-          'vendor-utils': ['xlsx', 'date-fns', 'framer-motion'],
-          'vendor-excel': ['exceljs']
+          'vendor-xlsx': ['xlsx'],
+          'vendor-excel': ['exceljs'],
+          'vendor-date': ['date-fns']
         }
       }
     }

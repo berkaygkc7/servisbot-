@@ -1,5 +1,4 @@
 import React, { useState, useEffect, useMemo } from 'react';
-import * as XLSX from 'xlsx';
 import { 
     Plus, 
     Trash2, 
@@ -591,11 +590,13 @@ const UniversalTimesheets: React.FC = () => {
         window.open(whatsappUrl, '_blank');
     };
 
-    const handleExportExcel = () => {
+    const handleExportExcel = async () => {
         if (rows.length === 0) {
             alert('İndirilecek puantaj verisi bulunamadı.');
             return;
         }
+
+        const XLSX = await import('xlsx');
 
         const monthNames = [
             "Ocak", "Şubat", "Mart", "Nisan", "Mayıs", "Haziran",

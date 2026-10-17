@@ -2,7 +2,6 @@ import React, { useState, useEffect } from 'react';
 import { useQuery, useQueryClient } from '@tanstack/react-query';
 import { useLocation, useNavigate } from 'react-router-dom';
 import { Plus, Search, Filter, X, Download, Trash2, Loader2, MapPin, Tag as TagIcon, Check, Smartphone, Save, AlertTriangle, History, ChevronRight, CreditCard } from 'lucide-react';
-import * as XLSX from 'xlsx';
 import { format } from 'date-fns';
 import { tr } from 'date-fns/locale';
 import StudentList, { type Student } from '../components/dashboard/StudentList';
@@ -1086,7 +1085,8 @@ const Students: React.FC = () => {
         }
     };
 
-    const handleDownloadTemplate = () => {
+    const handleDownloadTemplate = async () => {
+        const XLSX = await import('xlsx');
         let exportData;
         if (students && students.length > 0) {
             exportData = students.map(s => {

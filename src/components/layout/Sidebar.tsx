@@ -15,7 +15,7 @@ import {
     ShieldAlert,
     FileText
 } from 'lucide-react';
-import logo from '../../assets/servisbot_bus_logo.png';
+import logo from '../../assets/servisbot_bus_logo.webp';
 import { useAuth } from '../../contexts/AuthContext';
 import { preloadRoute } from '../../utils/routePreloader';
 

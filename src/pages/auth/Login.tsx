@@ -2,7 +2,7 @@ import React, { useState, useEffect } from 'react';
 import { Link, useNavigate } from 'react-router-dom';
 import { supabase } from '../../lib/supabase';
 import { KeyRound, Mail, AlertCircle, Eye, EyeOff, BusFront, Phone, ShieldCheck, Monitor } from 'lucide-react';
-import logo from '../../assets/servisbot_bus_logo.png';
+import logo from '../../assets/servisbot_bus_logo.webp';
 
 const Login = () => {
     const navigate = useNavigate();

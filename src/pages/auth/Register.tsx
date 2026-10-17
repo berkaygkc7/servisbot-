@@ -1,6 +1,6 @@
 import { Link } from 'react-router-dom';
 import { ShieldCheck, Mail, Phone, Lock } from 'lucide-react';
-import logo from '../../assets/servisbot_bus_logo.png';
+import logo from '../../assets/servisbot_bus_logo.webp';
 
 const Register = () => {
     return (

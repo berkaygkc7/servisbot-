@@ -1,7 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import { supabase } from '../lib/supabase';
 import { useAuth } from '../contexts/AuthContext';
-import * as XLSX from 'xlsx';
 import { 
     X, 
     FileSpreadsheet, 
@@ -113,11 +112,12 @@ const VehicleProfileModal: React.FC<VehicleProfileModalProps> = ({ isOpen, onClo
         }
     };
 
-    const handleExport = () => {
+    const handleExport = async () => {
         if (!vehicle) return;
         setLoading(true);
 
         try {
+            const XLSX = await import('xlsx');
             const wb = XLSX.utils.book_new();
 
             // Sheet 1: Puantaj

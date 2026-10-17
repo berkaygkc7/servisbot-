@@ -1,7 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import { X, Download, Printer, CreditCard, CheckCircle, Bell, TrendingUp, Calendar, FileText, Loader2 } from 'lucide-react';
 import { supabase } from '../../lib/supabase';
-import * as XLSX from 'xlsx';
 
 interface PaymentRecord {
     id: string;
@@ -65,7 +64,8 @@ const PaymentHistoryModal: React.FC<PaymentHistoryModalProps> = ({ studentId, st
     const paidCount = payments.filter(p => p.status === 'Ödendi').length;
     const pendingCount = payments.filter(p => p.status !== 'Ödendi').length;
 
-    const handleExportExcel = () => {
+    const handleExportExcel = async () => {
+        const XLSX = await import('xlsx');
         const exportData = payments.map(p => ({
             'Ay': p.month,
             'Tutar (₺)': p.amount,

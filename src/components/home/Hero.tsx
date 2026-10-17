@@ -2,7 +2,7 @@ import React from 'react';
 import { motion } from 'framer-motion';
 import { ArrowRight, CheckCircle2 } from 'lucide-react';
 import { Link } from 'react-router-dom';
-import heroMapImage from '../../assets/hero-map-placeholder.png';
+import heroMapImage from '../../assets/hero-map-placeholder.webp';
 
 const Hero: React.FC = () => {
     return (

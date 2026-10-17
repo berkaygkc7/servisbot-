@@ -1,7 +1,6 @@
 import React, { useState } from 'react';
 import { useQuery, useQueryClient } from '@tanstack/react-query';
 import { Plus, Search, Filter, X, Users, Printer, Phone, MessageSquare, School, Share2, Download } from 'lucide-react';
-import * as XLSX from 'xlsx';
 import VehicleList, { type Vehicle } from '../components/dashboard/VehicleList';
 import { supabase } from '../lib/supabase';
 import { useAuth } from '../contexts/AuthContext';
@@ -222,8 +221,9 @@ const Vehicles: React.FC = () => {
         }
     };
 
-    const handleExportExcel = () => {
+    const handleExportExcel = async () => {
         if (!selectedVehicleForStudents) return;
+        const XLSX = await import('xlsx');
 
         const filteredStudents = vehicleStudents.filter(s => {
             const term = studentSearchTerm.toLowerCase();

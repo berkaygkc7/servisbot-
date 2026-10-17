@@ -2,7 +2,7 @@ import React, { useState, useEffect } from 'react';
 import { Link, useLocation } from 'react-router-dom';
 import { Menu, X, ChevronDown } from 'lucide-react';
 import { motion, useScroll, useMotionValueEvent, AnimatePresence } from 'framer-motion';
-import logo from '../../assets/yeni_navbar_logo.png';
+import logo from '../../assets/yeni_navbar_logo.webp';
 
 interface NavbarProps {
     forceSolid?: boolean;
