@@ -3,12 +3,12 @@ import { useQuery, useQueryClient } from '@tanstack/react-query';
 import { useSearchParams, useLocation } from 'react-router-dom';
 import RouteList from '../components/dashboard/RouteList';
 import MapScene from '../components/map/MapScene';
-import { fetchRoute, optimizeRoute } from '../services/routingService';
+import { fetchRoute, optimizeRoute, type FuelSavingsReport } from '../services/routingService';
 import { supabase } from '../lib/supabase';
 import { useAuth } from '../contexts/AuthContext'; // Added this import
 import { useMapsLibrary } from '@vis.gl/react-google-maps';
 import {
-    ArrowLeft, Users, UserPlus, Plus, Bus, Navigation, Clock, Check, Loader2, Trash2, MapPin, Tag as TagIcon, Sparkles, Pencil, Home, X, Search, Map as MapIcon, Share2, Maximize, Minimize
+    ArrowLeft, Users, UserPlus, Plus, Bus, Navigation, Clock, Check, Loader2, Trash2, MapPin, Tag as TagIcon, Sparkles, Pencil, Home, X, Search, Map as MapIcon, Share2, Maximize, Minimize, Leaf
 } from 'lucide-react';
 
 // --- Supabase Types (Mapped) ---
@@ -138,6 +138,7 @@ const RoutesPage: React.FC = () => {
     const [assigningStopId, setAssigningStopId] = useState<string | null>(null);
     const [studentSearchQuery, setStudentSearchQuery] = useState<string>('');
     const [isOptimized, setIsOptimized] = useState(false);
+    const [savingsReport, setSavingsReport] = useState<FuelSavingsReport | null>(null);
 
     // Map Search State
     const [mapCenter, setMapCenter] = useState<[number, number] | undefined>(undefined);
@@ -746,6 +747,7 @@ const RoutesPage: React.FC = () => {
 
     const addRoutePoint = (lng: number, lat: number, studentId?: string) => {
         setIsOptimized(false); // Reset optimization on any change
+        setSavingsReport(null);
         
         // Toggle (remove) logic: if point already exists
         if (studentId) {
@@ -775,6 +777,7 @@ const RoutesPage: React.FC = () => {
 
     const addInteractivePoint = (lng: number, lat: number, studentId?: string) => {
         setIsOptimized(false);
+        setSavingsReport(null);
         // Use ref to always get the LATEST tempPoints (avoids stale closure from useCallback)
         const newPoints = [...tempPointsRef.current];
         
@@ -851,6 +854,7 @@ const RoutesPage: React.FC = () => {
                         setDirectionsResponse(result.directionsResponse);
                     }
                     setIsOptimized(true);
+                    setSavingsReport(result.savingsReport || null);
                 }
             }
         } catch (error) {
@@ -862,6 +866,7 @@ const RoutesPage: React.FC = () => {
 
     const addManualPoint = (lng: number, lat: number) => {
         setIsOptimized(false);
+        setSavingsReport(null);
         const newPoint = [lng, lat] as [number, number];
         setTempPoints(prev => [...prev, { type: 'stop', pos: newPoint }]);
 
@@ -911,6 +916,7 @@ const RoutesPage: React.FC = () => {
                 });
                 setTempPoints(orderedPoints);
                 setIsOptimized(true);
+                setSavingsReport(result.savingsReport || null);
 
                 // Show route preview on map
                 setRouteGeoJson({
@@ -2184,25 +2190,78 @@ const RoutesPage: React.FC = () => {
                                     {/* Optimize Button Placeholder (Handled in generic button logic) */}
 
                                     {(tempPoints.some(p => p.type === 'end') || (creationMethod === 'manual' && tempPoints.length >= 2) || (creationMethod === 'interactive' && tempPoints.length >= 2)) && (
-                                        <div className="space-y-2 mb-4">
-                                            {creationMethod === 'auto' && (
+                                        <div className="space-y-3 mb-4">
+                                            {/* Akıllı Yakıt ve Maliyet Tasarrufu Raporu */}
+                                            {savingsReport && (
+                                                <div className="bg-gradient-to-br from-emerald-500/10 via-emerald-500/5 to-teal-500/10 border border-emerald-500/20 rounded-2xl p-4 my-2 text-slate-800 shadow-xs">
+                                                    <div className="flex items-center justify-between mb-2">
+                                                        <div className="flex items-center gap-2">
+                                                            <span className="p-1.5 bg-emerald-500/15 text-emerald-600 rounded-lg">
+                                                                <Leaf size={16} />
+                                                            </span>
+                                                            <span className="text-xs font-bold uppercase tracking-wider text-emerald-800">Akıllı Rota & Yakıt Raporu</span>
+                                                        </div>
+                                                        {savingsReport.savingsPercentage > 0 && (
+                                                            <span className="text-xs font-extrabold bg-emerald-600 text-white px-2.5 py-0.5 rounded-full shadow-xs">
+                                                                %{savingsReport.savingsPercentage} Tasarruf
+                                                            </span>
+                                                        )}
+                                                    </div>
+
+                                                    <div className="grid grid-cols-3 gap-2 py-2 border-y border-emerald-500/15 my-2 text-center">
+                                                        <div className="bg-white/80 rounded-xl p-2 border border-emerald-100">
+                                                            <div className="text-[11px] text-slate-500 font-medium">Kazanılan Yol</div>
+                                                            <div className="text-sm font-bold text-emerald-600">
+                                                                {savingsReport.savedDistanceKm > 0 ? `-${savingsReport.savedDistanceKm} km` : 'En Kısa Yol'}
+                                                            </div>
+                                                        </div>
+                                                        <div className="bg-white/80 rounded-xl p-2 border border-emerald-100">
+                                                            <div className="text-[11px] text-slate-500 font-medium">Sefer Başı Yakıt</div>
+                                                            <div className="text-sm font-bold text-slate-800">
+                                                                {savingsReport.savedFuelLiters > 0 ? `~${savingsReport.savedFuelLiters} L` : 'Optimize'}
+                                                            </div>
+                                                        </div>
+                                                        <div className="bg-white/80 rounded-xl p-2 border border-emerald-100">
+                                                            <div className="text-[11px] text-slate-500 font-medium">Aylık Kazanç</div>
+                                                            <div className="text-sm font-extrabold text-emerald-700">
+                                                                {savingsReport.monthlySavingsTRY > 0 ? `~${savingsReport.monthlySavingsTRY.toLocaleString('tr-TR')} ₺` : 'Min. Maliyet'}
+                                                            </div>
+                                                        </div>
+                                                    </div>
+
+                                                    <div className="text-[11px] text-slate-500 flex items-center justify-between px-1">
+                                                        <span>Eski Yol: <b>{savingsReport.originalDistanceKm} km</b></span>
+                                                        <span>Yeni Yol: <b>{savingsReport.optimizedDistanceKm} km</b></span>
+                                                    </div>
+                                                </div>
+                                            )}
+
+                                            {tempPoints.length >= 3 && (
                                                 <button
+                                                    type="button"
                                                     onClick={handleOptimizeRoute}
-                                                    className={`w-full py-2.5 rounded-xl font-bold flex items-center justify-center gap-2 transition-all ${isOptimized
-                                                        ? 'bg-green-50 text-green-700 border border-green-200'
-                                                        : 'bg-indigo-50 text-indigo-700 border border-indigo-200 hover:bg-indigo-100'
+                                                    disabled={loading}
+                                                    className={`w-full py-2.5 rounded-xl font-bold flex items-center justify-center gap-2 transition-all cursor-pointer ${isOptimized
+                                                        ? 'bg-emerald-50 text-emerald-700 border border-emerald-200'
+                                                        : 'bg-indigo-600 hover:bg-indigo-700 text-white shadow-md shadow-indigo-100 hover:shadow-lg'
                                                         }`}
-                                                    title="Durakları en kısa mesafe için sıralar (Başlangıç ve Bitiş sabit kalır)"
+                                                    title="Durakları en kısa mesafe ve minimum yakıt tüketimi için sıralar (Başlangıç ve Bitiş sabit kalır)"
                                                 >
-                                                    {isOptimized ? <Check size={18} /> : <Navigation size={18} />}
-                                                    {isOptimized ? 'Rota Optimize Edildi' : 'Rotayı Optimize Et (En Kısa Yol)'}
+                                                    {loading ? (
+                                                        <Loader2 className="w-4 h-4 animate-spin" />
+                                                    ) : isOptimized ? (
+                                                        <Check size={18} />
+                                                    ) : (
+                                                        <Sparkles size={18} />
+                                                    )}
+                                                    <span>{isOptimized ? 'Duraklar & Rota Optimize Edildi' : 'Rotayı Optimize Et (En Kısa Yol & Yakıt Tasarrufu)'}</span>
                                                 </button>
                                             )}
 
                                             <button
                                                 onClick={editingGeometryRouteId ? saveGeometryEdit : finishRouteCreation}
                                                 disabled={!editingGeometryRouteId && creationMethod === 'auto' && !isOptimized}
-                                                className={`w-full py-3 rounded-xl font-bold shadow-lg flex items-center justify-center gap-2 transition-all ${!editingGeometryRouteId && creationMethod === 'auto' && !isOptimized
+                                                className={`w-full py-3 rounded-xl font-bold shadow-lg flex items-center justify-center gap-2 transition-all cursor-pointer ${!editingGeometryRouteId && creationMethod === 'auto' && !isOptimized
                                                     ? 'bg-slate-200 text-slate-400 cursor-not-allowed shadow-none'
                                                     : editingGeometryRouteId
                                                         ? 'bg-orange-500 text-white hover:bg-orange-600 shadow-orange-200'
