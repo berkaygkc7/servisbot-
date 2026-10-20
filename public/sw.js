@@ -1,5 +1,5 @@
 // ServisBot Progressive Web App (PWA) Service Worker
-const CACHE_NAME = 'servisbot-v2';
+const CACHE_NAME = 'servisbot-v3';
 
 // Uygulama kabuğu (App Shell) - Çevrimdışı ilk açılış için temel kaynaklar
 const PRECACHE_ASSETS = [

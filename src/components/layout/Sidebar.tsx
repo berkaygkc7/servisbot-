@@ -25,16 +25,86 @@ const Sidebar: React.FC = () => {
     const [showLogoutModal, setShowLogoutModal] = useState(false);
 
     const navItems = [
-        { icon: LayoutDashboard, label: 'Panel', path: '/dashboard', allowedRoles: ['owner', 'admin', 'dispatcher'] },
-        { icon: Bus, label: 'Araçlar', path: '/dashboard/vehicles', allowedRoles: ['owner', 'admin', 'dispatcher'] },
-        { icon: UserCheck, label: 'Şoförler', path: '/dashboard/drivers', allowedRoles: ['owner', 'admin', 'dispatcher'] },
-        { icon: Users, label: 'Öğrenciler', path: '/dashboard/students', allowedRoles: ['owner', 'admin', 'dispatcher'] },
-        { icon: FileText, label: 'Sözleşmeler', path: '/dashboard/contracts', allowedRoles: ['owner', 'admin', 'dispatcher', 'accountant'] },
-        { icon: Map, label: 'Rotalar', path: '/dashboard/routes', allowedRoles: ['owner', 'admin', 'dispatcher'] },
-        { icon: CreditCard, label: 'Ödemeler', path: '/dashboard/payments', allowedRoles: ['owner', 'admin', 'accountant'] },
-        { icon: Wallet, label: 'Gelir / Giderler', path: '/dashboard/expenses', allowedRoles: ['owner', 'admin', 'accountant'] },
-        { icon: Layers, label: 'Puantaj', path: '/dashboard/timesheets', allowedRoles: ['owner', 'admin', 'accountant'] },
-        { icon: Settings, label: 'Ayarlar', path: '/dashboard/settings', allowedRoles: ['owner', 'admin'] },
+        { 
+            icon: LayoutDashboard, 
+            label: 'Panel', 
+            path: '/dashboard', 
+            allowedRoles: ['owner', 'admin', 'dispatcher'],
+            iconColor: 'text-blue-400',
+            badgeBg: 'bg-blue-500/15 group-hover:bg-blue-500/25',
+        },
+        { 
+            icon: Bus, 
+            label: 'Araçlar', 
+            path: '/dashboard/vehicles', 
+            allowedRoles: ['owner', 'admin', 'dispatcher'],
+            iconColor: 'text-amber-400',
+            badgeBg: 'bg-amber-500/15 group-hover:bg-amber-500/25',
+        },
+        { 
+            icon: UserCheck, 
+            label: 'Şoförler', 
+            path: '/dashboard/drivers', 
+            allowedRoles: ['owner', 'admin', 'dispatcher'],
+            iconColor: 'text-emerald-400',
+            badgeBg: 'bg-emerald-500/15 group-hover:bg-emerald-500/25',
+        },
+        { 
+            icon: Users, 
+            label: 'Öğrenciler', 
+            path: '/dashboard/students', 
+            allowedRoles: ['owner', 'admin', 'dispatcher'],
+            iconColor: 'text-cyan-400',
+            badgeBg: 'bg-cyan-500/15 group-hover:bg-cyan-500/25',
+        },
+        { 
+            icon: FileText, 
+            label: 'Sözleşmeler', 
+            path: '/dashboard/contracts', 
+            allowedRoles: ['owner', 'admin', 'dispatcher', 'accountant'],
+            iconColor: 'text-purple-400',
+            badgeBg: 'bg-purple-500/15 group-hover:bg-purple-500/25',
+        },
+        { 
+            icon: Map, 
+            label: 'Rotalar', 
+            path: '/dashboard/routes', 
+            allowedRoles: ['owner', 'admin', 'dispatcher'],
+            iconColor: 'text-rose-400',
+            badgeBg: 'bg-rose-500/15 group-hover:bg-rose-500/25',
+        },
+        { 
+            icon: CreditCard, 
+            label: 'Ödemeler', 
+            path: '/dashboard/payments', 
+            allowedRoles: ['owner', 'admin', 'accountant'],
+            iconColor: 'text-indigo-400',
+            badgeBg: 'bg-indigo-500/15 group-hover:bg-indigo-500/25',
+        },
+        { 
+            icon: Wallet, 
+            label: 'Gelir / Giderler', 
+            path: '/dashboard/expenses', 
+            allowedRoles: ['owner', 'admin', 'accountant'],
+            iconColor: 'text-teal-400',
+            badgeBg: 'bg-teal-500/15 group-hover:bg-teal-500/25',
+        },
+        { 
+            icon: Layers, 
+            label: 'Puantaj', 
+            path: '/dashboard/timesheets', 
+            allowedRoles: ['owner', 'admin', 'accountant'],
+            iconColor: 'text-violet-400',
+            badgeBg: 'bg-violet-500/15 group-hover:bg-violet-500/25',
+        },
+        { 
+            icon: Settings, 
+            label: 'Ayarlar', 
+            path: '/dashboard/settings', 
+            allowedRoles: ['owner', 'admin'],
+            iconColor: 'text-slate-300',
+            badgeBg: 'bg-slate-700/40 group-hover:bg-slate-600/40',
+        },
     ];
 
     const filteredNavItems = navItems.filter(item => {
@@ -49,7 +119,7 @@ const Sidebar: React.FC = () => {
     };
 
     return (
-        <div className="h-screen w-64 glass-panel-dark text-white flex flex-col fixed left-0 top-0 z-50 transition-all duration-300">
+        <div className="h-screen w-64 glass-panel-dark text-white flex flex-col fixed left-0 top-0 z-50 transition-all duration-300 select-none">
             {/* Logo Area */}
             <div className="flex flex-col items-center justify-center py-4 px-2 border-b border-slate-800">
                 <img src={logo} alt="ServisBot Admin Logo" className="w-[140px] h-auto object-contain opacity-90" />
@@ -81,7 +151,7 @@ const Sidebar: React.FC = () => {
             </div>
 
             {/* Navigation */}
-            <nav className="flex-1 overflow-y-auto px-4 py-6 space-y-1.5 custom-scrollbar">
+            <nav className="flex-1 overflow-y-auto px-3.5 py-4 space-y-1.5 custom-scrollbar">
                 {filteredNavItems.map((item, index) => (
                     <NavLink
                         key={item.path}
@@ -90,18 +160,33 @@ const Sidebar: React.FC = () => {
                         onMouseEnter={() => preloadRoute(item.path)}
                         onFocus={() => preloadRoute(item.path)}
                         className={({ isActive }) =>
-                            `flex items-center gap-3 px-4 py-3 rounded-xl transition-all duration-300 group animate-fade-up ${
+                            `flex items-center gap-3 px-3 py-2.5 rounded-xl transition-all duration-200 group relative outline-none select-none ${
                                 isActive
-                                    ? 'bg-gradient-to-r from-blue-600/90 to-indigo-600/90 text-white shadow-lg shadow-blue-900/40 ring-1 ring-white/10'
-                                    : 'text-slate-400 hover:bg-slate-800/50 hover:text-white hover:translate-x-1'
+                                    ? 'bg-gradient-to-r from-blue-600 via-indigo-600 to-blue-600 text-white shadow-lg shadow-blue-600/35 ring-1 ring-white/20'
+                                    : 'text-slate-200 hover:text-white hover:bg-slate-800/80 border border-transparent hover:border-slate-700/50 hover:translate-x-1 font-medium'
                             }`
                         }
-                        style={{ animationDelay: `${index * 50}ms` }}
+                        style={{ animationDelay: `${index * 30}ms` }}
                     >
                         {({ isActive }) => (
                             <>
-                                <item.icon size={20} className={`transition-transform duration-300 ${isActive ? 'scale-110' : 'group-hover:scale-110 group-hover:text-blue-400'}`} />
-                                <span className="font-semibold text-sm tracking-wide">{item.label}</span>
+                                <div
+                                    className={`w-9 h-9 rounded-lg flex items-center justify-center transition-all duration-200 shrink-0 ${
+                                        isActive
+                                            ? 'bg-white/20 text-white shadow-inner ring-1 ring-white/30'
+                                            : `${item.badgeBg} ${item.iconColor} ring-1 ring-white/10 group-hover:scale-110 group-hover:ring-white/20`
+                                    }`}
+                                >
+                                    <item.icon size={19} className="transition-transform duration-200" />
+                                </div>
+                                <span className={`text-[13.5px] tracking-wide transition-colors ${
+                                    isActive ? 'text-white font-bold' : 'text-slate-200 group-hover:text-white font-semibold'
+                                }`}>
+                                    {item.label}
+                                </span>
+                                {isActive && (
+                                    <div className="ml-auto w-1.5 h-4 bg-white/80 rounded-full shadow-sm animate-pulse"></div>
+                                )}
                             </>
                         )}
                     </NavLink>
@@ -109,23 +194,27 @@ const Sidebar: React.FC = () => {
             </nav>
 
             {/* User Profile / Logout */}
-            <div className="p-4 border-t border-slate-800/50 bg-slate-900/30 space-y-2">
+            <div className="p-3.5 border-t border-slate-800/60 bg-slate-900/40 space-y-1.5">
                 {profile?.is_superadmin && (
                     <button
                         onClick={() => navigate('/superadmin')}
-                        className="flex items-center gap-3 px-4 py-3 w-full rounded-xl text-amber-400 hover:bg-amber-500/20 hover:text-amber-300 hover:translate-x-1 transition-all duration-300 group font-bold"
+                        className="flex items-center gap-3 px-3 py-2.5 w-full rounded-xl text-amber-300 hover:text-amber-200 hover:bg-amber-500/15 border border-amber-500/20 hover:border-amber-500/40 hover:translate-x-1 transition-all duration-200 group font-bold outline-none"
                     >
-                        <ShieldAlert size={20} className="group-hover:scale-110 transition-transform duration-300" />
-                        <span className="font-semibold text-sm">Süper Admin</span>
+                        <div className="w-9 h-9 rounded-lg bg-amber-500/20 text-amber-400 flex items-center justify-center shrink-0 group-hover:scale-110 transition-all duration-200 ring-1 ring-amber-500/30">
+                            <ShieldAlert size={19} className="group-hover:scale-110 transition-transform duration-200" />
+                        </div>
+                        <span className="text-[13.5px] font-semibold">Süper Admin</span>
                     </button>
                 )}
                 
                 <button
                     onClick={() => setShowLogoutModal(true)}
-                    className="flex items-center gap-3 px-4 py-3 w-full rounded-xl text-slate-400 hover:bg-red-500/20 hover:text-red-400 hover:translate-x-1 transition-all duration-300 group"
+                    className="flex items-center gap-3 px-3 py-2.5 w-full rounded-xl text-slate-300 hover:text-red-300 hover:bg-red-500/10 border border-transparent hover:border-red-500/20 hover:translate-x-1 transition-all duration-200 group font-medium outline-none"
                 >
-                    <LogOut size={20} className="group-hover:rotate-12 transition-transform duration-300" />
-                    <span className="font-semibold text-sm">Çıkış Yap</span>
+                    <div className="w-9 h-9 rounded-lg bg-red-500/10 text-red-400 flex items-center justify-center shrink-0 group-hover:bg-red-500/20 group-hover:scale-110 transition-all duration-200 ring-1 ring-red-500/20">
+                        <LogOut size={19} className="group-hover:rotate-12 transition-transform duration-200" />
+                    </div>
+                    <span className="text-[13.5px] font-semibold">Çıkış Yap</span>
                 </button>
             </div>
 
