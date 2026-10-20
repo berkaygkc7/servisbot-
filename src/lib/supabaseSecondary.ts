@@ -14,5 +14,6 @@ export const supabaseSecondary = createClient(supabaseUrl, supabaseAnonKey, {
   auth: {
     persistSession: false,
     autoRefreshToken: false,
+    storageKey: 'sb-secondary-auth-token',
   }
 });

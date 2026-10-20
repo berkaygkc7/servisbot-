@@ -20,7 +20,8 @@ const EditPaymentModal: React.FC<EditPaymentModalProps> = ({ isOpen, payment, on
     const [invoiceNo, setInvoiceNo] = useState<string>('');
     const [dueDate, setDueDate] = useState<string>('');
     const [status, setStatus] = useState<Payment['status']>('Bekliyor');
-    const [paymentMethod, setPaymentMethod] = useState<string>('');
+    const [selectedMethodType, setSelectedMethodType] = useState<string>('');
+    const [customPaymentMethod, setCustomPaymentMethod] = useState<string>('');
     const [paymentDate, setPaymentDate] = useState<string>('');
     const [loading, setLoading] = useState(false);
 
@@ -31,7 +32,24 @@ const EditPaymentModal: React.FC<EditPaymentModalProps> = ({ isOpen, payment, on
             setInvoiceNo(payment.invoice_no || '');
             setDueDate(payment.due_date ? payment.due_date.split('T')[0] : '');
             setStatus(payment.status);
-            setPaymentMethod(payment.payment_method || '');
+            
+            const method = payment.payment_method || '';
+            if (['Nakit', 'Havale/IBAN', 'Kredi Kartı'].includes(method)) {
+                setSelectedMethodType(method);
+                setCustomPaymentMethod('');
+            } else if (method === 'İBAN') {
+                setSelectedMethodType('Havale/IBAN');
+                setCustomPaymentMethod('');
+            } else if (!method) {
+                setSelectedMethodType('');
+                setCustomPaymentMethod('');
+            } else if (method === 'Diğer') {
+                setSelectedMethodType('__custom__');
+                setCustomPaymentMethod('');
+            } else {
+                setSelectedMethodType('__custom__');
+                setCustomPaymentMethod(method);
+            }
             
             if (payment.payment_date) {
                 // Remove milliseconds and 'Z' to format as YYYY-MM-DDTHH:mm
@@ -59,13 +77,17 @@ const EditPaymentModal: React.FC<EditPaymentModalProps> = ({ isOpen, payment, on
         e.preventDefault();
         try {
             setLoading(true);
+            const finalPaymentMethod = selectedMethodType === '__custom__'
+                ? (customPaymentMethod.trim() || 'Diğer')
+                : selectedMethodType;
+
             await onSave(payment.id, {
                 amount: Number(amount),
                 month,
                 invoice_no: invoiceNo,
                 due_date: dueDate,
                 status,
-                payment_method: paymentMethod,
+                payment_method: finalPaymentMethod,
                 payment_date: status === 'Ödendi' ? (paymentDate ? new Date(paymentDate).toISOString() : new Date().toISOString()) : null
             });
             onClose();
@@ -184,15 +206,15 @@ const EditPaymentModal: React.FC<EditPaymentModalProps> = ({ isOpen, payment, on
                         <div className={status === 'Ödendi' ? 'col-span-2' : ''}>
                             <label className="block text-sm font-bold text-slate-700 mb-1">Ödeme Yöntemi</label>
                             <select
-                                value={['Nakit', 'Havale/IBAN', 'Kredi Kartı', ''].includes(paymentMethod) ? paymentMethod : '__custom__'}
+                                value={selectedMethodType}
                                 onChange={(e) => {
-                                    if (e.target.value === '__custom__') {
-                                        setPaymentMethod('');
-                                    } else {
-                                        setPaymentMethod(e.target.value);
+                                    const val = e.target.value;
+                                    setSelectedMethodType(val);
+                                    if (val !== '__custom__') {
+                                        setCustomPaymentMethod('');
                                     }
                                 }}
-                                className="w-full px-3 py-2 border border-slate-200 rounded-lg focus:ring-2 focus:ring-blue-500 outline-none"
+                                className="w-full px-3 py-2 border border-slate-200 rounded-lg focus:ring-2 focus:ring-blue-500 outline-none text-slate-800"
                             >
                                 <option value="">Seçiniz</option>
                                 <option value="Nakit">💵 Nakit</option>
@@ -200,13 +222,14 @@ const EditPaymentModal: React.FC<EditPaymentModalProps> = ({ isOpen, payment, on
                                 <option value="Kredi Kartı">💳 Kredi Kartı</option>
                                 <option value="__custom__">✏️ Diğer (Yazın)</option>
                             </select>
-                            {!['Nakit', 'Havale/IBAN', 'Kredi Kartı', ''].includes(paymentMethod) && (
+                            {selectedMethodType === '__custom__' && (
                                 <input
                                     type="text"
-                                    value={paymentMethod}
-                                    onChange={(e) => setPaymentMethod(e.target.value)}
-                                    placeholder="Ödeme yöntemini yazın..."
-                                    className="w-full mt-2 px-3 py-2 border border-slate-200 rounded-lg focus:ring-2 focus:ring-blue-500 outline-none"
+                                    value={customPaymentMethod}
+                                    onChange={(e) => setCustomPaymentMethod(e.target.value)}
+                                    placeholder="Ödeme yöntemini yazın (Örn: Çek, Elden, POS...)"
+                                    autoFocus
+                                    className="w-full mt-2 px-3 py-2 border border-blue-400 bg-blue-50/20 rounded-lg focus:ring-2 focus:ring-blue-500 outline-none text-slate-800 text-sm"
                                 />
                             )}
                         </div>

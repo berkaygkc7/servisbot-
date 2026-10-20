@@ -98,6 +98,7 @@ const CollectPaymentModal: React.FC<CollectPaymentModalProps> = ({ isOpen, onClo
     const [loadingPlan, setLoadingPlan] = useState(false);
     const [monthItems, setMonthItems] = useState<MonthItem[]>([]);
     const [paymentMethod, setPaymentMethod] = useState<'Nakit' | 'İBAN' | 'Kredi Kartı' | 'Diğer'>('İBAN');
+    const [customPaymentMethod, setCustomPaymentMethod] = useState('');
     const [paymentDate, setPaymentDate] = useState(() => new Date().toISOString().split('T')[0]);
     const [invoiceNo, setInvoiceNo] = useState('');
     const [sendWhatsApp, setSendWhatsApp] = useState(false);
@@ -319,6 +320,9 @@ const CollectPaymentModal: React.FC<CollectPaymentModalProps> = ({ isOpen, onClo
 
         try {
             const effectivePaymentDate = paymentDate ? new Date(paymentDate).toISOString() : new Date().toISOString();
+            const effectivePaymentMethod = paymentMethod === 'Diğer' 
+                ? (customPaymentMethod.trim() || 'Diğer') 
+                : paymentMethod;
 
             // 1. Process each selected month
             for (let i = 0; i < monthsToPay.length; i++) {
@@ -333,7 +337,7 @@ const CollectPaymentModal: React.FC<CollectPaymentModalProps> = ({ isOpen, onClo
                             status: 'Ödendi',
                             amount: item.amountToPay,
                             due_date: item.dueDate,
-                            payment_method: paymentMethod,
+                            payment_method: effectivePaymentMethod,
                             payment_date: effectivePaymentDate,
                             invoice_no: itemInvNo || undefined
                         })
@@ -351,7 +355,7 @@ const CollectPaymentModal: React.FC<CollectPaymentModalProps> = ({ isOpen, onClo
                             amount: item.amountToPay,
                             due_date: item.dueDate,
                             status: 'Ödendi',
-                            payment_method: paymentMethod,
+                            payment_method: effectivePaymentMethod,
                             payment_date: effectivePaymentDate,
                             invoice_no: itemInvNo
                         }]);
@@ -373,7 +377,7 @@ const CollectPaymentModal: React.FC<CollectPaymentModalProps> = ({ isOpen, onClo
 
                     const msg = `Sayın ${selectedStudent.parent_name || 'Velimiz'},\n\n` +
                         `Öğrencimiz *${selectedStudent.full_name}* için *${paidMonthNames}* ayı servis ücreti toplamı olan *${totalAmountToCollect.toLocaleString('tr-TR')} ₺* tahsil edilmiştir.\n\n` +
-                        `💳 Ödeme Yöntemi: ${paymentMethod}\n` +
+                        `💳 Ödeme Yöntemi: ${effectivePaymentMethod}\n` +
                         `📅 Ödeme Tarihi: ${new Date(effectivePaymentDate).toLocaleDateString('tr-TR')}\n` +
                         `💰 Kalan Sezonluk Borç: ${newDebt.toLocaleString('tr-TR')} ₺\n\n` +
                         `Ödemeniz için teşekkür eder, iyi günler dileriz.\n*${companyName}*`;
@@ -686,7 +690,10 @@ const CollectPaymentModal: React.FC<CollectPaymentModalProps> = ({ isOpen, onClo
                                         <button
                                             key={method}
                                             type="button"
-                                            onClick={() => setPaymentMethod(method)}
+                                            onClick={() => {
+                                                setPaymentMethod(method);
+                                                if (method !== 'Diğer') setCustomPaymentMethod('');
+                                            }}
                                             className={`py-2 px-3 rounded-xl border text-xs font-bold transition-all flex items-center justify-center gap-1.5 ${
                                                 paymentMethod === method
                                                     ? 'border-emerald-600 bg-emerald-600 text-white shadow-xs'
@@ -700,6 +707,16 @@ const CollectPaymentModal: React.FC<CollectPaymentModalProps> = ({ isOpen, onClo
                                         </button>
                                     ))}
                                 </div>
+                                {paymentMethod === 'Diğer' && (
+                                    <input
+                                        type="text"
+                                        value={customPaymentMethod}
+                                        onChange={(e) => setCustomPaymentMethod(e.target.value)}
+                                        placeholder="Ödeme yöntemini belirtin (Örn: Çek, Elden)..."
+                                        autoFocus
+                                        className="w-full mt-2 px-3 py-2 rounded-xl border border-emerald-400 bg-emerald-50/20 text-xs font-medium text-slate-800 focus:outline-none focus:ring-2 focus:ring-emerald-500"
+                                    />
+                                )}
                             </div>
 
                             {/* Payment Date */}

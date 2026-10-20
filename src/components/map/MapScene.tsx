@@ -4,7 +4,6 @@ import { Map, AdvancedMarker, useMap, useMapsLibrary } from '@vis.gl/react-googl
 import { useAuth } from '../../contexts/AuthContext';
 import { getCityCoordinates } from '../../constants/cities';
 import VehicleMarker from './VehicleMarker';
-import { darkMapStyle } from './mapStyles';
 
 interface MapSceneProps {
     className?: string;
@@ -430,7 +429,6 @@ const MapScene: React.FC<MapSceneProps> = ({
                     disableDefaultUI={true}
                     mapId="DEMO_MAP_ID"
                     colorScheme={mapStyle === 'dark' ? 'DARK' : mapStyle === 'light' ? 'LIGHT' : 'FOLLOW_SYSTEM'}
-                    styles={mapStyle === 'dark' ? darkMapStyle : []}
                 >
                     <MapSceneController 
                         routeGeoJson={routeGeoJson}

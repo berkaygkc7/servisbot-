@@ -257,7 +257,7 @@ const FinancialReports: React.FC = () => {
             <div className="grid grid-cols-1 md:grid-cols-2 gap-6 pb-4">
 
                 {/* FINANCIAL CHART */}
-                <div className="premium-card p-6 flex flex-col animate-fade-up stagger-1 col-span-1 md:col-span-2 lg:col-span-1">
+                <div className="premium-card p-6 flex flex-col animate-fade-up stagger-1 col-span-1 md:col-span-2 lg:col-span-1 min-w-0">
                     <div className="flex justify-between items-start mb-6">
                         <div>
                             <h3 className="text-lg font-bold text-slate-800">Gelir & Gider Analizi</h3>
@@ -276,8 +276,8 @@ const FinancialReports: React.FC = () => {
                         </div>
                     </div>
 
-                    <div className="h-72 w-full mt-auto">
-                        <ResponsiveContainer width="100%" height="100%">
+                    <div className="h-72 w-full min-w-0 mt-auto">
+                        <ResponsiveContainer width="100%" height="100%" minWidth={0} minHeight={0}>
                             <AreaChart data={financialData} margin={{ top: 10, right: 10, left: -20, bottom: 0 }}>
                                 <defs>
                                     <linearGradient id="colorGelir" x1="0" y1="0" x2="0" y2="1">
@@ -303,7 +303,7 @@ const FinancialReports: React.FC = () => {
                 </div>
 
                 {/* STUDENTS CHART */}
-                <div className="premium-card p-6 flex flex-col animate-fade-up stagger-2">
+                <div className="premium-card p-6 flex flex-col animate-fade-up stagger-2 min-w-0">
                     <div className="flex justify-between items-start mb-6">
                         <div>
                             <h3 className="text-lg font-bold text-slate-800">Öğrenci Kayıtları</h3>
@@ -314,8 +314,8 @@ const FinancialReports: React.FC = () => {
                         </div>
                     </div>
 
-                    <div className="h-64 w-full mt-auto">
-                        <ResponsiveContainer width="100%" height="100%">
+                    <div className="h-64 w-full min-w-0 mt-auto">
+                        <ResponsiveContainer width="100%" height="100%" minWidth={0} minHeight={0}>
                             <BarChart data={registrationData} margin={{ top: 10, right: 0, left: -20, bottom: 0 }}>
                                 <CartesianGrid strokeDasharray="3 3" vertical={false} stroke="#f1f5f9" />
                                 <XAxis dataKey="name" axisLine={false} tickLine={false} tick={{ fill: '#94a3b8', fontSize: 12 }} dy={10} />
@@ -349,7 +349,7 @@ const FinancialReports: React.FC = () => {
                 </div>
 
                 {/* PAYMENT DISTRIBUTION CHART (DONUT) */}
-                <div className="premium-card p-6 flex flex-col animate-fade-up stagger-3 col-span-1 md:col-span-2">
+                <div className="premium-card p-6 flex flex-col animate-fade-up stagger-3 col-span-1 md:col-span-2 min-w-0">
                     <div className="flex justify-between items-start mb-2">
                         <div>
                             <h3 className="text-lg font-bold text-slate-800">Tahsilat Durumu</h3>
@@ -360,8 +360,8 @@ const FinancialReports: React.FC = () => {
                         </div>
                     </div>
 
-                    <div className="h-56 w-full relative mt-4">
-                        <ResponsiveContainer width="100%" height="100%">
+                    <div className="h-56 w-full min-w-0 relative mt-4">
+                        <ResponsiveContainer width="100%" height="100%" minWidth={0} minHeight={0}>
                             <PieChart>
                                 <Pie
                                     data={paymentData}
@@ -405,7 +405,7 @@ const FinancialReports: React.FC = () => {
                 </div>
 
                 {/* CAPACITY UTILIZATION CHART (DONUT) */}
-                <div className="premium-card p-6 pr-6 flex flex-col animate-fade-up stagger-4 col-span-1 md:col-span-2">
+                <div className="premium-card p-6 pr-6 flex flex-col animate-fade-up stagger-4 col-span-1 md:col-span-2 min-w-0">
                     <div className="flex justify-between items-start mb-2">
                         <div>
                             <h3 className="text-lg font-bold text-slate-800">Kapasite Kullanımı</h3>
@@ -416,8 +416,8 @@ const FinancialReports: React.FC = () => {
                         </div>
                     </div>
 
-                    <div className="h-56 w-full relative mt-4">
-                        <ResponsiveContainer width="100%" height="100%">
+                    <div className="h-56 w-full min-w-0 relative mt-4">
+                        <ResponsiveContainer width="100%" height="100%" minWidth={0} minHeight={0}>
                             <PieChart>
                                 <Pie
                                     data={capacityData}

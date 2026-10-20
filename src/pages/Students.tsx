@@ -792,7 +792,13 @@ const Students: React.FC = () => {
         if (paymentMethodChoice === null) return;
 
         const methodMap: Record<string, string> = { '1': 'Nakit', '2': 'Havale/IBAN', '3': 'Kredi Kartı', '4': 'Diğer' };
-        const manualPaymentMethod = methodMap[paymentMethodChoice.trim()] || paymentMethodChoice.trim() || 'Nakit';
+        let manualPaymentMethod = methodMap[paymentMethodChoice.trim()] || paymentMethodChoice.trim() || 'Nakit';
+        if (manualPaymentMethod === 'Diğer') {
+            const custom = window.prompt('Ödeme yöntemini yazın (Örn: Çek, Elden vb.):', '');
+            if (custom !== null && custom.trim() !== '') {
+                manualPaymentMethod = custom.trim();
+            }
+        }
 
         const dateInput = window.prompt(`Ödeme Tarihi (GG.AA.YYYY formatında girin)\n\nBugünün tarihi için boş bırakıp Tamam'a tıklayın:`, "");
         if (dateInput === null) return;

@@ -72,17 +72,33 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
             const startTime = performance.now();
             console.log("Auth init started");
 
-            const { data: { session: activeSession } } = await supabase.auth.getSession();
-            const sessionTime = performance.now();
-            console.log(`Session fetched in ${(sessionTime - startTime).toFixed(2)}ms`);
+            try {
+                const { data: { session: activeSession }, error } = await supabase.auth.getSession();
+                if (error) {
+                    console.warn("Session fetch warning, resetting stale token:", error.message);
+                    await supabase.auth.signOut().catch(() => {});
+                    setSession(null);
+                    setUser(null);
+                    setLoading(false);
+                    return;
+                }
+                const sessionTime = performance.now();
+                console.log(`Session fetched in ${(sessionTime - startTime).toFixed(2)}ms`);
 
-            setSession(activeSession);
-            setUser(activeSession?.user || null);
+                setSession(activeSession);
+                setUser(activeSession?.user || null);
 
-            if (activeSession?.user) {
-                // Initial fetch
-                await fetchProfile(activeSession.user.id);
-            } else {
+                if (activeSession?.user) {
+                    // Initial fetch
+                    await fetchProfile(activeSession.user.id);
+                } else {
+                    setLoading(false);
+                }
+            } catch (err) {
+                console.warn("Auth initialization error:", err);
+                await supabase.auth.signOut().catch(() => {});
+                setSession(null);
+                setUser(null);
                 setLoading(false);
             }
             console.log(`Auth init total time: ${(performance.now() - startTime).toFixed(2)}ms`);

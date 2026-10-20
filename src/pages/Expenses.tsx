@@ -703,9 +703,9 @@ const Expenses: React.FC = () => {
                         {/* Bar Chart */}
                         <div className="lg:col-span-2 bg-white p-6 rounded-2xl border border-slate-100 shadow-sm transition-transform hover:scale-[1.01]">
                             <h3 className="text-lg font-bold text-slate-800 mb-6">Finansal Trend ({viewMode === 'monthly' ? 'Son 6 Ay' : 'Son Yıllar'})</h3>
-                            <div className="h-72 w-full">
+                            <div className="h-72 w-full min-w-0">
                                 {chartData.length > 0 ? (
-                                    <ResponsiveContainer width="100%" height="100%">
+                                    <ResponsiveContainer width="100%" height="100%" minWidth={0} minHeight={0}>
                                         <BarChart data={chartData} margin={{ top: 10, right: 10, left: -20, bottom: 0 }}>
                                             <CartesianGrid strokeDasharray="3 3" vertical={false} stroke="#e2e8f0" />
                                             <XAxis dataKey="name" axisLine={false} tickLine={false} tick={{ fill: '#64748b', fontSize: 12 }} dy={10} />
@@ -734,9 +734,9 @@ const Expenses: React.FC = () => {
                             <h3 className="text-lg font-bold text-slate-800 mb-6">
                                 {typeFilter === 'income' ? 'Gelir Dağılımı' : typeFilter === 'expense' ? 'Gider Dağılımı' : 'Genel Gider Dağılımı'}
                             </h3>
-                            <div className="h-72 w-full relative">
+                            <div className="h-72 w-full min-w-0 relative">
                                 {pieData.length > 0 ? (
-                                    <ResponsiveContainer width="100%" height="100%">
+                                    <ResponsiveContainer width="100%" height="100%" minWidth={0} minHeight={0}>
                                         <PieChart>
                                             <Pie
                                                 data={pieData}
