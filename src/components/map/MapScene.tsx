@@ -6,6 +6,7 @@ import { getCityCoordinates } from '../../constants/cities';
 import VehicleMarker from './VehicleMarker';
 import MapFallback from './MapFallback';
 import MapErrorBoundary from './MapErrorBoundary';
+import LeafletMap from './LeafletMap';
 
 interface MapSceneProps {
     className?: string;
@@ -361,6 +362,7 @@ const MapSceneContent: React.FC<MapSceneProps> = ({
     directionsResponse,
     onDirectionsChanged,
     autoCenter,
+    fitBoundsTrigger,
     suppressMarkers
 }) => {
     const { profile } = useAuth();
@@ -378,29 +380,61 @@ const MapSceneContent: React.FC<MapSceneProps> = ({
     const effectiveCenter: [number, number] = safeCenter || (companyCityCoordinates && !isNaN(Number(companyCityCoordinates[0])) && !isNaN(Number(companyCityCoordinates[1])) ? [Number(companyCityCoordinates[0]), Number(companyCityCoordinates[1])] : [28.9784, 41.0082]);
     const centerObj = { lat: effectiveCenter[1], lng: effectiveCenter[0] };
 
-    // Check if Google Maps failed to load or encountered auth failure
-    if (apiStatus === APILoadingStatus.FAILED || apiStatus === APILoadingStatus.AUTH_FAILURE) {
-        return (
-            <MapFallback
-                type={apiStatus === APILoadingStatus.AUTH_FAILURE ? 'auth_failure' : 'error'}
-                center={effectiveCenter}
-                markers={markers}
-                className={className}
-            />
-        );
-    }
+    const [mapProvider, setMapProvider] = useState<'leaflet' | 'google'>(() => {
+        const saved = localStorage.getItem('map_provider');
+        return (saved as 'leaflet' | 'google') || 'leaflet';
+    });
 
-    // Check if API key is not configured and status is NOT_LOADED
-    if (!import.meta.env.VITE_GOOGLE_MAPS_API_KEY && apiStatus !== APILoadingStatus.LOADED) {
+    useEffect(() => {
+        const originalAuthFailure = (window as any).gm_authFailure;
+        (window as any).gm_authFailure = () => {
+            console.warn("Google Maps auth failure detected. Switching to OpenStreetMap fallback.");
+            setMapProvider('leaflet');
+            localStorage.setItem('map_provider', 'leaflet');
+            if (typeof originalAuthFailure === 'function') originalAuthFailure();
+        };
+    }, []);
+
+    // If Google has issues, automatically use Leaflet
+    const isGoogleBroken = apiStatus === APILoadingStatus.FAILED || apiStatus === APILoadingStatus.AUTH_FAILURE || (!import.meta.env.VITE_GOOGLE_MAPS_API_KEY && apiStatus !== APILoadingStatus.LOADED);
+    const activeProvider = isGoogleBroken ? 'leaflet' : mapProvider;
+
+    if (activeProvider === 'leaflet') {
         return (
-            <MapFallback
-                type="auth_failure"
-                title="Google Haritalar API Anahtarı Tanımlanmamış"
-                description="Google Haritalar API anahtarı yapılandırılmamış. Alternatif açık kaynak harita (OpenStreetMap) ile görüntüleyebilirsiniz."
-                center={effectiveCenter}
-                markers={markers}
-                className={className}
-            />
+            <div className={`relative overflow-hidden rounded-xl shadow-inner bg-slate-100 ${className}`}>
+                <LeafletMap
+                    className="w-full h-full"
+                    center={effectiveCenter}
+                    zoom={zoom}
+                    markers={markers}
+                    routeGeoJson={routeGeoJson}
+                    routesGeoJson={routesGeoJson}
+                    colorfulRoutesGeoJson={colorfulRoutesGeoJson}
+                    autoCenter={autoCenter}
+                    fitBoundsTrigger={fitBoundsTrigger}
+                    hideControls={hideControls}
+                    onMapClick={onMapClick}
+                    onMarkerClick={onMarkerClick}
+                    onMarkerHover={onMarkerHover}
+                    onRouteHover={onRouteHover}
+                    onRouteClick={onRouteClick}
+                />
+                {!hideControls && (
+                    <div className="absolute top-3 right-3 z-10 flex items-center gap-1.5">
+                        <button
+                            type="button"
+                            onClick={() => {
+                                setMapProvider('google');
+                                localStorage.setItem('map_provider', 'google');
+                            }}
+                            className="px-2.5 py-1 bg-white/90 hover:bg-white text-slate-700 text-[10px] font-bold rounded-lg shadow-sm border border-slate-200/80 backdrop-blur-sm transition-all cursor-pointer"
+                            title="Google Haritalar görünümüne geç"
+                        >
+                            🌐 Google Harita
+                        </button>
+                    </div>
+                )}
+            </div>
         );
     }
 
