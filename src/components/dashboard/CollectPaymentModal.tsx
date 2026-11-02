@@ -572,6 +572,18 @@ const CollectPaymentModal: React.FC<CollectPaymentModalProps> = ({ isOpen, onClo
                                     >
                                         Tümünü Seç
                                     </button>
+                                    <button
+                                        type="button"
+                                        onClick={() => {
+                                            handleSelectAllUnpaid(true);
+                                            setPaymentMethod('Nakit');
+                                        }}
+                                        className="text-[11px] font-bold px-3 py-1 bg-emerald-600 hover:bg-emerald-700 text-white rounded-lg transition-all shadow-xs flex items-center gap-1 active:scale-95"
+                                        title="Tüm sezon aylarını otomatik seçer ve ödeme yöntemini Nakit yapar"
+                                    >
+                                        <Banknote size={13} />
+                                        💵 Nakit Ödedi (Tüm Ayları Doldur)
+                                    </button>
                                 </div>
                             </div>
 
@@ -693,6 +705,10 @@ const CollectPaymentModal: React.FC<CollectPaymentModalProps> = ({ isOpen, onClo
                                             onClick={() => {
                                                 setPaymentMethod(method);
                                                 if (method !== 'Diğer') setCustomPaymentMethod('');
+                                                if (method === 'Nakit') {
+                                                    // Nakit ödedi seçildiğinde tüm ödenmemiş ayları otomatik seçip tabloyu doldur
+                                                    handleSelectAllUnpaid(true);
+                                                }
                                             }}
                                             className={`py-2 px-3 rounded-xl border text-xs font-bold transition-all flex items-center justify-center gap-1.5 ${
                                                 paymentMethod === method

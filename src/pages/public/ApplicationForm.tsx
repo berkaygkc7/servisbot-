@@ -2,7 +2,8 @@ import React, { useState, useEffect } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
 import { Send, CheckCircle2, User, Phone, MapPin, AlertCircle, Loader2, GraduationCap, School, Building2, Search, Smartphone, X, Users, CreditCard } from 'lucide-react';
 import { supabase } from '../../lib/supabase';
-import { Map, AdvancedMarker, useMapsLibrary } from '@vis.gl/react-google-maps';
+import { Map, AdvancedMarker, useMapsLibrary, useApiLoadingStatus, APILoadingStatus } from '@vis.gl/react-google-maps';
+import { MapFallback, MapErrorBoundary } from '../../components/map/MapScene';
 import AddressCombobox, { type AddressOption } from '../../components/shared/AddressCombobox';
 import SignaturePad from '../../components/shared/SignaturePad';
 
@@ -67,6 +68,7 @@ class ApplicationFormErrorBoundary extends React.Component<ErrorBoundaryProps, E
 const ApplicationForm: React.FC = () => {
     const { token } = useParams<{ token: string }>();
     const navigate = useNavigate();
+    const apiStatus = useApiLoadingStatus();
     
     const [loading, setLoading] = useState(true);
     const [submitting, setSubmitting] = useState(false);
@@ -902,43 +904,60 @@ const ApplicationForm: React.FC = () => {
                                     </button>
                                 </div>
                                 <div className="h-[250px] w-full rounded-xl overflow-hidden border-2 border-slate-300 relative shadow-inner">
-                                    {/* Kilit Overlay & Butonu */}
-                                    {!isMapUnlocked && (
-                                        <div className="absolute inset-0 bg-white/30 backdrop-blur-[1px] z-10 flex flex-col items-center justify-center transition-all duration-300 gap-2">
-                                            <div className="bg-white/90 px-3 py-1.5 rounded-lg shadow-sm border border-slate-200">
-                                                <span className="text-xs font-bold text-slate-600 flex items-center gap-1"><MapPin size={12} className="text-blue-500"/> Harita kilitli (Yanlışlıkla oynamayı önlemek için)</span>
-                                            </div>
-                                            <button 
-                                                type="button" 
-                                                onClick={() => setIsMapUnlocked(true)}
-                                                className="bg-slate-800/90 hover:bg-slate-900 text-white px-4 py-2 rounded-lg font-semibold text-sm shadow-xl flex items-center gap-2 transition-transform transform hover:scale-105 cursor-pointer"
+                                    {apiStatus === APILoadingStatus.FAILED || apiStatus === APILoadingStatus.AUTH_FAILURE || (!import.meta.env.VITE_GOOGLE_MAPS_API_KEY && apiStatus !== APILoadingStatus.LOADED) ? (
+                                        <MapFallback
+                                            type="error"
+                                            title="Harita Yüklenemedi"
+                                            description="Harita yüklenemedi ancak yukarıda seçtiğiniz adresi kullanarak başvurunuza sorunsuz devam edebilirsiniz."
+                                            center={pickerCoordinates ? [pickerCoordinates[1], pickerCoordinates[0]] : [mapCenter[1], mapCenter[0]]}
+                                            className="h-full w-full"
+                                        />
+                                    ) : (
+                                        <MapErrorBoundary center={pickerCoordinates ? [pickerCoordinates[1], pickerCoordinates[0]] : [mapCenter[1], mapCenter[0]]} className="h-full w-full">
+                                            {apiStatus === APILoadingStatus.LOADING && (
+                                                <div className="absolute inset-0 z-20 pointer-events-none transition-opacity duration-300">
+                                                    <MapFallback type="loading" className="w-full h-full" />
+                                                </div>
+                                            )}
+                                            {/* Kilit Overlay & Butonu */}
+                                            {!isMapUnlocked && (
+                                                <div className="absolute inset-0 bg-white/30 backdrop-blur-[1px] z-10 flex flex-col items-center justify-center transition-all duration-300 gap-2">
+                                                    <div className="bg-white/90 px-3 py-1.5 rounded-lg shadow-sm border border-slate-200">
+                                                        <span className="text-xs font-bold text-slate-600 flex items-center gap-1"><MapPin size={12} className="text-blue-500"/> Harita kilitli (Yanlışlıkla oynamayı önlemek için)</span>
+                                                    </div>
+                                                    <button 
+                                                        type="button" 
+                                                        onClick={() => setIsMapUnlocked(true)}
+                                                        className="bg-slate-800/90 hover:bg-slate-900 text-white px-4 py-2 rounded-lg font-semibold text-sm shadow-xl flex items-center gap-2 transition-transform transform hover:scale-105 cursor-pointer"
+                                                    >
+                                                        <MapPin size={16} /> Pimi Elimle Düzeltmek İstiyorum
+                                                    </button>
+                                                </div>
+                                            )}
+                                            <Map
+                                                center={{ lat: mapCenter[0], lng: mapCenter[1] }}
+                                                zoom={mapZoom}
+                                                mapId="registration_map"
+                                                disableDefaultUI={!isMapUnlocked}
+                                                gestureHandling={isMapUnlocked ? 'greedy' : 'none'}
+                                                onClick={(e) => {
+                                                    if (isMapUnlocked && e.detail.latLng) {
+                                                        setPickerCoordinates([e.detail.latLng.lat, e.detail.latLng.lng]);
+                                                    }
+                                                }}
+                                                onCameraChanged={(ev) => {
+                                                    if (isMapUnlocked) {
+                                                        setMapCenter([ev.detail.center.lat, ev.detail.center.lng]);
+                                                        setMapZoom(ev.detail.zoom);
+                                                    }
+                                                }}
                                             >
-                                                <MapPin size={16} /> Pimi Elimle Düzeltmek İstiyorum
-                                            </button>
-                                        </div>
+                                                {pickerCoordinates && (
+                                                    <AdvancedMarker position={{ lat: pickerCoordinates[0], lng: pickerCoordinates[1] }} />
+                                                )}
+                                            </Map>
+                                        </MapErrorBoundary>
                                     )}
-                                    <Map
-                                        center={{ lat: mapCenter[0], lng: mapCenter[1] }}
-                                        zoom={mapZoom}
-                                        mapId="registration_map"
-                                        disableDefaultUI={!isMapUnlocked}
-                                        gestureHandling={isMapUnlocked ? 'greedy' : 'none'}
-                                        onClick={(e) => {
-                                            if (isMapUnlocked && e.detail.latLng) {
-                                                setPickerCoordinates([e.detail.latLng.lat, e.detail.latLng.lng]);
-                                            }
-                                        }}
-                                        onCameraChanged={(ev) => {
-                                            if (isMapUnlocked) {
-                                                setMapCenter([ev.detail.center.lat, ev.detail.center.lng]);
-                                                setMapZoom(ev.detail.zoom);
-                                            }
-                                        }}
-                                    >
-                                        {pickerCoordinates && (
-                                            <AdvancedMarker position={{ lat: pickerCoordinates[0], lng: pickerCoordinates[1] }} />
-                                        )}
-                                    </Map>
                                 </div>
                                 <div className="mt-3 text-xs flex items-start gap-1.5">
                                     {hasSearchedAddress ? (

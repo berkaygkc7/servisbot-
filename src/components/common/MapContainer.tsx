@@ -1,8 +1,10 @@
 /// <reference types="@types/google.maps" />
 import React, { useEffect, useState } from 'react';
-import { Map, AdvancedMarker, useMap, useMapsLibrary } from '@vis.gl/react-google-maps';
+import { Map, AdvancedMarker, useMap, useMapsLibrary, useApiLoadingStatus, APILoadingStatus } from '@vis.gl/react-google-maps';
 import { useAuth } from '../../contexts/AuthContext';
 import { getCityCoordinates } from '../../constants/cities';
+import MapFallback from '../map/MapFallback';
+import MapErrorBoundary from '../map/MapErrorBoundary';
 
 interface MarkerData {
     id: string;
@@ -99,7 +101,7 @@ const MapController: React.FC<{
     return null;
 };
 
-const MapContainer: React.FC<MapContainerProps> = ({
+const MapContainerContent: React.FC<MapContainerProps> = ({
     className = "h-96 w-full",
     center,
     zoom = 10,
@@ -107,6 +109,7 @@ const MapContainer: React.FC<MapContainerProps> = ({
     markers
 }) => {
     const { profile } = useAuth();
+    const apiStatus = useApiLoadingStatus();
     const companyCityCoordinates = profile?.companies?.city 
         ? getCityCoordinates(profile.companies.city) 
         : null;
@@ -121,8 +124,35 @@ const MapContainer: React.FC<MapContainerProps> = ({
     
     const centerObj = { lat: safeCenter[1], lng: safeCenter[0] };
 
+    if (apiStatus === APILoadingStatus.FAILED || apiStatus === APILoadingStatus.AUTH_FAILURE) {
+        return (
+            <MapFallback
+                type={apiStatus === APILoadingStatus.AUTH_FAILURE ? 'auth_failure' : 'error'}
+                center={safeCenter as [number, number]}
+                markers={markers}
+                className={className}
+            />
+        );
+    }
+
+    if (!import.meta.env.VITE_GOOGLE_MAPS_API_KEY && apiStatus !== APILoadingStatus.LOADED) {
+        return (
+            <MapFallback
+                type="auth_failure"
+                center={safeCenter as [number, number]}
+                markers={markers}
+                className={className}
+            />
+        );
+    }
+
     return (
         <div className={`relative overflow-hidden rounded-xl shadow-lg border border-slate-200 bg-slate-100 ${className}`}>
+            {apiStatus === APILoadingStatus.LOADING && (
+                <div className="absolute inset-0 z-20 pointer-events-none transition-opacity duration-300">
+                    <MapFallback type="loading" className="w-full h-full" />
+                </div>
+            )}
             <div className="absolute inset-0 w-full h-full" style={{ minHeight: '400px' }}>
                 <Map
                     defaultZoom={zoom}
@@ -150,6 +180,14 @@ const MapContainer: React.FC<MapContainerProps> = ({
                 </Map>
             </div>
         </div>
+    );
+};
+
+const MapContainer: React.FC<MapContainerProps> = (props) => {
+    return (
+        <MapErrorBoundary center={props.center} className={props.className}>
+            <MapContainerContent {...props} />
+        </MapErrorBoundary>
     );
 };
 

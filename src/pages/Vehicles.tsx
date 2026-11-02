@@ -1,10 +1,11 @@
 import React, { useState } from 'react';
 import { useQuery } from '@tanstack/react-query';
-import { Plus, Search, Filter, X, Users, Printer, Phone, MessageSquare, School, Share2, Download } from 'lucide-react';
+import { Plus, Search, Filter, X, Users, Printer, Phone, MessageSquare, School, Share2, Download, FileSpreadsheet } from 'lucide-react';
+import { saveAs } from 'file-saver';
 import VehicleList, { type Vehicle } from '../components/dashboard/VehicleList';
 import { supabase } from '../lib/supabase';
 import { useAuth } from '../contexts/AuthContext';
-import MapScene from '../components/map/MapScene';
+import MapScene, { MapFallback } from '../components/map/MapScene';
 import VehicleProfileModal from '../components/VehicleProfileModal';
 import { preloadRoute } from '../utils/routePreloader';
 import { useVehiclesQuery } from '../hooks/queries/useVehiclesQuery';
@@ -85,7 +86,7 @@ const Vehicles: React.FC = () => {
         try {
             const { data, error } = await supabase
                 .from('students')
-                .select('id, full_name, parent_name, parent_phone, school_level, grade, neighborhood, address, schools(id, name), shift')
+                .select('id, full_name, parent_name, parent_phone, parent_tc, school_level, grade, neighborhood, address, schools(id, name), shift, blood_group')
                 .eq('vehicle_id', vehicle.id)
                 .neq('status', 'pending')
                 .order('full_name');
@@ -210,7 +211,10 @@ const Vehicles: React.FC = () => {
 
         const data = filteredStudents.map((s, index) => ({
             'Sıra': index + 1,
-            'Öğrenci Adı Soyadı': s.full_name
+            'Öğrenci Adı Soyadı': s.full_name,
+            'Okul': s.schools?.name || s.school_level || '',
+            'Veli Adı Soyadı': s.parent_name || '',
+            'Veli Telefon': s.parent_phone || ''
         }));
 
         const worksheet = XLSX.utils.json_to_sheet(data);
@@ -219,12 +223,216 @@ const Vehicles: React.FC = () => {
         
         // Sütun genişliklerini ayarla
         const wscols = [
-            { wch: 8 }, // Sıra
-            { wch: 40 } // Öğrenci Adı Soyadı
+            { wch: 8 },  // Sıra
+            { wch: 30 }, // Öğrenci Adı Soyadı
+            { wch: 30 }, // Okul
+            { wch: 25 }, // Veli Adı Soyadı
+            { wch: 18 }  // Veli Telefon
         ];
         worksheet['!cols'] = wscols;
 
         XLSX.writeFile(workbook, `${selectedVehicleForStudents.plate}_Ogrenci_Listesi.xlsx`);
+    };
+
+    const handleExportDetailedExcel = async () => {
+        if (!selectedVehicleForStudents) return;
+
+        const filteredStudents = vehicleStudents.filter(s => {
+            const term = studentSearchTerm.toLowerCase();
+            const matchesSearch = (
+                (s.full_name || '').toLowerCase().includes(term) ||
+                (s.parent_name || '').toLowerCase().includes(term) ||
+                (s.neighborhood || '').toLowerCase().includes(term) ||
+                (s.schools?.name || '').toLowerCase().includes(term)
+            );
+            const matchesShift = vehicleShiftFilter === 'all' || 
+                (vehicleShiftFilter === 'sabah' && s.shift === 'Sabahçı') || 
+                (vehicleShiftFilter === 'oglen' && s.shift === 'Öğlenci');
+            const matchesSchool = selectedSchoolFilter === 'all' || s.schools?.id === selectedSchoolFilter;
+            return matchesSearch && matchesShift && matchesSchool;
+        });
+
+        if (filteredStudents.length === 0) {
+            alert('Dışa aktarılacak öğrenci bulunamadı.');
+            return;
+        }
+
+        try {
+            const ExcelJS = (await import('exceljs')).default;
+            const workbook = new ExcelJS.Workbook();
+            const sheetName = `${selectedVehicleForStudents.plate} Detaylı`.substring(0, 31);
+            const worksheet = workbook.addWorksheet(sheetName);
+
+            // Sütun yapılandırması
+            worksheet.columns = [
+                { key: 'sn', width: 6 },
+                { key: 'student_name', width: 28 },
+                { key: 'school', width: 32 },
+                { key: 'grade', width: 14 },
+                { key: 'parent_name', width: 26 },
+                { key: 'parent_phone', width: 18 },
+                { key: 'parent_tc', width: 16 },
+                { key: 'neighborhood', width: 22 },
+                { key: 'address', width: 45 },
+                { key: 'shift', width: 15 },
+                { key: 'blood_group', width: 13 }
+            ];
+
+            const calibriFont = (bold = false, size = 10, color = 'FF000000') => ({
+                name: 'Calibri',
+                size,
+                bold,
+                color: { argb: color }
+            });
+
+            const allThinBorders = {
+                top: { style: 'thin' as const, color: { argb: 'FFCBD5E1' } },
+                left: { style: 'thin' as const, color: { argb: 'FFCBD5E1' } },
+                bottom: { style: 'thin' as const, color: { argb: 'FFCBD5E1' } },
+                right: { style: 'thin' as const, color: { argb: 'FFCBD5E1' } }
+            };
+
+            // 1. Satır: Başlık Bannerı
+            worksheet.mergeCells('A1:K1');
+            const titleRow = worksheet.getRow(1);
+            titleRow.height = 32;
+            const titleCell = worksheet.getCell('A1');
+            titleCell.value = `🚌 ${selectedVehicleForStudents.plate} - TAŞINAN ÖĞRENCİ DETAYLI BİLGİ LİSTESİ`;
+            titleCell.font = calibriFont(true, 13, 'FFFFFFFF');
+            titleCell.alignment = { vertical: 'middle', horizontal: 'center' };
+            titleCell.fill = {
+                type: 'pattern',
+                pattern: 'solid',
+                fgColor: { argb: 'FF1E3A8A' } // Koyu Lacivert / Mavi
+            };
+
+            // 2. Satır: Alt Bilgi (Sürücü, Kapasite, Tarih)
+            worksheet.mergeCells('A2:K2');
+            const subRow = worksheet.getRow(2);
+            subRow.height = 22;
+            const subCell = worksheet.getCell('A2');
+            const driverName = selectedVehicleForStudents.driver || 'Atanmadı';
+            subCell.value = `Sürücü: ${driverName}   •   Kapasite: ${selectedVehicleForStudents.capacity} Kişilik   •   Toplam Öğrenci: ${filteredStudents.length}   •   Tarih: ${new Date().toLocaleDateString('tr-TR')}`;
+            subCell.font = calibriFont(true, 10, 'FF334155');
+            subCell.alignment = { vertical: 'middle', horizontal: 'center' };
+            subCell.fill = {
+                type: 'pattern',
+                pattern: 'solid',
+                fgColor: { argb: 'FFF1F5F9' }
+            };
+
+            // 3. Satır: Boşluk
+            worksheet.getRow(3).height = 8;
+
+            // 4. Satır: Sütun Başlıkları
+            const headerTitles = [
+                'S.N',
+                'ÖĞRENCİ ADI SOYADI',
+                'OKUL',
+                'SINIF / KADEME',
+                'VELİ ADI SOYADI',
+                'VELİ TELEFON',
+                'VELİ T.C.',
+                'MAHALLE',
+                'EV / AÇIK ADRES',
+                'SERVİS DEVRİ',
+                'KAN GRUBU'
+            ];
+            const headerRow = worksheet.addRow(headerTitles);
+            headerRow.height = 26;
+            headerRow.eachCell((cell) => {
+                cell.font = calibriFont(true, 10, 'FFFFFFFF');
+                cell.alignment = { vertical: 'middle', horizontal: 'center', wrapText: true };
+                cell.fill = {
+                    type: 'pattern',
+                    pattern: 'solid',
+                    fgColor: { argb: 'FF047857' } // Emerald yeşili
+                };
+                cell.border = {
+                    top: { style: 'thin', color: { argb: 'FF065F46' } },
+                    left: { style: 'thin', color: { argb: 'FF065F46' } },
+                    bottom: { style: 'medium', color: { argb: 'FF065F46' } },
+                    right: { style: 'thin', color: { argb: 'FF065F46' } }
+                };
+            });
+
+            // 5+. Satırlar: Öğrenci Verileri
+            filteredStudents.forEach((s, idx) => {
+                const schoolName = s.schools?.name || s.school_level || '-';
+                const gradeStr = s.grade ? `${s.grade}. Sınıf` : (s.school_level || '-');
+                const phoneStr = s.parent_phone || '-';
+                const shiftStr = s.shift || 'Tam Gün';
+                const bloodStr = s.blood_group || '-';
+                const tcStr = s.parent_tc || '-';
+                const nbrStr = s.neighborhood || '-';
+                const addrStr = s.address || '-';
+
+                const rowData = [
+                    idx + 1,
+                    s.full_name || '',
+                    schoolName,
+                    gradeStr,
+                    s.parent_name || '-',
+                    phoneStr,
+                    tcStr,
+                    nbrStr,
+                    addrStr,
+                    shiftStr,
+                    bloodStr
+                ];
+
+                const row = worksheet.addRow(rowData);
+                row.height = 24;
+
+                const isEven = idx % 2 === 1;
+                const rowBg = isEven ? 'FFF8FAFC' : 'FFFFFFFF';
+
+                row.eachCell((cell, colNumber) => {
+                    cell.border = allThinBorders;
+                    cell.fill = {
+                        type: 'pattern',
+                        pattern: 'solid',
+                        fgColor: { argb: rowBg }
+                    };
+
+                    if (colNumber === 1 || colNumber === 4 || colNumber === 7 || colNumber === 10 || colNumber === 11) {
+                        cell.alignment = { vertical: 'middle', horizontal: 'center' };
+                        cell.font = calibriFont(false, 9.5);
+                    } else if (colNumber === 2) {
+                        cell.alignment = { vertical: 'middle', horizontal: 'left' };
+                        cell.font = calibriFont(true, 10, 'FF0F172A');
+                    } else if (colNumber === 6) {
+                        cell.alignment = { vertical: 'middle', horizontal: 'center' };
+                        cell.font = calibriFont(true, 10, 'FF0369A1');
+                    } else {
+                        cell.alignment = { vertical: 'middle', horizontal: 'left' };
+                        cell.font = calibriFont(false, 9.5);
+                    }
+                });
+            });
+
+            // Sayfa yapısı: A4 yatay ve sütunları tek sayfaya sığdır
+            worksheet.pageSetup = {
+                paperSize: 9, // A4
+                orientation: 'landscape',
+                fitToPage: true,
+                fitToWidth: 1,
+                fitToHeight: 0,
+                margins: {
+                    left: 0.25, right: 0.25,
+                    top: 0.3, bottom: 0.3,
+                    header: 0.15, footer: 0.15
+                }
+            };
+
+            const fileName = `${selectedVehicleForStudents.plate}_Detayli_Ogrenci_Listesi.xlsx`;
+            const buffer = await workbook.xlsx.writeBuffer();
+            saveAs(new Blob([buffer]), fileName);
+
+        } catch (error) {
+            console.error('Detaylı Excel oluşturulurken hata:', error);
+            alert('Detaylı Excel tablosu oluşturulurken bir hata oluştu.');
+        }
     };
 
     // Real-time subscription
@@ -600,15 +808,26 @@ const Vehicles: React.FC = () => {
                             </button>
                         </div>
                         <div className="flex-1 relative overflow-hidden rounded-b-2xl">
-                            <MapScene
-                                className="w-full h-full"
-                                markers={[{
-                                    id: selectedVehicleForLocation.id,
-                                    title: selectedVehicleForLocation.plate,
-                                    position: [selectedVehicleForLocation.current_longitude!, selectedVehicleForLocation.current_latitude!] as [number, number],
-                                    type: 'vehicle' as const
-                                }]}
-                            />
+                            {selectedVehicleForLocation.current_longitude && selectedVehicleForLocation.current_latitude ? (
+                                <MapScene
+                                    className="w-full h-full"
+                                    center={[selectedVehicleForLocation.current_longitude, selectedVehicleForLocation.current_latitude]}
+                                    zoom={15}
+                                    markers={[{
+                                        id: selectedVehicleForLocation.id,
+                                        title: selectedVehicleForLocation.plate,
+                                        position: [selectedVehicleForLocation.current_longitude, selectedVehicleForLocation.current_latitude] as [number, number],
+                                        type: 'vehicle' as const
+                                    }]}
+                                />
+                            ) : (
+                                <MapFallback
+                                    type="no_coords"
+                                    title="Canlı Konum Verisi Bulunamadı"
+                                    description={`${selectedVehicleForLocation.plate} plakalı araca ait anlık GPS konumu henüz sisteme iletilmedi. Sürücü uygulamayı açtığında veya sefere başladığında konumu haritada canlı olarak görüntülenecektir.`}
+                                    className="w-full h-full"
+                                />
+                            )}
                         </div>
                     </div>
                 </div>
@@ -633,37 +852,47 @@ const Vehicles: React.FC = () => {
                                     <span>Kapasite: <strong>{selectedVehicleForStudents.capacity} Kişilik</strong></span>
                                 </p>
                             </div>
-                            <div className="flex items-center gap-2 no-print">
+                            <div className="flex flex-col items-end gap-2 no-print">
+                                <div className="flex items-center gap-2">
+                                    <button
+                                        onClick={handleShareStudents}
+                                        className="flex items-center gap-1.5 px-3 py-2 bg-emerald-600 hover:bg-emerald-700 text-white rounded-xl transition-all text-xs font-bold shadow-sm shadow-emerald-600/20 active:scale-95"
+                                        title="Öğrenci Listesini Paylaş"
+                                    >
+                                        <Share2 size={15} />
+                                        <span>Paylaş</span>
+                                    </button>
+                                    <button
+                                        onClick={handleExportExcel}
+                                        className="flex items-center gap-1.5 px-3 py-2 bg-green-600 hover:bg-green-700 text-white rounded-xl transition-all text-xs font-bold shadow-sm shadow-green-600/20 active:scale-95"
+                                        title="Excel ile İndir"
+                                    >
+                                        <Download size={15} />
+                                        <span>Excel</span>
+                                    </button>
+                                    <button
+                                        onClick={handlePrintStudents}
+                                        onMouseEnter={() => preloadRoute('/print-preview')}
+                                        className="flex items-center gap-1.5 px-3 py-2 bg-white border border-slate-200 text-slate-700 rounded-xl hover:bg-slate-50 transition-colors text-xs font-bold shadow-sm active:scale-95"
+                                        title="Listeyi Yazdır"
+                                    >
+                                        <Printer size={15} />
+                                        <span>Yazdır</span>
+                                    </button>
+                                    <button
+                                        onClick={() => setIsStudentsModalOpen(false)}
+                                        className="p-2 hover:bg-slate-200 rounded-full text-slate-400 hover:text-slate-600 transition-colors"
+                                    >
+                                        <X size={20} />
+                                    </button>
+                                </div>
                                 <button
-                                    onClick={handleShareStudents}
-                                    className="flex items-center gap-1.5 px-3 py-2 bg-emerald-600 hover:bg-emerald-700 text-white rounded-xl transition-all text-xs font-bold shadow-sm shadow-emerald-600/20 active:scale-95"
-                                    title="Öğrenci Listesini Paylaş"
+                                    onClick={handleExportDetailedExcel}
+                                    className="flex items-center gap-1.5 px-3.5 py-1.5 bg-gradient-to-r from-emerald-600 to-teal-700 hover:from-emerald-700 hover:to-teal-800 text-white rounded-xl transition-all text-xs font-bold shadow-sm shadow-emerald-700/25 active:scale-95 border border-emerald-500/30"
+                                    title="Öğrenci, veli, adres, telefon, T.C., okul ve sınıf bilgilerini içeren detaylı Excel tablosunu indir"
                                 >
-                                    <Share2 size={15} />
-                                    <span>Paylaş</span>
-                                </button>
-                                <button
-                                    onClick={handleExportExcel}
-                                    className="flex items-center gap-1.5 px-3 py-2 bg-green-600 hover:bg-green-700 text-white rounded-xl transition-all text-xs font-bold shadow-sm shadow-green-600/20 active:scale-95"
-                                    title="Excel ile İndir"
-                                >
-                                    <Download size={15} />
-                                    <span>Excel</span>
-                                </button>
-                                <button
-                                    onClick={handlePrintStudents}
-                                    onMouseEnter={() => preloadRoute('/print-preview')}
-                                    className="flex items-center gap-1.5 px-3 py-2 bg-white border border-slate-200 text-slate-700 rounded-xl hover:bg-slate-50 transition-colors text-xs font-bold shadow-sm active:scale-95"
-                                    title="Listeyi Yazdır"
-                                >
-                                    <Printer size={15} />
-                                    <span>Yazdır</span>
-                                </button>
-                                <button
-                                    onClick={() => setIsStudentsModalOpen(false)}
-                                    className="p-2 hover:bg-slate-200 rounded-full text-slate-400 hover:text-slate-600 transition-colors"
-                                >
-                                    <X size={20} />
+                                    <FileSpreadsheet size={15} />
+                                    <span>Detaylı Excel Tablosu</span>
                                 </button>
                             </div>
                         </div>

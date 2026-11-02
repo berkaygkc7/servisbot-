@@ -2,7 +2,7 @@ import { useState, useEffect } from 'react';
 import { CreditCard, Search, Download, CheckCircle, Bell, UserPlus, X, MapPin, History, ChevronRight, Calendar } from 'lucide-react';
 import { supabase } from '../../lib/supabase';
 import { useAuth } from '../../contexts/AuthContext';
-import MapScene from '../../components/map/MapScene';
+import MapScene, { MapFallback } from '../../components/map/MapScene';
 import PaymentHistoryModal from '../../components/dashboard/PaymentHistoryModal';
 
 // Helper component for status badges
@@ -1088,15 +1088,26 @@ const Payments = () => {
                                 </button>
                             </div>
                             <div className="flex-1 relative overflow-hidden rounded-b-2xl">
-                                <MapScene
-                                    className="w-full h-full"
-                                    markers={[{
-                                        id: selectedStudentDetails.id,
-                                        title: selectedStudentDetails.full_name,
-                                        position: [selectedStudentDetails.home_longitude, selectedStudentDetails.home_latitude] as [number, number],
-                                        type: 'student_home' as const
-                                    }]}
-                                />
+                                {selectedStudentDetails.home_longitude && selectedStudentDetails.home_latitude ? (
+                                    <MapScene
+                                        className="w-full h-full"
+                                        center={[selectedStudentDetails.home_longitude, selectedStudentDetails.home_latitude]}
+                                        zoom={16}
+                                        markers={[{
+                                            id: selectedStudentDetails.id,
+                                            title: selectedStudentDetails.full_name,
+                                            position: [selectedStudentDetails.home_longitude, selectedStudentDetails.home_latitude] as [number, number],
+                                            type: 'student_home' as const
+                                        }]}
+                                    />
+                                ) : (
+                                    <MapFallback
+                                        type="no_coords"
+                                        title="Ev Konumu Bulunamadı"
+                                        description={`${selectedStudentDetails.full_name} isimli öğrenci için sisteme kayıtlı bir ev koordinatı bulunmuyor.`}
+                                        className="w-full h-full"
+                                    />
+                                )}
                             </div>
                         </div>
                     </div>

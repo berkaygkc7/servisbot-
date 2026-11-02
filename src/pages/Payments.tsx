@@ -7,6 +7,52 @@ import BulkBillingModal from '../components/dashboard/BulkBillingModal';
 import EditPaymentModal from '../components/dashboard/EditPaymentModal';
 import CollectPaymentModal from '../components/dashboard/CollectPaymentModal';
 import { saveAs } from 'file-saver';
+const TURKISH_MONTH_ORDER: Record<string, number> = {
+    'ocak': 0, 'şubat': 1, 'mart': 2, 'nisan': 3, 'mayıs': 4, 'haziran': 5,
+    'temmuz': 6, 'ağustos': 7, 'eylül': 8, 'ekim': 9, 'kasım': 10, 'aralık': 11
+};
+
+const getAcademicSeasonMonths = (): string[] => {
+    const today = new Date();
+    const currentMonth = today.getMonth(); // 0-11
+    const currentYear = today.getFullYear();
+    const startYear = currentMonth >= 7 ? currentYear : currentYear - 1;
+    const endYear = startYear + 1;
+
+    const academicOrder = [
+        { name: 'Eylül', year: startYear },
+        { name: 'Ekim', year: startYear },
+        { name: 'Kasım', year: startYear },
+        { name: 'Aralık', year: startYear },
+        { name: 'Ocak', year: endYear },
+        { name: 'Şubat', year: endYear },
+        { name: 'Mart', year: endYear },
+        { name: 'Nisan', year: endYear },
+        { name: 'Mayıs', year: endYear },
+        { name: 'Haziran', year: endYear },
+    ];
+
+    return academicOrder.map(m => `${m.name} ${m.year}`);
+};
+
+const parseMonthYear = (mStr: string) => {
+    if (!mStr) return { year: 2000, monthIndex: 0 };
+    const parts = mStr.trim().split(/\s+/);
+    const mName = (parts[0] || '').toLocaleLowerCase('tr-TR');
+    const monthIndex = TURKISH_MONTH_ORDER[mName] ?? 0;
+    const yr = parts[1] ? parseInt(parts[1], 10) : new Date().getFullYear();
+    return { year: isNaN(yr) ? new Date().getFullYear() : yr, monthIndex };
+};
+
+const sortMonthsChronologically = (months: string[]): string[] => {
+    return [...months].sort((a, b) => {
+        const da = parseMonthYear(a);
+        const db = parseMonthYear(b);
+        if (da.year !== db.year) return da.year - db.year;
+        return da.monthIndex - db.monthIndex;
+    });
+};
+
 const Payments = () => {
     const { profile, loading: authLoading } = useAuth();
     const [payments, setPayments] = useState<Payment[]>([]);
@@ -19,8 +65,8 @@ const Payments = () => {
     const [isBulkBillingModalOpen, setIsBulkBillingModalOpen] = useState(false);
     const [isCollectModalOpen, setIsCollectModalOpen] = useState(false);
     const [editingPayment, setEditingPayment] = useState<Payment | null>(null);
-    const [availableMonths, setAvailableMonths] = useState<string[]>([]);
-    const [availableSchoolLevels, setAvailableSchoolLevels] = useState<string[]>([]);
+    const [availableMonths, setAvailableMonths] = useState<string[]>(() => getAcademicSeasonMonths());
+    const [availableSchoolLevels, setAvailableSchoolLevels] = useState<string[]>(['primary', 'middle', 'high']);
     const [selectedIds, setSelectedIds] = useState<string[]>([]);
     const [showArchived, setShowArchived] = useState(false);
     const [vehicleFilter, setVehicleFilter] = useState('all');
@@ -52,6 +98,57 @@ const Payments = () => {
             if (data) setAvailableVehicles(data);
         };
         if (!authLoading && profile?.company_id) fetchVehicles();
+    }, [profile?.company_id, authLoading]);
+
+    // Fetch distinct months and school levels once on mount
+    useEffect(() => {
+        const fetchDistinctMetadata = async () => {
+            if (!profile?.company_id) return;
+            try {
+                const { data: dbData } = await supabase
+                    .from('payments')
+                    .select('id, month, due_date, created_at')
+                    .eq('company_id', profile.company_id);
+
+                const normalizedDbMonths: string[] = [];
+                const legacyToUpdate: { id: string; month: string }[] = [];
+
+                if (dbData) {
+                    dbData.forEach((p: any) => {
+                        if (!p.month) return;
+                        const trimmed = p.month.trim();
+                        if (/\d{4}/.test(trimmed)) {
+                            normalizedDbMonths.push(trimmed);
+                        } else {
+                            const dateStr = p.due_date || p.created_at;
+                            const yr = dateStr ? new Date(dateStr).getFullYear() : new Date().getFullYear();
+                            const baseMonth = trimmed.charAt(0).toLocaleUpperCase('tr-TR') + trimmed.slice(1).toLocaleLowerCase('tr-TR');
+                            const fullMonth = `${baseMonth} ${yr}`;
+                            normalizedDbMonths.push(fullMonth);
+                            legacyToUpdate.push({ id: p.id, month: fullMonth });
+                        }
+                    });
+                }
+
+                // Background heal legacy records without year
+                if (legacyToUpdate.length > 0) {
+                    Promise.all(legacyToUpdate.map(item =>
+                        supabase.from('payments').update({ month: item.month }).eq('id', item.id)
+                    )).catch(err => console.warn('Could not auto-heal legacy months:', err));
+                }
+
+                const seasonMonths = getAcademicSeasonMonths();
+                const allMonths = Array.from(new Set([...seasonMonths, ...normalizedDbMonths]));
+                const sorted = sortMonthsChronologically(allMonths);
+                setAvailableMonths(sorted);
+            } catch (err) {
+                console.error('Error fetching distinct metadata:', err);
+            }
+        };
+
+        if (!authLoading && profile?.company_id) {
+            fetchDistinctMetadata();
+        }
     }, [profile?.company_id, authLoading]);
 
     useEffect(() => {
@@ -124,7 +221,12 @@ const Payments = () => {
                 statsQuery = statsQuery.eq('is_archived', false);
             }
             if (monthFilter !== 'all') {
-                statsQuery = statsQuery.eq('month', monthFilter);
+                const monthVariants = [monthFilter];
+                const baseMonth = monthFilter.split(' ')[0];
+                if (baseMonth && baseMonth !== monthFilter) {
+                    monthVariants.push(baseMonth);
+                }
+                statsQuery = statsQuery.in('month', monthVariants);
             }
             if (vehicleStudentIds) {
                 statsQuery = statsQuery.in('student_id', vehicleStudentIds);
@@ -182,7 +284,7 @@ const Payments = () => {
             let query = supabase
                 .from('payments')
                 .select(`
-                    id, invoice_no, student_id, month, amount, due_date, status, payment_method, is_archived, payment_date,
+                    id, invoice_no, student_id, month, amount, due_date, status, payment_method, is_archived, payment_date, created_at,
                     student:students(full_name, parent_name, parent_phone, school_level, neighborhood, total_debt, custom_price, tags)
                 `);
 
@@ -226,7 +328,12 @@ const Payments = () => {
                 }
             }
             if (monthFilter !== 'all') {
-                query = query.eq('month', monthFilter);
+                const monthVariants = [monthFilter];
+                const baseMonth = monthFilter.split(' ')[0];
+                if (baseMonth && baseMonth !== monthFilter) {
+                    monthVariants.push(baseMonth);
+                }
+                query = query.in('month', monthVariants);
             }
             if (vehicleStudentIds) {
                 query = query.in('student_id', vehicleStudentIds);
@@ -244,11 +351,18 @@ const Payments = () => {
                     // Temporarily using empty data while debugging the hang
                     const studentData = (p as any).student ? (Array.isArray((p as any).student) ? (p as any).student[0] : (p as any).student) : undefined;
 
+                    let displayMonth = p.month || '';
+                    if (displayMonth && !/\d{4}/.test(displayMonth)) {
+                        const dateStr = p.due_date || p.payment_date || p.created_at;
+                        const yr = dateStr ? new Date(dateStr).getFullYear() : new Date().getFullYear();
+                        displayMonth = `${displayMonth.trim()} ${yr}`;
+                    }
+
                     return {
                         id: p.id,
                         invoice_no: p.invoice_no,
                         student_id: p.student_id,
-                        month: p.month,
+                        month: displayMonth,
                         amount: p.amount,
                         due_date: p.due_date,
                         status: p.status as Payment['status'],
@@ -262,14 +376,13 @@ const Payments = () => {
                 setPayments(prevPayments => reset ? mappedPayments : [...prevPayments, ...mappedPayments]);
                 hasMoreRef.current = data.length === PAGE_SIZE;
 
-                // Update available months and levels only if we got data or it's a reset
+                // Update available levels only if we got data
                 if (reset || data.length > 0) {
                     const allLoaded = reset ? mappedPayments : [...payments, ...mappedPayments];
-                    const uniqueMonths = Array.from(new Set(allLoaded.map(p => p.month))).filter(Boolean);
-                    setAvailableMonths(uniqueMonths);
-
                     const uniqueLevels = Array.from(new Set(allLoaded.map(p => p.student?.school_level).filter(Boolean)));
-                    setAvailableSchoolLevels(uniqueLevels as string[]);
+                    if (uniqueLevels.length > 0) {
+                        setAvailableSchoolLevels(prev => Array.from(new Set([...prev, ...(uniqueLevels as string[])])));
+                    }
                 }
             } else {
                 hasMoreRef.current = false;
@@ -599,7 +712,10 @@ const Payments = () => {
                 (statusFilter === 'gecikti' && payment.status === 'Bekliyor' && new Date(payment.due_date) < new Date()) ||
                 (statusFilter === payment.status);
 
-            const matchesMonth = monthFilter === 'all' || payment.month === monthFilter;
+            const baseFilterMonth = monthFilter !== 'all' ? monthFilter.split(' ')[0] : '';
+            const matchesMonth = monthFilter === 'all' || 
+                payment.month === monthFilter ||
+                (Boolean(payment.month) && Boolean(baseFilterMonth) && payment.month.startsWith(baseFilterMonth));
 
             const matchesSchoolLevel = schoolLevelFilter === 'all' || payment.student?.school_level === schoolLevelFilter;
 
@@ -632,8 +748,8 @@ const Payments = () => {
             : '';
 
         try {
-            // First fetch the relevant students based on filters
-            let sq = supabase.from('students').select('id, full_name, vehicle_id').eq('company_id', profile.company_id);
+            // First fetch the relevant students based on filters (including tags, price, debt)
+            let sq = supabase.from('students').select('id, full_name, vehicle_id, custom_price, total_debt, tags, registration_date, created_at').eq('company_id', profile.company_id);
             if (vehicleFilter !== 'all') {
                 sq = sq.eq('vehicle_id', vehicleFilter);
             }
@@ -662,14 +778,14 @@ const Payments = () => {
             const isNakitPayment = (method: string | null | undefined): boolean => {
                 if (!method) return false;
                 const m = method.toLocaleLowerCase('tr-TR').trim();
-                return m === 'nakit' || m === 'elden' || m === 'nakit/elden' || m === 'nakit / elden';
+                return m.includes('nakit') || m.includes('elden') || m.includes('peşin');
             };
 
             // Helper: IBAN kontrolü (büyük/küçük harf duyarsız)
             const isIbanPayment = (method: string | null | undefined): boolean => {
                 if (!method) return false;
                 const m = method.toLocaleLowerCase('tr-TR').trim();
-                return m === 'iban' || m === 'İban'.toLocaleLowerCase('tr-TR') || m === 'İBAN'.toLocaleLowerCase('tr-TR');
+                return m.includes('iban') || m.includes('havale') || m.includes('eft') || m.includes('banka');
             };
 
             // Her öğrenci için satır verisi ve renk bilgisi oluştur
@@ -677,11 +793,34 @@ const Payments = () => {
             const exportData: { no: number; name: string; cells: Record<string, CellInfo> }[] = students.map((student, index) => {
                 const studentPayments = (allPayments || []).filter(p => p.student_id === student.id);
                 
+                // Öğrenci nakit / peşin ödedi mi kontrolü
+                const isNakitPesinStudent = 
+                    student.tags?.includes('Peşin Ödedi') ||
+                    student.tags?.includes('Nakit Ödedi') ||
+                    studentPayments.some(p => isNakitPayment(p.payment_method) && (p.payment_method?.toLowerCase().includes('peşin') || p.payment_method?.toLowerCase().includes('kayıt')));
+
+                const anyNakitPayment = studentPayments.find(p => isNakitPayment(p.payment_method));
+                const fallbackMonthlyAmount = student.custom_price && Number(student.custom_price) > 0
+                    ? Number(student.custom_price)
+                    : anyNakitPayment && Number(anyNakitPayment.amount) > 0
+                        ? (Number(anyNakitPayment.amount) > 10000 ? Math.round(Number(anyNakitPayment.amount) / 10) : Number(anyNakitPayment.amount))
+                        : 0;
+
+                const fallbackDate = anyNakitPayment?.payment_date || anyNakitPayment?.created_at || student.registration_date || student.created_at;
+                let fallbackDateStr = '';
+                if (fallbackDate) {
+                    const d = new Date(fallbackDate);
+                    const day = String(d.getDate()).padStart(2, '0');
+                    const monthNum = String(d.getMonth() + 1).padStart(2, '0');
+                    fallbackDateStr = `${day}.${monthNum}`;
+                }
+
                 const cells: Record<string, CellInfo> = {};
 
                 months.forEach(month => {
                     const monthUpper = month.toLocaleUpperCase('tr-TR');
                     const payment = studentPayments.find(p => p.month && (p.month === month || p.month.startsWith(month + ' ') || p.month.startsWith(month.toLowerCase() + ' ')));
+                    
                     if (payment && payment.status === 'Ödendi') {
                         // Tarih: sadece GG.AA formatında
                         const effectiveDate = payment.payment_date || payment.created_at;
@@ -692,8 +831,14 @@ const Payments = () => {
                             const monthNum = String(d.getMonth() + 1).padStart(2, '0');
                             dateStr = `${day}.${monthNum}`;
                         }
+
+                        // Eski tek parça peşin ödemeden kalan devasa tutarları aylık tutara normalize et
+                        const displayAmount = (Number(payment.amount) > 10000 && fallbackMonthlyAmount > 0)
+                            ? fallbackMonthlyAmount
+                            : payment.amount;
+
                         // Format: "GG.AA MiktarTL" (tarih + boşluk + miktarTL)
-                        const cellText = dateStr ? `${dateStr} ${payment.amount}TL` : `${payment.amount}TL`;
+                        const cellText = dateStr ? `${dateStr} ${displayAmount}TL` : `${displayAmount}TL`;
 
                         // Renk belirleme
                         let bgColor: 'green' | 'red' | 'none' = 'none';
@@ -704,6 +849,11 @@ const Payments = () => {
                         }
 
                         cells[monthUpper] = { text: cellText, bgColor };
+                    } else if (isNakitPesinStudent && fallbackMonthlyAmount > 0) {
+                        // Nakit ödedi denilen öğrencinin veritabanında tekil ayı henüz girilmemiş olsa dahi,
+                        // tablonun her bölmesi (her ayı) otomatik olarak doldurulur!
+                        const cellText = fallbackDateStr ? `${fallbackDateStr} ${fallbackMonthlyAmount}TL` : `${fallbackMonthlyAmount}TL`;
+                        cells[monthUpper] = { text: cellText, bgColor: 'green' };
                     } else {
                         cells[monthUpper] = { text: '', bgColor: 'none' };
                     }
@@ -944,7 +1094,7 @@ const Payments = () => {
 
             const { data: allPayments, error: pErr } = await supabase
                 .from('payments')
-                .select('student_id, amount, status')
+                .select('student_id, amount, status, month')
                 .eq('company_id', profile.company_id)
                 .limit(50000);
 
@@ -965,11 +1115,40 @@ const Payments = () => {
             const updatePromises: any[] = [];
 
             for (const student of studentsData) {
-                const isPesin = student.tags?.includes('Peşin Ödedi');
+                const isPesin = student.tags?.includes('Peşin Ödedi') || student.tags?.includes('Nakit Ödedi');
                 if (isPesin) {
                     if (Number(student.total_debt) !== 0) {
                         updatePromises.push(supabase.from('students').update({ total_debt: 0 }).eq('id', student.id));
                         updateCount++;
+                    }
+
+                    // Peşin/Nakit ödeyen öğrencilerin veritabanında tüm ayları yoksa otomatik tamamla
+                    const studentP = (allPayments || []).filter(p => p.student_id === student.id);
+                    const paidMonthsCount = studentP.filter(p => p.status === 'Ödendi').length;
+                    if (paidMonthsCount < 9) {
+                        const seasonList = getAcademicSeasonMonths();
+                        const monthlyFee = Number(student.custom_price) || 0;
+                        const missingInserts: any[] = [];
+                        seasonList.forEach((fullMonthName, idx) => {
+                            const short = fullMonthName.split(' ')[0];
+                            const exists = studentP.some(p => p.month && (p.month === fullMonthName || p.month.startsWith(short + ' ')));
+                            if (!exists && monthlyFee > 0) {
+                                missingInserts.push({
+                                    company_id: profile.company_id,
+                                    student_id: student.id,
+                                    month: fullMonthName,
+                                    amount: monthlyFee,
+                                    due_date: new Date().toISOString().split('T')[0],
+                                    status: 'Ödendi',
+                                    payment_method: 'Nakit',
+                                    invoice_no: `PEŞİN-DÜZELT-${idx + 1}`,
+                                    payment_date: new Date().toISOString()
+                                });
+                            }
+                        });
+                        if (missingInserts.length > 0) {
+                            updatePromises.push(supabase.from('payments').insert(missingInserts));
+                        }
                     }
                     continue;
                 }

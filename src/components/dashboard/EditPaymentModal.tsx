@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useMemo } from 'react';
 import { X } from 'lucide-react';
 import { type Payment } from './PaymentList';
 
@@ -9,10 +9,28 @@ interface EditPaymentModalProps {
     onSave: (paymentId: string, updates: Partial<Payment>) => Promise<void>;
 }
 
-const MONTHS = [
-    'Ocak', 'Şubat', 'Mart', 'Nisan', 'Mayıs', 'Haziran',
-    'Temmuz', 'Ağustos', 'Eylül', 'Ekim', 'Kasım', 'Aralık'
-];
+const getAcademicSeasonMonths = (): string[] => {
+    const today = new Date();
+    const currentMonth = today.getMonth(); // 0-11
+    const currentYear = today.getFullYear();
+    const startYear = currentMonth >= 7 ? currentYear : currentYear - 1;
+    const endYear = startYear + 1;
+
+    const academicOrder = [
+        { name: 'Eylül', year: startYear },
+        { name: 'Ekim', year: startYear },
+        { name: 'Kasım', year: startYear },
+        { name: 'Aralık', year: startYear },
+        { name: 'Ocak', year: endYear },
+        { name: 'Şubat', year: endYear },
+        { name: 'Mart', year: endYear },
+        { name: 'Nisan', year: endYear },
+        { name: 'Mayıs', year: endYear },
+        { name: 'Haziran', year: endYear },
+    ];
+
+    return academicOrder.map(m => `${m.name} ${m.year}`);
+};
 
 const EditPaymentModal: React.FC<EditPaymentModalProps> = ({ isOpen, payment, onClose, onSave }) => {
     const [amount, setAmount] = useState<string>('');
@@ -25,10 +43,24 @@ const EditPaymentModal: React.FC<EditPaymentModalProps> = ({ isOpen, payment, on
     const [paymentDate, setPaymentDate] = useState<string>('');
     const [loading, setLoading] = useState(false);
 
+    const seasonMonths = useMemo(() => getAcademicSeasonMonths(), []);
+    const availableMonthOptions = useMemo(() => {
+        if (month && !seasonMonths.includes(month)) {
+            return [month, ...seasonMonths];
+        }
+        return seasonMonths;
+    }, [month, seasonMonths]);
+
     useEffect(() => {
         if (payment) {
             setAmount(payment.amount.toString());
-            setMonth(payment.month || '');
+            let mStr = payment.month || '';
+            if (mStr && !/\d{4}/.test(mStr)) {
+                const dateStr = payment.due_date || payment.payment_date;
+                const yr = dateStr ? new Date(dateStr).getFullYear() : new Date().getFullYear();
+                mStr = `${mStr.trim()} ${yr}`;
+            }
+            setMonth(mStr);
             setInvoiceNo(payment.invoice_no || '');
             setDueDate(payment.due_date ? payment.due_date.split('T')[0] : '');
             setStatus(payment.status);
@@ -149,7 +181,7 @@ const EditPaymentModal: React.FC<EditPaymentModalProps> = ({ isOpen, payment, on
                                 className="w-full px-3 py-2 border border-slate-200 rounded-lg focus:ring-2 focus:ring-blue-500 outline-none"
                             >
                                 <option value="">Seçiniz</option>
-                                {MONTHS.map(m => (
+                                {availableMonthOptions.map(m => (
                                     <option key={m} value={m}>{m}</option>
                                 ))}
                             </select>

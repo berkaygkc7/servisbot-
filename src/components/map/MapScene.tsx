@@ -1,9 +1,11 @@
 /// <reference types="@types/google.maps" />
 import React, { useEffect, useState, useRef } from 'react';
-import { Map, AdvancedMarker, useMap, useMapsLibrary } from '@vis.gl/react-google-maps';
+import { Map, AdvancedMarker, useMap, useMapsLibrary, useApiLoadingStatus, APILoadingStatus } from '@vis.gl/react-google-maps';
 import { useAuth } from '../../contexts/AuthContext';
 import { getCityCoordinates } from '../../constants/cities';
 import VehicleMarker from './VehicleMarker';
+import MapFallback from './MapFallback';
+import MapErrorBoundary from './MapErrorBoundary';
 
 interface MapSceneProps {
     className?: string;
@@ -341,7 +343,7 @@ const CustomHtmlMarker = ({ config, position, title, onClick, onHover, vehicleCo
     );
 };
 
-const MapScene: React.FC<MapSceneProps> = ({
+const MapSceneContent: React.FC<MapSceneProps> = ({
     className = "h-full w-full",
     routeGeoJson,
     routesGeoJson,
@@ -362,6 +364,7 @@ const MapScene: React.FC<MapSceneProps> = ({
     suppressMarkers
 }) => {
     const { profile } = useAuth();
+    const apiStatus = useApiLoadingStatus();
     const [showLayerMenu, setShowLayerMenu] = useState(false);
     const [mapStyle, setMapStyle] = useState('default');
 
@@ -369,9 +372,37 @@ const MapScene: React.FC<MapSceneProps> = ({
         ? getCityCoordinates(profile.companies.city) 
         : null;
         
-    const safeCenter = center && !isNaN(Number(center[0])) && !isNaN(Number(center[1])) ? [Number(center[0]), Number(center[1])] : undefined;
-    const effectiveCenter = safeCenter || (companyCityCoordinates && !isNaN(Number(companyCityCoordinates[0])) && !isNaN(Number(companyCityCoordinates[1])) ? [Number(companyCityCoordinates[0]), Number(companyCityCoordinates[1])] as [number, number] : [28.9784, 41.0082]);
+    const safeCenter: [number, number] | undefined = center && !isNaN(Number(center[0])) && !isNaN(Number(center[1])) 
+        ? [Number(center[0]), Number(center[1])] 
+        : undefined;
+    const effectiveCenter: [number, number] = safeCenter || (companyCityCoordinates && !isNaN(Number(companyCityCoordinates[0])) && !isNaN(Number(companyCityCoordinates[1])) ? [Number(companyCityCoordinates[0]), Number(companyCityCoordinates[1])] : [28.9784, 41.0082]);
     const centerObj = { lat: effectiveCenter[1], lng: effectiveCenter[0] };
+
+    // Check if Google Maps failed to load or encountered auth failure
+    if (apiStatus === APILoadingStatus.FAILED || apiStatus === APILoadingStatus.AUTH_FAILURE) {
+        return (
+            <MapFallback
+                type={apiStatus === APILoadingStatus.AUTH_FAILURE ? 'auth_failure' : 'error'}
+                center={effectiveCenter}
+                markers={markers}
+                className={className}
+            />
+        );
+    }
+
+    // Check if API key is not configured and status is NOT_LOADED
+    if (!import.meta.env.VITE_GOOGLE_MAPS_API_KEY && apiStatus !== APILoadingStatus.LOADED) {
+        return (
+            <MapFallback
+                type="auth_failure"
+                title="Google Haritalar API Anahtarı Tanımlanmamış"
+                description="Google Haritalar API anahtarı yapılandırılmamış. Alternatif açık kaynak harita (OpenStreetMap) ile görüntüleyebilirsiniz."
+                center={effectiveCenter}
+                markers={markers}
+                className={className}
+            />
+        );
+    }
 
     const getMarkerConfig = (p: any) => {
         let bgClass = 'bg-blue-500';
@@ -421,6 +452,11 @@ const MapScene: React.FC<MapSceneProps> = ({
 
     return (
         <div className={`relative overflow-hidden rounded-xl shadow-inner bg-slate-100 ${className}`}>
+            {apiStatus === APILoadingStatus.LOADING && (
+                <div className="absolute inset-0 z-20 pointer-events-none transition-opacity duration-300">
+                    <MapFallback type="loading" className="w-full h-full" />
+                </div>
+            )}
             <div className="absolute inset-0 w-full h-full">
                 <Map
                     defaultZoom={zoom || 11}
@@ -505,4 +541,13 @@ const MapScene: React.FC<MapSceneProps> = ({
     );
 };
 
+const MapScene: React.FC<MapSceneProps> = (props) => {
+    return (
+        <MapErrorBoundary center={props.center} className={props.className}>
+            <MapSceneContent {...props} />
+        </MapErrorBoundary>
+    );
+};
+
+export { MapFallback, MapErrorBoundary };
 export default MapScene;

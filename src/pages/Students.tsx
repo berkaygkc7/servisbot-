@@ -7,7 +7,7 @@ import { tr } from 'date-fns/locale';
 import StudentList, { type Student } from '../components/dashboard/StudentList';
 import QrCodeModal from '../components/shared/QrCodeModal';
 import PaymentHistoryModal from '../components/dashboard/PaymentHistoryModal';
-import CollectPaymentModal from '../components/dashboard/CollectPaymentModal';
+import CollectPaymentModal, { getAcademicSeasonMonths } from '../components/dashboard/CollectPaymentModal';
 import { supabase } from '../lib/supabase';
 import { useAuth } from '../contexts/AuthContext';
 
@@ -1065,30 +1065,80 @@ const Students: React.FC = () => {
                 }
             }
 
-            // Create Payment record if Paid in Advance (only if creating or checking box during edit)
+            // Create Payment records for ALL academic season months if Paid in Advance (Nakit Ödedi)
             if (isPaidInAdvance && calculatedTotalDebt > 0 && savedStudentId) {
-                const { data: existingPayments } = await supabase
+                // Delete legacy single bulk "Peşin/Nakit (Kayıt)" payment if exists
+                await supabase
                     .from('payments')
-                    .select('id')
+                    .delete()
                     .eq('student_id', savedStudentId)
                     .eq('payment_method', 'Peşin/Nakit (Kayıt)');
 
-                if (!existingPayments || existingPayments.length === 0) {
-                    const rawMonth = format(new Date(), 'MMMM yyyy', { locale: tr });
-                    const currentMonth = rawMonth.charAt(0).toUpperCase() + rawMonth.slice(1);
-                    
-                    await supabase.from('payments').insert([{
-                        company_id: profile.company_id,
-                        student_id: savedStudentId,
-                        month: currentMonth,
-                        amount: calculatedTotalDebt,
-                        due_date: new Date().toISOString().split('T')[0],
-                        status: 'Ödendi',
-                        payment_method: 'Peşin/Nakit (Kayıt)',
-                        invoice_no: 'PEŞİN-' + Math.floor(Math.random() * 10000),
-                        payment_date: new Date().toISOString()
-                    }]);
+                // Get existing payments for this student
+                const { data: existingPayments } = await supabase
+                    .from('payments')
+                    .select('id, month, status')
+                    .eq('student_id', savedStudentId);
+
+                const existingMap = new Map<string, any>();
+                (existingPayments || []).forEach(p => {
+                    if (p.month) {
+                        existingMap.set(p.month.trim(), p);
+                        const short = p.month.trim().split(' ')[0];
+                        if (short) existingMap.set(short, p);
+                    }
+                });
+
+                const seasonMonths = getAcademicSeasonMonths();
+                const activeSeasonMonths = seasonMonths.slice(0, Math.min(seasonMonths.length, installmentMultiplier || 10));
+
+                const perMonthAmount = monthlyPrice > 0 
+                    ? monthlyPrice 
+                    : Math.round(calculatedTotalDebt / activeSeasonMonths.length);
+
+                const nowIso = new Date().toISOString();
+                const randomHex = Math.floor(1000 + Math.random() * 9000);
+
+                const paymentsToInsert: any[] = [];
+                const paymentsToUpdatePaidIds: string[] = [];
+
+                activeSeasonMonths.forEach((m, idx) => {
+                    const existing = existingMap.get(m.name) || existingMap.get(m.shortMonth);
+                    if (existing) {
+                        if (existing.status !== 'Ödendi') {
+                            paymentsToUpdatePaidIds.push(existing.id);
+                        }
+                    } else {
+                        paymentsToInsert.push({
+                            company_id: profile.company_id,
+                            student_id: savedStudentId,
+                            month: m.name,
+                            amount: perMonthAmount,
+                            due_date: m.dueDate,
+                            status: 'Ödendi',
+                            payment_method: 'Nakit',
+                            invoice_no: `PEŞİN-${randomHex}-${idx + 1}`,
+                            payment_date: nowIso
+                        });
+                    }
+                });
+
+                if (paymentsToInsert.length > 0) {
+                    await supabase.from('payments').insert(paymentsToInsert);
                 }
+
+                if (paymentsToUpdatePaidIds.length > 0) {
+                    await supabase
+                        .from('payments')
+                        .update({ status: 'Ödendi', payment_method: 'Nakit', payment_date: nowIso })
+                        .in('id', paymentsToUpdatePaidIds);
+                }
+
+                // Ensure student remaining debt stays 0
+                await supabase
+                    .from('students')
+                    .update({ total_debt: 0 })
+                    .eq('id', savedStudentId);
             }
 
             queryClient.invalidateQueries({ queryKey: ['students'] }); // Refresh list
@@ -1642,11 +1692,11 @@ const Students: React.FC = () => {
                                             );
                                         })()}
 
-                                        <div className="mt-4 bg-green-50 border border-green-200 rounded-xl p-4 flex items-start gap-3 shadow-sm">
+                                        <div className="mt-4 bg-emerald-50 border border-emerald-200 rounded-xl p-4 flex items-start gap-3 shadow-sm">
                                             <input
                                                 type="checkbox"
                                                 id="is_paid_in_advance"
-                                                className="mt-1 w-5 h-5 text-green-600 rounded focus:ring-green-500 cursor-pointer"
+                                                className="mt-1 w-5 h-5 text-emerald-600 rounded focus:ring-emerald-500 cursor-pointer"
                                                 checked={(formData as any).is_paid_in_advance || formData.tags?.includes('Peşin Ödedi') || false}
                                                 onChange={e => {
                                                     const isChecked = e.target.checked;
@@ -1663,11 +1713,14 @@ const Students: React.FC = () => {
                                                 }}
                                             />
                                             <div>
-                                                <label htmlFor="is_paid_in_advance" className="font-bold text-green-800 block cursor-pointer">
-                                                    Ödemesi Peşin Alındı (Hiç Borcu Yok)
+                                                <label htmlFor="is_paid_in_advance" className="font-bold text-emerald-900 block cursor-pointer flex items-center gap-2">
+                                                    <span>💵 Ödemesi Peşin / Nakit Alındı (Nakit Ödedi - Borcu Yok)</span>
+                                                    <span className="text-[10px] bg-emerald-200/80 text-emerald-900 px-2 py-0.5 rounded-full font-black border border-emerald-300">
+                                                        Tüm Ayları Doldurur
+                                                    </span>
                                                 </label>
-                                                <p className="text-sm text-green-700 mt-1 leading-relaxed">
-                                                    İşaretlenirse öğrencinin borcu <strong className="font-black">0 ₺</strong> olarak kaydedilir ve hesaplanan yıllık tutar otomatik olarak gelir tablosuna <strong className="font-black">Peşin/Nakit (Kayıt)</strong> olarak eklenir. Öğrenci "Peşin Ödedi" etiketi alır.
+                                                <p className="text-sm text-emerald-800 mt-1 leading-relaxed">
+                                                    İşaretlendiğinde öğrencinin kalan borcu <strong className="font-black">0 ₺</strong> yapılır ve tablodaki <strong className="font-black">tüm ay bölmeleri (Eylül - Haziran)</strong> otomatik olarak <strong className="font-black">Nakit Ödendi</strong> olarak doldurulup yeşil olarak işlenir. Öğrenci "Peşin Ödedi" etiketi alır.
                                                 </p>
                                             </div>
                                         </div>
